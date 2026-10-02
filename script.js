@@ -264,16 +264,27 @@ async function renderComingSoon() {
   const el = document.getElementById("comingSoon");
   const heading = document.getElementById("comingSoonHeading");
   if (!el) return;
-  const nextWeek = WEEK_DATES[4]; // one week after "this week"
-  const iso = toISODate(nextWeek);
-  heading.textContent = `Coming to ${isoWeekLabel(nextWeek)}`;
-  const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("launch_week", iso).eq("plan", "free");
-  const slotsLeft = Math.max(0, 10 - (count || 0));
-  el.innerHTML = Array.from({ length: slotsLeft }).map((_, i) => `
+  const candidates = upcomingMondays(8, 1); // next 8 weeks, rolling forward past full ones
+  for (const weekDate of candidates) {
+    const iso = toISODate(weekDate);
+    const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("launch_week", iso).eq("plan", "free");
+    const slotsLeft = Math.max(0, 10 - (count || 0));
+    if (slotsLeft > 0) {
+      heading.textContent = `Coming to ${isoWeekLabel(weekDate)}`;
+      el.innerHTML = Array.from({ length: slotsLeft }).map((_, i) => `
+        <div class="claim-slot">
+          <div class="n">${(count || 0) + i + 1}</div>
+          <a class="btn btn-black" href="submit.html?week=${iso}">Claim Now for Free</a>
+        </div>`).join("");
+      return;
+    }
+  }
+  heading.textContent = "Free slots are full for now";
+  el.innerHTML = `
     <div class="claim-slot">
-      <div class="n">${(count || 0) + i + 1}</div>
-      <a class="btn btn-black" href="submit.html?week=${iso}">Claim Now</a>
-    </div>`).join("");
+      <div class="n">★</div>
+      <a class="btn btn-black" href="submit.html">Get a premium slot — unlimited</a>
+    </div>`;
 }
 
 if (document.getElementById("launchFeed")) {
@@ -295,17 +306,32 @@ async function renderSlots() {
   SLOT_WEEKS = upcomingMondays(5, 1);
   el.innerHTML = SLOT_WEEKS.map((d, i) => `<div class="slot" data-w="${i}">${isoWeekLabel(d)}<span class="n">…</span></div>`).join("");
 
+  const weekFull = [];
   for (let i = 0; i < SLOT_WEEKS.length; i++) {
     const iso = toISODate(SLOT_WEEKS[i]);
     const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("launch_week", iso).eq("plan", "free");
     const slotEl = el.querySelector(`[data-w="${i}"]`);
     const full = (count || 0) >= 10;
+    weekFull[i] = full;
     slotEl.classList.toggle("full", full);
     slotEl.querySelector(".n").textContent = full ? "Full (premium only)" : `${count || 0}/10 free`;
-    if (!full) slotEl.addEventListener("click", () => {
+    slotEl.addEventListener("click", () => {
       el.querySelectorAll(".slot").forEach(s => s.classList.remove("selected"));
       slotEl.classList.add("selected");
       selectedWeekIdx = i;
+      const freeRadio = document.getElementById("planFree");
+      const premiumRadio = document.getElementById("planPremium");
+      const hint = document.getElementById("planHint");
+      if (freeRadio && premiumRadio && hint) {
+        if (full) {
+          freeRadio.checked = false; freeRadio.disabled = true;
+          premiumRadio.checked = true;
+          hint.style.display = "block";
+        } else {
+          freeRadio.disabled = false;
+          hint.style.display = "none";
+        }
+      }
     });
   }
 

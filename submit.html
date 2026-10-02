@@ -115,12 +115,13 @@
     <label>Plan</label>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px">
-        <input type="radio" name="plan" value="free" checked> Free (requires badge install + weekly verification)
+        <input id="planFree" type="radio" name="plan" value="free" checked> Free (requires badge install + weekly verification)
       </label>
       <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px">
-        <input type="radio" name="plan" value="premium"> Premium — $7 / 7-day launch
+        <input id="planPremium" type="radio" name="plan" value="premium"> Premium — $7 / 7-day launch
       </label>
     </div>
+    <div class="hint" id="planHint" style="display:none">Free slots for that week are full — pick premium, or choose a week that still has a free slot.</div>
   </div>
 
   <button class="btn btn-black" id="submitListingBtn" type="button" style="padding:12px 24px">Review &amp; submit</button>
