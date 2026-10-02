@@ -562,10 +562,17 @@ if (bookAdSlotBtn) bookAdSlotBtn.addEventListener("click", async () => {
   if (!currentUser) return openAuthModal();
   const name = document.getElementById("adName").value.trim();
   const tagline = document.getElementById("adTagline").value.trim();
-  const logoUrl = document.getElementById("adLogoUrl").value.trim();
+  const logoFile = document.getElementById("adLogoFile")?.files?.[0] || null;
   const targetUrl = document.getElementById("adTargetUrl").value.trim();
   if (!name || !tagline || !targetUrl) {
     statusEl.textContent = "Name, tagline and link are required."; statusEl.style.color = "#b00"; return;
+  }
+  statusEl.textContent = "Uploading logo…"; statusEl.style.color = "var(--ink-soft)";
+  let logoUrl = "";
+  try {
+    if (logoFile) logoUrl = await uploadListingImage(logoFile, "ad-logo");
+  } catch (err) {
+    statusEl.textContent = "Logo upload failed: " + err.message; statusEl.style.color = "#b00"; return;
   }
   statusEl.textContent = "Redirecting to payment…"; statusEl.style.color = "var(--ink-soft)";
   const resp = await fetch("/api/create-checkout", {
