@@ -95,9 +95,16 @@
   </div>
 
   <div class="form-group">
-    <label>Logo URL</label>
-    <input id="fieldLogoUrl" type="url" placeholder="https://yourproduct.com/logo.png">
-    <div class="hint">Direct image upload isn't wired up yet — paste a link to your logo for now.</div>
+    <label>Logo</label>
+    <input id="fieldLogoFile" type="file" accept="image/*">
+    <input id="fieldLogoUrlAuto" type="hidden">
+    <div class="hint" id="logoFileHint"></div>
+  </div>
+
+  <div class="form-group">
+    <label>Screenshots (up to 5)</label>
+    <input id="fieldScreenshots" type="file" accept="image/*" multiple>
+    <div class="hint" id="screenshotsHint">Shown on your product page.</div>
   </div>
 
   <div class="form-group">

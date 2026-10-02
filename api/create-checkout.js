@@ -30,6 +30,38 @@ module.exports = async (req, res) => {
       return res.status(200).json({ url: session.url });
     }
 
+    if (kind === "premium_new") {
+      const { name, tagline, description, url, logoUrl, screenshots, targetMarket, tags, launchWeek } = req.body || {};
+      if (!userId || !name || !tagline || !url || !launchWeek) {
+        return res.status(400).json({ error: "userId, name, tagline, url and launchWeek are required" });
+      }
+      const trim500 = (s) => (s || "").toString().slice(0, 480);
+      const metadata = {
+        kind: "premium_new",
+        userId,
+        name: trim500(name),
+        tagline: trim500(tagline),
+        description: trim500(description),
+        url: trim500(url),
+        logoUrl: trim500(logoUrl),
+        targetMarket: trim500(targetMarket),
+        tags: trim500(tags),
+        launchWeek,
+        ...datafastMeta,
+      };
+      (Array.isArray(screenshots) ? screenshots.slice(0, 5) : []).forEach((s, i) => {
+        metadata[`shot${i}`] = trim500(s);
+      });
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        line_items: [{ price: PRICE.premium, quantity: 1 }],
+        metadata,
+        success_url: `${origin}/submit.html?paid=1`,
+        cancel_url: `${origin}/submit.html?canceled=1`,
+      });
+      return res.status(200).json({ url: session.url });
+    }
+
     if (kind === "ad_slot") {
       const { name, tagline, logoUrl, targetUrl } = req.body || {};
       if (!userId) return res.status(400).json({ error: "userId required" });

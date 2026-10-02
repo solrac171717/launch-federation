@@ -299,6 +299,24 @@ if (document.getElementById("launchFeed")) {
 /* ---------- submit.html ---------- */
 let SLOT_WEEKS = [];
 let selectedWeekIdx = null;
+let SLOT_COUNTS = [];
+let SLOT_FULL = [];
+
+function updateSlotLabels() {
+  const el = document.getElementById("slotGrid");
+  if (!el) return;
+  const premiumRadio = document.getElementById("planPremium");
+  const isPremium = !!(premiumRadio && premiumRadio.checked);
+  for (let i = 0; i < SLOT_WEEKS.length; i++) {
+    const slotEl = el.querySelector(`[data-w="${i}"]`);
+    if (!slotEl) continue;
+    const full = SLOT_FULL[i];
+    slotEl.classList.toggle("premium-ok", isPremium && full);
+    slotEl.querySelector(".n").textContent = isPremium
+      ? "Open"
+      : (full ? "Full (premium only)" : `${SLOT_COUNTS[i] || 0}/10 free`);
+  }
+}
 
 async function renderSlots() {
   const el = document.getElementById("slotGrid");
@@ -306,15 +324,14 @@ async function renderSlots() {
   SLOT_WEEKS = upcomingMondays(5, 1);
   el.innerHTML = SLOT_WEEKS.map((d, i) => `<div class="slot" data-w="${i}">${isoWeekLabel(d)}<span class="n">…</span></div>`).join("");
 
-  const weekFull = [];
   for (let i = 0; i < SLOT_WEEKS.length; i++) {
     const iso = toISODate(SLOT_WEEKS[i]);
     const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("launch_week", iso).eq("plan", "free");
     const slotEl = el.querySelector(`[data-w="${i}"]`);
     const full = (count || 0) >= 10;
-    weekFull[i] = full;
+    SLOT_COUNTS[i] = count || 0;
+    SLOT_FULL[i] = full;
     slotEl.classList.toggle("full", full);
-    slotEl.querySelector(".n").textContent = full ? "Full (premium only)" : `${count || 0}/10 free`;
     slotEl.addEventListener("click", () => {
       el.querySelectorAll(".slot").forEach(s => s.classList.remove("selected"));
       slotEl.classList.add("selected");
@@ -335,6 +352,7 @@ async function renderSlots() {
       }
     });
   }
+  updateSlotLabels();
 
   const params = new URLSearchParams(location.search);
   const wantedWeek = params.get("week");
@@ -364,6 +382,7 @@ renderSlots();
     choiceFree.classList.toggle("selected", planFree.checked);
     choicePremium.classList.toggle("selected", planPremium.checked);
     if (badgeSection) badgeSection.style.display = planFree.checked ? "block" : "none";
+    updateSlotLabels();
   }
   planFree.addEventListener("change", syncPlanUI);
   planPremium.addEventListener("change", syncPlanUI);
@@ -437,7 +456,11 @@ async function autofillFromUrl() {
       document.getElementById("fieldTagline").value = data.description.slice(0, 90);
       document.getElementById("fieldDescription").value = data.description;
     }
-    if (data.logo) document.getElementById("fieldLogoUrl").value = data.logo;
+    if (data.logo) {
+      document.getElementById("fieldLogoUrlAuto").value = data.logo;
+      const hint = document.getElementById("logoFileHint");
+      if (hint) hint.textContent = "Found a logo on your site — it'll be used unless you upload your own below.";
+    }
     status.textContent = "Auto-filled from your site — target market and tags aren't detected automatically, add those yourself. Review before submitting.";
     status.style.color = "#1a7f3c";
   } catch (err) {
@@ -447,45 +470,89 @@ async function autofillFromUrl() {
 const autofillBtn = document.getElementById("autofillBtn");
 if (autofillBtn) autofillBtn.addEventListener("click", autofillFromUrl);
 
+async function uploadListingImage(file, prefix) {
+  const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+  const path = `${currentUser.id}/${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await sb.storage.from("listing-images").upload(path, file, { contentType: file.type || "image/png" });
+  if (error) throw error;
+  const { data } = sb.storage.from("listing-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+const screenshotsInputEl = document.getElementById("fieldScreenshots");
+if (screenshotsInputEl) screenshotsInputEl.addEventListener("change", () => {
+  const hint = document.getElementById("screenshotsHint");
+  if (screenshotsInputEl.files.length > 5) {
+    hint.textContent = "Only the first 5 images will be uploaded.";
+    hint.style.color = "#b00";
+  } else {
+    hint.textContent = "Shown on your product page.";
+    hint.style.color = "var(--ink-soft)";
+  }
+});
+
 const submitBtn = document.getElementById("submitListingBtn");
 if (submitBtn) submitBtn.addEventListener("click", async () => {
   const statusEl = document.getElementById("submitStatus");
   if (!currentUser) { openAuthModal(); return; }
   if (selectedWeekIdx === null) { statusEl.textContent = "Pick a launch week first."; statusEl.style.color = "#b00"; return; }
   const plan = document.querySelector('input[name="plan"]:checked').value;
-  const row = {
-    user_id: currentUser.id,
-    name: document.getElementById("fieldTitle").value.trim(),
-    tagline: document.getElementById("fieldTagline").value.trim(),
-    description: document.getElementById("fieldDescription").value.trim(),
-    url: document.getElementById("urlInput").value.trim(),
-    logo_url: document.getElementById("fieldLogoUrl")?.value.trim() || null,
-    target_market: document.getElementById("fieldMarket").value.trim(),
-    tags: document.getElementById("fieldTags").value.split(",").map(t => t.trim()).filter(Boolean),
-    plan,
-    launch_week: toISODate(SLOT_WEEKS[selectedWeekIdx]),
-    status: plan === "premium" ? "pending_payment" : "live",
-    dofollow: false,
-  };
-  if (!row.name || !row.tagline || !row.url) { statusEl.textContent = "Name, tagline and URL are required."; statusEl.style.color = "#b00"; return; }
-  statusEl.textContent = "Submitting…"; statusEl.style.color = "var(--ink-soft)";
-  const { data, error } = await sb.from("listings").insert(row).select().single();
-  if (error) { statusEl.textContent = error.message; statusEl.style.color = "#b00"; return; }
 
-  if (plan === "premium") {
-    statusEl.textContent = "Redirecting to payment…"; statusEl.style.color = "var(--ink-soft)";
-    const resp = await fetch("/api/create-checkout", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "premium", listingId: data.id, ...datafastIds() }),
-    });
-    const out = await resp.json();
-    if (out.url) { location.href = out.url; return; }
-    statusEl.textContent = out.error || "Could not start checkout."; statusEl.style.color = "#b00";
+  const name = document.getElementById("fieldTitle").value.trim();
+  const tagline = document.getElementById("fieldTagline").value.trim();
+  const description = document.getElementById("fieldDescription").value.trim();
+  const url = document.getElementById("urlInput").value.trim();
+  const targetMarket = document.getElementById("fieldMarket").value.trim();
+  const tags = document.getElementById("fieldTags").value.split(",").map(t => t.trim()).filter(Boolean);
+  const launchWeek = toISODate(SLOT_WEEKS[selectedWeekIdx]);
+  if (!name || !tagline || !url) { statusEl.textContent = "Name, tagline and URL are required."; statusEl.style.color = "#b00"; return; }
+
+  const logoFile = document.getElementById("fieldLogoFile")?.files?.[0] || null;
+  const logoUrlAuto = document.getElementById("fieldLogoUrlAuto")?.value || "";
+  const screenshotFiles = screenshotsInputEl && screenshotsInputEl.files ? Array.from(screenshotsInputEl.files).slice(0, 5) : [];
+
+  statusEl.textContent = "Uploading images…"; statusEl.style.color = "var(--ink-soft)";
+  let logoUrl = logoUrlAuto || null;
+  const screenshots = [];
+  try {
+    if (logoFile) logoUrl = await uploadListingImage(logoFile, "logo");
+    for (const f of screenshotFiles) screenshots.push(await uploadListingImage(f, "shot"));
+  } catch (err) {
+    statusEl.textContent = "Image upload failed: " + err.message; statusEl.style.color = "#b00"; return;
+  }
+
+  if (plan === "free") {
+    statusEl.textContent = "Submitting…"; statusEl.style.color = "var(--ink-soft)";
+    const row = {
+      user_id: currentUser.id, name, tagline, description, url,
+      logo_url: logoUrl, screenshots, target_market: targetMarket, tags,
+      plan, launch_week: launchWeek, status: "live", dofollow: false,
+    };
+    const { error } = await sb.from("listings").insert(row);
+    if (error) { statusEl.textContent = error.message; statusEl.style.color = "#b00"; return; }
+    statusEl.textContent = "Submitted! Install the badge (see badge.html) — it's checked weekly to keep your dofollow link.";
+    statusEl.style.color = "#1a7f3c";
     return;
   }
 
-  statusEl.textContent = "Submitted! Install the badge (see badge.html) — it's checked weekly to keep your dofollow link.";
-  statusEl.style.color = "#1a7f3c";
+  // Premium: go straight to checkout — the listing is only created once payment succeeds (via webhook).
+  statusEl.textContent = "Redirecting to payment…"; statusEl.style.color = "var(--ink-soft)";
+  const resp = await fetch("/api/create-checkout", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      kind: "premium_new",
+      userId: currentUser.id,
+      name, tagline, description, url,
+      logoUrl: logoUrl || "",
+      screenshots,
+      targetMarket, tags: tags.join(","),
+      launchWeek,
+      ...datafastIds(),
+    }),
+  });
+  const out = await resp.json();
+  if (out.url) { location.href = out.url; return; }
+  statusEl.textContent = out.error || "Could not start checkout."; statusEl.style.color = "#b00";
 });
 
 /* ---------- advertise.html: ad slot checkout ---------- */

@@ -42,6 +42,30 @@ module.exports = async (req, res) => {
       if (error) console.error("premium update failed", error);
     }
 
+    if (kind === "premium_new" && userId) {
+      const meta = session.metadata || {};
+      const screenshots = [];
+      for (let i = 0; i < 5; i++) {
+        if (meta[`shot${i}`]) screenshots.push(meta[`shot${i}`]);
+      }
+      const { error } = await sb.from("listings").insert({
+        user_id: userId,
+        name: meta.name || "",
+        tagline: meta.tagline || "",
+        description: meta.description || "",
+        url: meta.url || "",
+        logo_url: meta.logoUrl || null,
+        screenshots,
+        target_market: meta.targetMarket || "",
+        tags: (meta.tags || "").split(",").map((t) => t.trim()).filter(Boolean),
+        plan: "premium",
+        launch_week: meta.launchWeek,
+        status: "live",
+        dofollow: true,
+      });
+      if (error) console.error("premium_new insert failed", error);
+    }
+
     if (kind === "ad_slot" && userId) {
       const { name, tagline, logoUrl, targetUrl } = session.metadata || {};
       const { error } = await sb.from("ad_slots").insert({

@@ -545,6 +545,7 @@ img { max-width: 100%; display: block; }
   color: var(--ink);
 }
 .form-group .hint { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+.form-group input[type="file"] { padding: 9px 13px; font-size: 13.5px; background: #fff; }
 .tag-input-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
 .plan-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -580,7 +581,8 @@ img { max-width: 100%; display: block; }
   background: #fff;
 }
 .slot .n { display: block; font-size: 10.5px; font-weight: 500; color: var(--ink-soft); margin-top: 3px; }
-.slot.full { background: var(--bg-soft); color: var(--ink-soft); cursor: not-allowed; }
+.slot.full { background: var(--bg-soft); color: var(--ink-soft); cursor: pointer; }
+.slot.full.premium-ok { background: #fff; color: var(--ink); }
 .slot.selected { background: var(--camo-1); color: #fff; border-color: var(--camo-1); }
 
 .badge-preview {
