@@ -10,8 +10,17 @@
 
 <div class="topbar">
   <div class="topbar-inner">
-    <div class="search-box">🔍 Search… <kbd>Ctrl K</kbd></div>
-    <a class="brand" href="index.html"><span class="mark">🛰️</span> Launch Federation</a>
+    <div class="search-box">
+      <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Search…
+      <kbd>Ctrl K</kbd>
+    </div>
+    <a class="brand" href="index.html">
+      <span class="mark" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:#0a0a0a">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </span>
+      Launch Federation
+    </a>
     <div class="topbar-spacer"></div>
     <a class="btn btn-outline" href="pricing.html">Pricing</a>
     <span id="authSlot"></span>
@@ -26,7 +35,7 @@
     <label>Your website URL</label>
     <input id="urlInput" type="url" placeholder="https://yourproduct.com">
     <div class="hint">
-      <button class="btn btn-outline" id="autofillBtn" type="button" style="margin-top:10px">✨ Auto-fill from URL</button>
+      <button class="btn btn-outline" id="autofillBtn" type="button" style="margin-top:10px">Auto-fill from URL</button>
       <div id="autofillStatus" style="margin-top:8px"></div>
     </div>
   </div>

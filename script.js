@@ -117,6 +117,11 @@ async function loadWeek(idx) {
   feed.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
 }
 
+const ICON_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8 12.5l2.5 2.5L16 9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const ICON_STAR = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="star-icon"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>`;
+const ICON_COMMENT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+const ICON_UP = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>`;
+
 function launchCardHTML(l, i, voted) {
   const initial = l.name.charAt(0).toUpperCase();
   return `
@@ -126,16 +131,16 @@ function launchCardHTML(l, i, voted) {
       ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">` : initial}
     </div>
     <div class="launch-main">
-      <div class="launch-title-row"><a href="${l.url}" target="_blank" rel="${l.dofollow ? "" : "nofollow"}">${l.name}</a> ${l.plan === "premium" ? '<span class="verified">●</span>' : ""}</div>
+      <div class="launch-title-row"><a href="${l.url}" target="_blank" rel="${l.dofollow ? "" : "nofollow"}">${l.name}</a> ${l.plan === "premium" ? `<span class="verified">${ICON_CHECK}</span>` : ""}</div>
       <div class="tagline">${l.tagline}</div>
       <div class="meta-row">
-        <button data-toggle-comments="${l.id}" style="border:none;background:none;cursor:pointer;color:var(--ink-soft);font:inherit">💬 comments</button>
+        <button data-toggle-comments="${l.id}" style="display:inline-flex;align-items:center;gap:5px;border:none;background:none;cursor:pointer;color:var(--ink-soft);font:inherit">${ICON_COMMENT} Comments</button>
         ${(l.tags || []).map(t => `<span class="tag">${t}</span>`).join("")}
       </div>
       <div class="comments-panel" id="comments-${l.id}" style="display:none;margin-top:10px"></div>
     </div>
     <button class="upvote-btn ${voted ? "voted" : ""}" data-vote="${l.id}" ${voted ? "disabled" : ""}>
-      <span class="arrow">&uarr;</span>${l.votes}
+      <span class="arrow">${ICON_UP}</span>${l.votes}
     </button>
   </div>`;
 }
@@ -202,7 +207,7 @@ async function renderLeaderboard() {
     <div class="leaderboard-item">
       <div class="logo" style="background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px">${l.name.charAt(0)}</div>
       <div style="min-width:0"><div class="name">${l.name}</div><div class="desc">${l.tagline}</div></div>
-      <div class="count">&uarr;${l.votes}</div>
+      <div class="count" style="display:flex;align-items:center;gap:3px">${ICON_UP}${l.votes}</div>
     </div>`).join("");
 }
 
