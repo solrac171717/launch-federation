@@ -14,6 +14,7 @@
     <a class="brand" href="index.html"><span class="mark">🛰️</span> Launch Federation</a>
     <div class="topbar-spacer"></div>
     <a class="btn btn-outline" href="pricing.html">Pricing</a>
+    <span id="authSlot"></span>
   </div>
 </div>
 
@@ -56,8 +57,9 @@
   </div>
 
   <div class="form-group">
-    <label>Logo</label>
-    <input type="file" accept="image/*">
+    <label>Logo URL</label>
+    <input id="fieldLogoUrl" type="url" placeholder="https://yourproduct.com/logo.png">
+    <div class="hint">Direct image upload isn't wired up yet — paste a link to your logo for now.</div>
   </div>
 
   <div class="form-group">
@@ -70,22 +72,25 @@
     <label>Plan</label>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px">
-        <input type="radio" name="plan" checked> Free (requires badge install + weekly verification)
+        <input type="radio" name="plan" value="free" checked> Free (requires badge install + weekly verification)
       </label>
       <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px">
-        <input type="radio" name="plan"> Premium — $7 / 7-day launch
+        <input type="radio" name="plan" value="premium"> Premium — $7 / 7-day launch
       </label>
     </div>
   </div>
 
-  <button class="btn btn-black" type="button" style="padding:12px 24px">Review &amp; submit</button>
-  <p class="hint" style="margin-top:14px">This is a front-end preview — submissions aren't stored yet. See the project README for what's wired up next (accounts, payments, scheduling, badge verification).</p>
+  <button class="btn btn-black" id="submitListingBtn" type="button" style="padding:12px 24px">Review &amp; submit</button>
+  <div id="submitStatus" style="margin-top:14px;font-size:13px"></div>
+  <p class="hint" style="margin-top:14px">Listings and votes are now real (Supabase). Payment for premium listings and ad slots isn't wired up yet — see the README.</p>
 </div>
 
 <footer>
   <div class="wrap">Launch Federation — <a href="index.html">Home</a> · <a href="pricing.html">Pricing</a></div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
