@@ -284,19 +284,20 @@ img { max-width: 100%; display: block; }
   color: var(--ink-soft); font-size: 17px; padding: 4px;
 }
 
-/* ---- launch card ---- */
+/* ---- launch card: full-width edge-to-edge rectangle, left sidebar to right sidebar ---- */
 .launch-card {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 16px;
-  padding: 20px 14px;
-  border-bottom: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  transition: background .15s ease;
+  padding: 20px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  transition: background .15s ease, border-color .15s ease;
 }
-.launch-card:hover { background: var(--bg-soft); }
-.launch-card:first-child { border-top: 1px solid var(--line); }
-.launch-card.is-premium { border-left: 3px solid var(--camo-2); padding-left: 11px; }
+.launch-card:hover { background: var(--bg-soft); border-color: #cac6b0; }
+.launch-card.is-premium { border-left: 4px solid var(--ink); padding-left: 17px; }
 .rank {
   width: 22px;
   flex: none;
