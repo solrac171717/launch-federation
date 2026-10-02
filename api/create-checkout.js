@@ -10,8 +10,12 @@ const PRICE = {
 module.exports = async (req, res) => {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  const { kind, listingId, userId, email } = req.body || {};
+  const { kind, listingId, userId, email, datafastVisitorId, datafastSessionId } = req.body || {};
   const origin = `https://${req.headers.host}`;
+  const datafastMeta = {
+    ...(datafastVisitorId ? { datafast_visitor_id: datafastVisitorId } : {}),
+    ...(datafastSessionId ? { datafast_session_id: datafastSessionId } : {}),
+  };
 
   try {
     if (kind === "premium") {
@@ -19,7 +23,7 @@ module.exports = async (req, res) => {
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items: [{ price: PRICE.premium, quantity: 1 }],
-        metadata: { kind: "premium", listingId },
+        metadata: { kind: "premium", listingId, ...datafastMeta },
         success_url: `${origin}/submit.html?paid=1`,
         cancel_url: `${origin}/submit.html?canceled=1`,
       });
@@ -34,7 +38,7 @@ module.exports = async (req, res) => {
         mode: "subscription",
         line_items: [{ price: PRICE.ad_slot, quantity: 1 }],
         customer_email: email,
-        metadata: { kind: "ad_slot", userId, name, tagline, logoUrl: logoUrl || "", targetUrl },
+        metadata: { kind: "ad_slot", userId, name, tagline, logoUrl: logoUrl || "", targetUrl, ...datafastMeta },
         success_url: `${origin}/advertise.html?paid=1`,
         cancel_url: `${origin}/advertise.html?canceled=1`,
       });

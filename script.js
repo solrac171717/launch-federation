@@ -4,6 +4,14 @@
 const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 let currentUser = null;
 
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+function datafastIds() {
+  return { datafastVisitorId: getCookie("datafast_visitor_id"), datafastSessionId: getCookie("datafast_session_id") };
+}
+
 sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); if (typeof renderMyListings === "function") renderMyListings(); });
 sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); renderAuthGate(); if (typeof renderMyListings === "function") renderMyListings(); });
 
@@ -372,7 +380,7 @@ if (submitBtn) submitBtn.addEventListener("click", async () => {
     statusEl.textContent = "Redirecting to payment…"; statusEl.style.color = "var(--ink-soft)";
     const resp = await fetch("/api/create-checkout", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "premium", listingId: data.id }),
+      body: JSON.stringify({ kind: "premium", listingId: data.id, ...datafastIds() }),
     });
     const out = await resp.json();
     if (out.url) { location.href = out.url; return; }
@@ -399,7 +407,7 @@ if (bookAdSlotBtn) bookAdSlotBtn.addEventListener("click", async () => {
   statusEl.textContent = "Redirecting to payment…"; statusEl.style.color = "var(--ink-soft)";
   const resp = await fetch("/api/create-checkout", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind: "ad_slot", userId: currentUser.id, email: currentUser.email, name, tagline, logoUrl, targetUrl }),
+    body: JSON.stringify({ kind: "ad_slot", userId: currentUser.id, email: currentUser.email, name, tagline, logoUrl, targetUrl, ...datafastIds() }),
   });
   const out = await resp.json();
   if (out.url) { location.href = out.url; return; }
