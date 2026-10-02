@@ -113,7 +113,7 @@ async function loadWeek(idx) {
     .eq("status", "live");
 
   if (error) { feed.innerHTML = `<p style="color:#b00">${error.message}</p>`; return; }
-  if (!listings.length) { feed.innerHTML = `<p style="color:var(--ink-soft);padding:20px 10px">No launches yet for this week. <a href="submit.html">Be the first</a>.</p>`; return; }
+  if (!listings.length) { feed.innerHTML = ""; return; }
 
   const ids = listings.map(l => l.id);
   const { data: voteRows } = await sb.from("listing_votes").select("*").in("listing_id", ids);
