@@ -124,7 +124,7 @@ const ICON_UP = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" str
 const ICON_MEGAPHONE = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 0 0 2 2h1l3 5v-7"/><path d="M9 9 19 4v16L9 15"/></svg>`;
 
 /* Camouflage-toned tag palette — rotates by tag name so the same tag is always the same color. */
-const TAG_PALETTE = ["#3c4a2e", "#6b7a4a", "#8a5a3c", "#5b6b63", "#9c8a4a"];
+const TAG_PALETTE = ["#0b0c08"];
 function tagColor(tag) {
   let h = 0;
   for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
