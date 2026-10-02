@@ -4,8 +4,23 @@
 const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 let currentUser = null;
 
-sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); });
-sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); });
+sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); });
+sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); renderAuthGate(); });
+
+/* ---------- auth gate: shown instead of the submit form until signed in ---------- */
+function renderAuthGate() {
+  const gate = document.getElementById("authGate");
+  const form = document.getElementById("submitForm");
+  if (!gate || !form) return;
+  gate.style.display = currentUser ? "none" : "flex";
+  form.style.display = currentUser ? "block" : "none";
+}
+const googleBtn = document.getElementById("googleSignIn");
+if (googleBtn) googleBtn.addEventListener("click", () => {
+  sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.href } });
+});
+const emailGateBtn = document.getElementById("emailSignInGate");
+if (emailGateBtn) emailGateBtn.addEventListener("click", () => openAuthModal());
 
 /* ---------- date / week helpers ---------- */
 function mondayOf(date) {

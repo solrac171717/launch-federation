@@ -127,11 +127,32 @@ img { max-width: 100%; display: block; }
   margin: 0 auto;
 }
 
+.sidebar-left, .sidebar-right {
+  position: sticky;
+  top: 86px;
+  align-self: start;
+  max-height: calc(100vh - 106px);
+  overflow-y: auto;
+}
+
 @media (max-width: 1140px) {
   .layout { grid-template-columns: minmax(0,1fr); padding: 24px 0 70px; }
   .sidebar-left, .sidebar-right { display: none; }
   .wrap, .topbar-inner, .layout { padding-left: 16px; padding-right: 16px; }
 }
+
+/* ---- auth gate (shown before submitting a launch) ---- */
+.auth-gate { display: flex; justify-content: center; padding: 70px 0 40px; }
+.auth-gate-card { max-width: 360px; width: 100%; text-align: center; }
+.auth-gate-card .mark-lg {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 18px;
+}
+.auth-gate-brand { font-family: var(--font-display); font-weight: 700; font-size: 23px; margin-bottom: 6px; }
+.auth-gate-card p { color: var(--ink-soft); font-size: 14.5px; margin-bottom: 26px; }
 
 /* ---- left sidebar ---- */
 .sidebar-left { text-align: left; }
