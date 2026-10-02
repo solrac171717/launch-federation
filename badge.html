@@ -33,12 +33,35 @@
   <h1>Badge &amp; verification</h1>
   <p class="lead">Required for every free listing. It's how we confirm the backlink stays real.</p>
 
-  <p>Add this to your site's footer or homepage:</p>
-  <img src="badge.svg" alt="Featured on Launch Federation" style="margin-bottom:20px">
+  <p>Add this to your site's footer or homepage. Pick whichever version fits your site:</p>
 
-  <pre style="background:var(--bg-soft);border:1px solid var(--line);border-radius:8px;padding:16px;font-size:13px;overflow:auto">&lt;a href="https://launchfederation.com" rel="dofollow"&gt;
+  <div style="display:flex;gap:10px;margin-bottom:16px">
+    <button class="btn btn-black" id="badgeBtnBlack" type="button">Black</button>
+    <button class="btn btn-outline" id="badgeBtnWhite" type="button">White</button>
+  </div>
+
+  <img id="badgePreviewImg" src="badge.svg" alt="Featured on Launch Federation" style="margin-bottom:20px">
+
+  <pre id="badgeSnippet" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:8px;padding:16px;font-size:13px;overflow:auto">&lt;a href="https://launchfederation.com" rel="dofollow"&gt;
   &lt;img src="https://launchfederation.com/badge.svg" alt="Featured on Launch Federation"&gt;
 &lt;/a&gt;</pre>
+
+  <script>
+    (function () {
+      const img = document.getElementById("badgePreviewImg");
+      const pre = document.getElementById("badgeSnippet");
+      const btnBlack = document.getElementById("badgeBtnBlack");
+      const btnWhite = document.getElementById("badgeBtnWhite");
+      function setVariant(file) {
+        img.src = file;
+        pre.textContent = `<a href="https://launchfederation.com" rel="dofollow">\n  <img src="https://launchfederation.com/${file}" alt="Featured on Launch Federation">\n</a>`;
+        btnBlack.className = file === "badge.svg" ? "btn btn-black" : "btn btn-outline";
+        btnWhite.className = file === "badge-white.svg" ? "btn btn-black" : "btn btn-outline";
+      }
+      btnBlack.addEventListener("click", () => setVariant("badge.svg"));
+      btnWhite.addEventListener("click", () => setVariant("badge-white.svg"));
+    })();
+  </script>
 
   <h1 style="font-size:20px;margin-top:40px">How verification works</h1>
   <p class="lead" style="margin-bottom:28px">

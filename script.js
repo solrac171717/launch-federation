@@ -316,24 +316,32 @@ async function renderSlots() {
 }
 renderSlots();
 
-function fakeAutofill() {
+async function autofillFromUrl() {
   const url = document.getElementById("urlInput");
   const status = document.getElementById("autofillStatus");
-  if (!url || !url.value) return;
-  status.textContent = "Reading your site…";
-  status.style.color = "var(--ink-soft)";
-  setTimeout(() => {
-    document.getElementById("fieldTitle").value = document.getElementById("fieldTitle").value || "Your Product Name";
-    document.getElementById("fieldTagline").value = document.getElementById("fieldTagline").value || "A short, punchy one-line description";
-    document.getElementById("fieldDescription").value = document.getElementById("fieldDescription").value || "A longer description — edit freely before submitting.";
-    document.getElementById("fieldMarket").value = document.getElementById("fieldMarket").value || "SaaS founders / Indie makers";
-    document.getElementById("fieldTags").value = document.getElementById("fieldTags").value || "AI, Productivity";
-    status.textContent = "Auto-filled (demo) from " + url.value + " — this still needs a real scraper, see README. Review before submitting.";
-    status.style.color = "#8a5a00";
-  }, 700);
+  if (!url || !url.value.trim()) { status.textContent = "Enter a URL first."; status.style.color = "#b00"; return; }
+  status.textContent = "Reading your site…"; status.style.color = "var(--ink-soft)";
+  try {
+    const resp = await fetch("/api/autofill", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url.value.trim() }),
+    });
+    const data = await resp.json();
+    if (data.error) { status.textContent = data.error; status.style.color = "#b00"; return; }
+    if (data.title) document.getElementById("fieldTitle").value = data.title;
+    if (data.description) {
+      document.getElementById("fieldTagline").value = data.description.slice(0, 90);
+      document.getElementById("fieldDescription").value = data.description;
+    }
+    if (data.logo) document.getElementById("fieldLogoUrl").value = data.logo;
+    status.textContent = "Auto-filled from your site — target market and tags aren't detected automatically, add those yourself. Review before submitting.";
+    status.style.color = "#1a7f3c";
+  } catch (err) {
+    status.textContent = "Could not reach the autofill service."; status.style.color = "#b00";
+  }
 }
 const autofillBtn = document.getElementById("autofillBtn");
-if (autofillBtn) autofillBtn.addEventListener("click", fakeAutofill);
+if (autofillBtn) autofillBtn.addEventListener("click", autofillFromUrl);
 
 const submitBtn = document.getElementById("submitListingBtn");
 if (submitBtn) submitBtn.addEventListener("click", async () => {
