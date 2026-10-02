@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit your product — Launch Federation</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="search-box">🔍 Search… <kbd>Ctrl K</kbd></div>
+    <a class="brand" href="index.html"><span class="mark">🛰️</span> Launch Federation</a>
+    <div class="topbar-spacer"></div>
+    <a class="btn btn-outline" href="pricing.html">Pricing</a>
+  </div>
+</div>
+
+<div class="page">
+  <h1>Submit your product</h1>
+  <p class="lead">Paste your URL, we'll draft the listing for you — review everything before it goes live.</p>
+
+  <div class="form-group">
+    <label>Your website URL</label>
+    <input id="urlInput" type="url" placeholder="https://yourproduct.com">
+    <div class="hint">
+      <button class="btn btn-outline" id="autofillBtn" type="button" style="margin-top:10px">✨ Auto-fill from URL</button>
+      <div id="autofillStatus" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Product name</label>
+    <input id="fieldTitle" type="text" placeholder="e.g. Rocketito">
+  </div>
+
+  <div class="form-group">
+    <label>Tagline</label>
+    <input id="fieldTagline" type="text" placeholder="One line, shown on the launch card">
+  </div>
+
+  <div class="form-group">
+    <label>Description</label>
+    <textarea id="fieldDescription" rows="4" placeholder="What does it do, who is it for?"></textarea>
+  </div>
+
+  <div class="form-group">
+    <label>Target market</label>
+    <input id="fieldMarket" type="text" placeholder="e.g. Local service businesses">
+  </div>
+
+  <div class="form-group">
+    <label>Tags</label>
+    <input id="fieldTags" type="text" placeholder="AI, SEO, Marketing">
+  </div>
+
+  <div class="form-group">
+    <label>Logo</label>
+    <input type="file" accept="image/*">
+  </div>
+
+  <div class="form-group">
+    <label>Pick your launch week</label>
+    <div class="slot-grid" id="slotGrid"></div>
+    <div class="hint">Launches go live every Monday. Weeks already at 10 free slots only accept premium listings.</div>
+  </div>
+
+  <div class="form-group">
+    <label>Plan</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px">
+        <input type="radio" name="plan" checked> Free (requires badge install + weekly verification)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px">
+        <input type="radio" name="plan"> Premium — $7 / 7-day launch
+      </label>
+    </div>
+  </div>
+
+  <button class="btn btn-black" type="button" style="padding:12px 24px">Review &amp; submit</button>
+  <p class="hint" style="margin-top:14px">This is a front-end preview — submissions aren't stored yet. See the project README for what's wired up next (accounts, payments, scheduling, badge verification).</p>
+</div>
+
+<footer>
+  <div class="wrap">Launch Federation — <a href="index.html">Home</a> · <a href="pricing.html">Pricing</a></div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
