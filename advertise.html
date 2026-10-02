@@ -29,20 +29,41 @@
   </div>
 </div>
 
-<div class="page">
+<div class="page" style="max-width:900px">
   <h1>Advertise on Launch Federation</h1>
   <p class="lead">A sidebar ad slot shown next to every weekly launch, in front of the founders and builders who show up to discover (and upvote) new products.</p>
 
-  <div class="plan-card highlight" style="max-width:360px">
-    <strong>Sidebar ad slot</strong>
-    <div class="price">$15 <span>/ month</span></div>
-    <ul>
-      <li>One fixed slot in the right sidebar, every page</li>
-      <li>Shown across every weekly launch while booked</li>
-      <li>Cancel anytime</li>
-    </ul>
-    <button class="btn btn-black" id="bookAdSlotBtn" type="button" style="width:100%;justify-content:center">Book this slot</button>
-    <div id="adSlotStatus" style="margin-top:12px;font-size:13px"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start">
+    <div>
+      <div class="form-group">
+        <label>Business / product name</label>
+        <input id="adName" type="text" placeholder="e.g. Rocketito">
+      </div>
+      <div class="form-group">
+        <label>Short tagline</label>
+        <input id="adTagline" type="text" placeholder="One line, shown under your name">
+      </div>
+      <div class="form-group">
+        <label>Logo URL</label>
+        <input id="adLogoUrl" type="url" placeholder="https://yourproduct.com/logo.png">
+      </div>
+      <div class="form-group">
+        <label>Link (where "Visit" sends people)</label>
+        <input id="adTargetUrl" type="url" placeholder="https://yourproduct.com">
+      </div>
+    </div>
+
+    <div class="plan-card highlight">
+      <strong>Sidebar ad slot</strong>
+      <div class="price">$15 <span>/ month</span></div>
+      <ul>
+        <li>One fixed slot in the right sidebar, every page</li>
+        <li>Shown across every weekly launch while booked</li>
+        <li>Cancel anytime</li>
+      </ul>
+      <button class="btn btn-black" id="bookAdSlotBtn" type="button" style="width:100%;justify-content:center">Book this slot</button>
+      <div id="adSlotStatus" style="margin-top:12px;font-size:13px"></div>
+    </div>
   </div>
 </div>
 

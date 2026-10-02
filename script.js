@@ -252,17 +252,12 @@ async function renderStatusBar() {
   document.getElementById("statCountdown").textContent = label;
 }
 
-document.querySelectorAll(".ad-slot-empty strong").forEach(s => {
-  if (!s.previousElementSibling || !s.previousElementSibling.classList.contains("icon")) {
-    s.insertAdjacentHTML("beforebegin", `<div class="icon" style="justify-content:center">${ICON_MEGAPHONE}</div>`);
-  }
-});
-
 if (document.getElementById("launchFeed")) {
   WEEK_DATES = upcomingMondays(7, -3);
   loadWeek(3);
   renderLeaderboard();
   renderStatusBar();
+  renderAdSlots();
 }
 
 /* ---------- submit.html ---------- */
@@ -356,12 +351,48 @@ const bookAdSlotBtn = document.getElementById("bookAdSlotBtn");
 if (bookAdSlotBtn) bookAdSlotBtn.addEventListener("click", async () => {
   const statusEl = document.getElementById("adSlotStatus");
   if (!currentUser) return openAuthModal();
+  const name = document.getElementById("adName").value.trim();
+  const tagline = document.getElementById("adTagline").value.trim();
+  const logoUrl = document.getElementById("adLogoUrl").value.trim();
+  const targetUrl = document.getElementById("adTargetUrl").value.trim();
+  if (!name || !tagline || !targetUrl) {
+    statusEl.textContent = "Name, tagline and link are required."; statusEl.style.color = "#b00"; return;
+  }
   statusEl.textContent = "Redirecting to payment…"; statusEl.style.color = "var(--ink-soft)";
   const resp = await fetch("/api/create-checkout", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind: "ad_slot", userId: currentUser.id, email: currentUser.email }),
+    body: JSON.stringify({ kind: "ad_slot", userId: currentUser.id, email: currentUser.email, name, tagline, logoUrl, targetUrl }),
   });
   const out = await resp.json();
   if (out.url) { location.href = out.url; return; }
   statusEl.textContent = out.error || "Could not start checkout."; statusEl.style.color = "#b00";
 });
+
+/* ---------- index.html: real ad slots in the sidebar ---------- */
+async function renderAdSlots() {
+  const el = document.getElementById("adSlots");
+  if (!el) return;
+  const { data: ads, error } = await sb.from("ad_slots_public").select("*").order("created_at", { ascending: false }).limit(4);
+  const bought = (ads || []).map(ad => `
+    <div class="ad-card">
+      <div class="ad-top">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <div class="logo" style="width:36px;height:36px;flex:none;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
+            ${ad.logo_url ? `<img src="${ad.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:9px">` : (ad.name || "?").charAt(0).toUpperCase()}
+          </div>
+          <strong style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ad.name || ""}</strong>
+        </div>
+        <a class="btn btn-outline" href="${ad.target_url}" target="_blank" rel="noopener sponsored" style="padding:4px 10px;font-size:12px;flex:none">Visit</a>
+      </div>
+      <h4>${ad.tagline || ""}</h4>
+    </div>`).join("");
+  const emptySlotsNeeded = Math.max(0, 2 - (ads ? ads.length : 0));
+  const empty = Array.from({ length: emptySlotsNeeded }).map(() => `
+    <div class="ad-slot-empty">
+      <div class="icon" style="justify-content:center">${ICON_MEGAPHONE}</div>
+      <strong>Your ad here</strong>
+      <div class="price">From $15/mo</div>
+      <div style="margin-top:10px"><a class="btn btn-outline" href="advertise.html" style="font-size:12.5px;padding:6px 14px">Book this slot</a></div>
+    </div>`).join("");
+  el.innerHTML = bought + empty;
+}

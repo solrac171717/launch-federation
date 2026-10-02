@@ -27,13 +27,14 @@ module.exports = async (req, res) => {
     }
 
     if (kind === "ad_slot") {
+      const { name, tagline, logoUrl, targetUrl } = req.body || {};
       if (!userId) return res.status(400).json({ error: "userId required" });
+      if (!name || !tagline || !targetUrl) return res.status(400).json({ error: "name, tagline and targetUrl are required" });
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         line_items: [{ price: PRICE.ad_slot, quantity: 1 }],
         customer_email: email,
-        metadata: { kind: "ad_slot", userId },
-        subscription_data: { metadata: { kind: "ad_slot", userId } },
+        metadata: { kind: "ad_slot", userId, name, tagline, logoUrl: logoUrl || "", targetUrl },
         success_url: `${origin}/advertise.html?paid=1`,
         cancel_url: `${origin}/advertise.html?canceled=1`,
       });

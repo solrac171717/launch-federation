@@ -43,11 +43,16 @@ module.exports = async (req, res) => {
     }
 
     if (kind === "ad_slot" && userId) {
+      const { name, tagline, logoUrl, targetUrl } = session.metadata || {};
       const { error } = await sb.from("ad_slots").insert({
         user_id: userId,
         stripe_subscription_id: session.subscription || null,
         stripe_customer_id: session.customer || null,
         status: "active",
+        name: name || null,
+        tagline: tagline || null,
+        logo_url: logoUrl || null,
+        target_url: targetUrl || null,
       });
       if (error) console.error("ad_slot insert failed", error);
     }
