@@ -91,9 +91,7 @@ img { max-width: 100%; display: block; }
   letter-spacing: -0.01em;
 }
 .brand .mark {
-  width: 28px; height: 28px;
   display: inline-block;
-  background: linear-gradient(135deg, var(--camo-1), var(--camo-2)) !important;
 }
 
 .topbar-spacer { flex: 1; }
