@@ -28,62 +28,82 @@
   </div>
 </div>
 
-<div class="page">
-  <h1>Pricing</h1>
-  <p class="lead">Ten free slots open every Monday. Once they're gone, the only way in that week is a premium listing.</p>
+<div class="pricing-wrap">
+  <div class="pricing-head">
+    <h1>Pricing</h1>
+    <p>Ten free slots open every Monday. Once they're gone, the only way in that week is a premium listing.</p>
+  </div>
 
   <div class="plans">
     <div class="plan-card">
+      <div class="plan-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
       <strong>Free</strong>
+      <div class="tagline">For your first launch, no cost</div>
       <div class="price">$0</div>
-      <ul>
-        <li>1 of 10 weekly slots (first come, first served)</li>
-        <li>Permanent product page</li>
-        <li>Dofollow backlink — <strong>as long as the badge stays installed and verified</strong></li>
-        <li>Automatic weekly check for the badge; the link drops to nofollow if it's missing</li>
-        <li>Upvotes &amp; comments from the community</li>
+      <hr>
+      <ul class="feature-list">
+        <li>${ICON}1 of 10 weekly slots — first come, first served</li>
+        <li>${ICON}Permanent, indexable product page</li>
+        <li>${ICON}Dofollow backlink, as long as the badge stays verified</li>
+        <li>${ICON}Automatic weekly badge check</li>
+        <li>${ICON}Upvotes &amp; comments from the community</li>
+        <li class="extra">${ICON}Written review of your landing page — a founder's first impression</li>
       </ul>
       <a class="btn btn-outline" href="submit.html" style="width:100%;justify-content:center">Claim a free slot</a>
     </div>
 
     <div class="plan-card highlight">
+      <div class="ribbon">Most popular</div>
+      <div class="plan-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.6 6.8L12 16.9 5.8 20.4l1.6-6.8-5.2-4.6 6.9-.7z"/></svg>
+      </div>
       <strong>Premium listing</strong>
+      <div class="tagline">Launch on your schedule, every time</div>
       <div class="price">$7 <span>/ 7-day launch</span></div>
-      <ul>
-        <li>Skip the free-slot queue — launches even when the week is full</li>
-        <li>Featured placement above free listings for the week</li>
-        <li>Permanent product page + dofollow backlink, no badge required</li>
-        <li>Upvotes, comments &amp; full analytics on your launch</li>
+      <hr>
+      <ul class="feature-list">
+        <li>${ICON}Skip the free-slot queue — launches even when the week is full</li>
+        <li>${ICON}Featured placement above free listings</li>
+        <li>${ICON}Permanent page + dofollow backlink, no badge required</li>
+        <li>${ICON}Upvotes, comments &amp; full analytics</li>
+        <li class="extra">${ICON}Written review of your landing page — a founder's first impression</li>
       </ul>
       <a class="btn btn-black" href="submit.html" style="width:100%;justify-content:center">Get a premium slot</a>
     </div>
 
     <div class="plan-card">
+      <div class="plan-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 0 0 2 2h1l3 5v-7"/><path d="M9 9 19 4v16L9 15"/></svg>
+      </div>
       <strong>Ad slot</strong>
+      <div class="tagline">Front and center, every launch</div>
       <div class="price">$15 <span>/ month</span></div>
-      <ul>
-        <li>Sidebar placement next to every weekly launch</li>
-        <li>Shown across the whole site, every week you're booked</li>
-        <li>Cancel anytime, billed monthly</li>
+      <hr>
+      <ul class="feature-list">
+        <li>${ICON}Sidebar placement next to every weekly launch</li>
+        <li>${ICON}Shown across the whole site while booked</li>
+        <li>${ICON}Cancel anytime, billed monthly</li>
+        <li class="extra">${ICON}Written review of your landing page — a founder's first impression</li>
       </ul>
       <a class="btn btn-outline" href="advertise.html" style="width:100%;justify-content:center">Book a slot</a>
     </div>
   </div>
 
-  <h1 style="font-size:22px">How the free backlink works</h1>
-  <p class="lead" style="margin-bottom:16px">
-    Free listings are a trade: we give you a permanent, indexable page and a dofollow link — you keep our badge
-    visible on your site. We re-check every installed badge once a week. If it's missing or the verification
-    tag doesn't match, the backlink on your Launch Federation page automatically switches to <code>nofollow</code>
-    until it's fixed.
+  <p style="text-align:center;color:var(--ink-soft);font-size:13px">
+    How the dofollow badge works → <a href="badge.html" style="text-decoration:underline">see the install &amp; verification steps</a>
   </p>
-  <a href="badge.html" class="badge-preview">
-    <img class="mark" src="logo.png" alt="" style="width:18px;height:18px;object-fit:contain"> Featured on Launch Federation
-  </a>
 </div>
 
 <footer>
   <div class="wrap">Launch Federation — <a href="index.html">Home</a> · <a href="submit.html">Submit</a></div>
 </footer>
+
+<script>
+document.querySelectorAll(".feature-list li").forEach(li => {
+  li.innerHTML = li.innerHTML.replace("${ICON}", '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>');
+});
+</script>
 </body>
 </html>
