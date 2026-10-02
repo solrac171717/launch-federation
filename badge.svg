@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="248" height="56" viewBox="0 0 248 56">
+  <rect width="248" height="56" rx="10" fill="#0b0c08"/>
+  <circle cx="29" cy="28" r="14" fill="#ffffff"/>
+  <path d="M22 28l5 5 11-11" stroke="#0b0c08" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="52" y="23" font-family="Arial, Helvetica, sans-serif" font-size="10" letter-spacing="1" fill="#9a9a90">FEATURED ON</text>
+  <text x="52" y="40" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#ffffff">Launch Federation</text>
+</svg>

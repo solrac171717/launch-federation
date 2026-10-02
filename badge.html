@@ -25,6 +25,7 @@
     </a>
     <div class="topbar-spacer"></div>
     <a class="btn btn-black" href="submit.html">+ New Launch</a>
+    <span id="authSlot"></span>
   </div>
 </div>
 
@@ -33,24 +34,30 @@
   <p class="lead">Required for every free listing. It's how we confirm the backlink stays real.</p>
 
   <p>Add this to your site's footer or homepage:</p>
-  <a href="#" class="badge-preview" style="margin-bottom:24px">
-    <img class="mark" src="logo.png" alt="" style="width:18px;height:18px;object-fit:contain"> Featured on Launch Federation
-  </a>
+  <img src="badge.svg" alt="Featured on Launch Federation" style="margin-bottom:20px">
 
-  <pre style="background:var(--bg-soft);border:1px solid var(--line);border-radius:8px;padding:16px;font-size:13px;overflow:auto">&lt;a href="https://launchfederation.com/p/your-product" rel="dofollow"&gt;
+  <pre style="background:var(--bg-soft);border:1px solid var(--line);border-radius:8px;padding:16px;font-size:13px;overflow:auto">&lt;a href="https://launchfederation.com" rel="dofollow"&gt;
   &lt;img src="https://launchfederation.com/badge.svg" alt="Featured on Launch Federation"&gt;
 &lt;/a&gt;</pre>
 
   <h1 style="font-size:20px;margin-top:40px">How verification works</h1>
-  <p class="lead" style="margin-bottom:0">
-    Every week, we check that the badge is still installed and pointing at your listing. If it's missing, broken,
-    or the link has been altered, the backlink on your Launch Federation page is switched to <code>nofollow</code>
+  <p class="lead" style="margin-bottom:28px">
+    Every week, we fetch your site and check for that exact badge image. If it's missing, broken,
+    or removed, the backlink on your Launch Federation page is switched to <code>nofollow</code>
     until it's fixed — no listing is removed, the link just stops counting as dofollow.
   </p>
+
+  <h1 style="font-size:20px">Verify your badge now</h1>
+  <p class="lead" style="margin-bottom:16px">Sign in to check your free listings instantly, instead of waiting for the weekly check.</p>
+  <div id="myListings"></div>
 </div>
 
 <footer>
   <div class="wrap">Launch Federation — <a href="index.html">Home</a> · <a href="pricing.html">Pricing</a></div>
 </footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="script.js"></script>
 </body>
 </html>

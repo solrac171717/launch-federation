@@ -4,8 +4,8 @@
 const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 let currentUser = null;
 
-sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); });
-sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); renderAuthGate(); });
+sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); if (typeof renderMyListings === "function") renderMyListings(); });
+sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); renderAuthGate(); if (typeof renderMyListings === "function") renderMyListings(); });
 
 /* ---------- auth gate: shown instead of the submit form until signed in ---------- */
 function renderAuthGate() {
@@ -252,12 +252,29 @@ async function renderStatusBar() {
   document.getElementById("statCountdown").textContent = label;
 }
 
+async function renderComingSoon() {
+  const el = document.getElementById("comingSoon");
+  const heading = document.getElementById("comingSoonHeading");
+  if (!el) return;
+  const nextWeek = WEEK_DATES[4]; // one week after "this week"
+  const iso = toISODate(nextWeek);
+  heading.textContent = `Coming to ${isoWeekLabel(nextWeek)}`;
+  const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("launch_week", iso).eq("plan", "free");
+  const slotsLeft = Math.max(0, 10 - (count || 0));
+  el.innerHTML = Array.from({ length: slotsLeft }).map((_, i) => `
+    <div class="claim-slot">
+      <div class="n">${(count || 0) + i + 1}</div>
+      <a class="btn btn-black" href="submit.html?week=${iso}">Claim Now</a>
+    </div>`).join("");
+}
+
 if (document.getElementById("launchFeed")) {
   WEEK_DATES = upcomingMondays(7, -3);
   loadWeek(3);
   renderLeaderboard();
   renderStatusBar();
   renderAdSlots();
+  renderComingSoon();
 }
 
 /* ---------- submit.html ---------- */
@@ -282,6 +299,19 @@ async function renderSlots() {
       slotEl.classList.add("selected");
       selectedWeekIdx = i;
     });
+  }
+
+  const params = new URLSearchParams(location.search);
+  const wantedWeek = params.get("week");
+  if (wantedWeek) {
+    const idx = SLOT_WEEKS.findIndex(d => toISODate(d) === wantedWeek);
+    const slotEl = idx >= 0 ? el.querySelector(`[data-w="${idx}"]`) : null;
+    if (slotEl && !slotEl.classList.contains("full")) {
+      slotEl.click();
+      slotEl.scrollIntoView({ block: "nearest" });
+      const note = document.getElementById("claimNote");
+      if (note) note.style.display = "block";
+    }
   }
 }
 renderSlots();
@@ -367,6 +397,44 @@ if (bookAdSlotBtn) bookAdSlotBtn.addEventListener("click", async () => {
   if (out.url) { location.href = out.url; return; }
   statusEl.textContent = out.error || "Could not start checkout."; statusEl.style.color = "#b00";
 });
+
+/* ---------- badge.html: verify your own free listings ---------- */
+async function renderMyListings() {
+  const el = document.getElementById("myListings");
+  if (!el) return;
+  if (!currentUser) {
+    el.innerHTML = `<button class="btn btn-outline" id="myListingsSignIn">Sign in to check your listings</button>`;
+    document.getElementById("myListingsSignIn").onclick = openAuthModal;
+    return;
+  }
+  const { data: listings } = await sb.from("listings").select("*").eq("user_id", currentUser.id).eq("plan", "free");
+  if (!listings || !listings.length) { el.innerHTML = `<p style="color:var(--ink-soft);font-size:13.5px">You don't have any free listings yet.</p>`; return; }
+  el.innerHTML = listings.map(l => `
+    <div style="display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:10px">
+      <strong style="flex:1">${l.name}</strong>
+      <span id="badgeStatus-${l.id}" style="font-size:12.5px;color:var(--ink-soft)">${badgeStatusLabel(l.badge_status)}</span>
+      <button class="btn btn-outline" data-verify="${l.id}" style="padding:6px 14px;font-size:12.5px">Verify now</button>
+    </div>`).join("");
+  el.querySelectorAll("[data-verify]").forEach(btn => btn.addEventListener("click", async () => {
+    const id = btn.dataset.verify;
+    const label = document.getElementById(`badgeStatus-${id}`);
+    label.textContent = "Checking…";
+    btn.disabled = true;
+    const resp = await fetch("/api/verify-badge", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listingId: id }),
+    });
+    const out = await resp.json();
+    label.textContent = out.verified ? "✓ Verified — dofollow active" : "Badge not found — still nofollow";
+    label.style.color = out.verified ? "#1a7f3c" : "#b00";
+    btn.disabled = false;
+  }));
+}
+function badgeStatusLabel(status) {
+  if (status === "verified") return "✓ Verified — dofollow active";
+  if (status === "missing") return "Badge not found — nofollow";
+  return "Not checked yet";
+}
 
 /* ---------- index.html: real ad slots in the sidebar ---------- */
 async function renderAdSlots() {

@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/verify-badges-weekly", "schedule": "0 6 * * 1" }
+  ]
+}
