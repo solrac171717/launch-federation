@@ -25,6 +25,7 @@
     </a>
     <div class="topbar-spacer"></div>
     <a class="btn btn-black" href="submit.html">+ New Launch</a>
+    <span id="authSlot"></span>
   </div>
 </div>
 
@@ -40,12 +41,17 @@
       <li>Shown across every weekly launch while booked</li>
       <li>Cancel anytime</li>
     </ul>
-    <button class="btn btn-black" style="width:100%;justify-content:center">Book this slot</button>
+    <button class="btn btn-black" id="bookAdSlotBtn" type="button" style="width:100%;justify-content:center">Book this slot</button>
+    <div id="adSlotStatus" style="margin-top:12px;font-size:13px"></div>
   </div>
 </div>
 
 <footer>
   <div class="wrap">Launch Federation — <a href="index.html">Home</a> · <a href="pricing.html">Pricing</a></div>
 </footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="script.js"></script>
 </body>
 </html>

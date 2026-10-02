@@ -327,15 +327,41 @@ if (submitBtn) submitBtn.addEventListener("click", async () => {
     tags: document.getElementById("fieldTags").value.split(",").map(t => t.trim()).filter(Boolean),
     plan,
     launch_week: toISODate(SLOT_WEEKS[selectedWeekIdx]),
-    status: "live",
-    dofollow: plan === "premium",
+    status: plan === "premium" ? "pending_payment" : "live",
+    dofollow: false,
   };
   if (!row.name || !row.tagline || !row.url) { statusEl.textContent = "Name, tagline and URL are required."; statusEl.style.color = "#b00"; return; }
   statusEl.textContent = "Submitting…"; statusEl.style.color = "var(--ink-soft)";
-  const { error } = await sb.from("listings").insert(row);
+  const { data, error } = await sb.from("listings").insert(row).select().single();
   if (error) { statusEl.textContent = error.message; statusEl.style.color = "#b00"; return; }
-  statusEl.textContent = plan === "premium"
-    ? "Submitted! (Payment for the $7 premium listing isn't wired up yet — see README.)"
-    : "Submitted! Install the badge (see badge.html) — it's checked weekly to keep your dofollow link.";
+
+  if (plan === "premium") {
+    statusEl.textContent = "Redirecting to payment…"; statusEl.style.color = "var(--ink-soft)";
+    const resp = await fetch("/api/create-checkout", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "premium", listingId: data.id }),
+    });
+    const out = await resp.json();
+    if (out.url) { location.href = out.url; return; }
+    statusEl.textContent = out.error || "Could not start checkout."; statusEl.style.color = "#b00";
+    return;
+  }
+
+  statusEl.textContent = "Submitted! Install the badge (see badge.html) — it's checked weekly to keep your dofollow link.";
   statusEl.style.color = "#1a7f3c";
+});
+
+/* ---------- advertise.html: ad slot checkout ---------- */
+const bookAdSlotBtn = document.getElementById("bookAdSlotBtn");
+if (bookAdSlotBtn) bookAdSlotBtn.addEventListener("click", async () => {
+  const statusEl = document.getElementById("adSlotStatus");
+  if (!currentUser) return openAuthModal();
+  statusEl.textContent = "Redirecting to payment…"; statusEl.style.color = "var(--ink-soft)";
+  const resp = await fetch("/api/create-checkout", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kind: "ad_slot", userId: currentUser.id, email: currentUser.email }),
+  });
+  const out = await resp.json();
+  if (out.url) { location.href = out.url; return; }
+  statusEl.textContent = out.error || "Could not start checkout."; statusEl.style.color = "#b00";
 });
