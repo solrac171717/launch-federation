@@ -301,6 +301,7 @@ img { max-width: 100%; display: block; }
   padding: 30px 16px;
   text-align: center;
   color: var(--ink-soft);
+  margin-bottom: 16px;
 }
 .ad-slot-empty strong { display: block; color: var(--ink); margin-bottom: 4px; font-size: 14px; }
 
