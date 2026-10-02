@@ -453,8 +453,8 @@ img { max-width: 100%; display: block; }
 .page h1 { font-family: var(--font-display); font-size: 38px; letter-spacing: -0.02em; margin-bottom: 10px; }
 .page .lead { color: var(--ink-soft); font-size: 17px; margin-bottom: 44px; }
 
-.pricing-wrap { max-width: 1180px; margin: 0 auto; padding: 44px 24px 60px; }
-.pricing-wrap .pricing-head { text-align: center; margin-bottom: 34px; }
+.pricing-wrap { max-width: 1180px; margin: 0 auto; padding: 18px 24px 40px; }
+.pricing-wrap .pricing-head { text-align: center; margin-bottom: 18px; }
 .pricing-wrap .pricing-head h1 { font-family: var(--font-display); font-size: 34px; letter-spacing: -0.02em; margin-bottom: 8px; }
 .pricing-wrap .pricing-head p { color: var(--ink-soft); font-size: 15.5px; margin: 0 auto; max-width: 520px; }
 
@@ -462,7 +462,7 @@ img { max-width: 100%; display: block; }
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 22px;
-  margin: 0 0 30px;
+  margin: 0 0 18px;
   align-items: stretch;
 }
 @media (max-width: 900px) { .plans { grid-template-columns: 1fr; } }
@@ -470,7 +470,7 @@ img { max-width: 100%; display: block; }
 .plan-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 28px 26px;
+  padding: 22px 24px;
   display: flex;
   flex-direction: column;
   position: relative;
