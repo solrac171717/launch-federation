@@ -121,21 +121,30 @@ const ICON_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="
 const ICON_STAR = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="star-icon"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>`;
 const ICON_COMMENT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 const ICON_UP = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>`;
+const ICON_MEGAPHONE = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 0 0 2 2h1l3 5v-7"/><path d="M9 9 19 4v16L9 15"/></svg>`;
+
+/* Camouflage-toned tag palette — rotates by tag name so the same tag is always the same color. */
+const TAG_PALETTE = ["#3c4a2e", "#6b7a4a", "#8a5a3c", "#5b6b63", "#9c8a4a"];
+function tagColor(tag) {
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+  return TAG_PALETTE[h % TAG_PALETTE.length];
+}
 
 function launchCardHTML(l, i, voted) {
   const initial = l.name.charAt(0).toUpperCase();
   return `
-  <div class="launch-card">
+  <div class="launch-card ${l.plan === "premium" ? "is-premium" : ""}">
     <div class="rank">${i + 1}</div>
-    <div class="logo" style="background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px">
-      ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">` : initial}
+    <div class="logo" style="background:linear-gradient(135deg,var(--camo-1),var(--camo-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px">
+      ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:13px">` : initial}
     </div>
     <div class="launch-main">
       <div class="launch-title-row"><a href="${l.url}" target="_blank" rel="${l.dofollow ? "" : "nofollow"}">${l.name}</a> ${l.plan === "premium" ? `<span class="verified">${ICON_CHECK}</span>` : ""}</div>
       <div class="tagline">${l.tagline}</div>
       <div class="meta-row">
-        <button data-toggle-comments="${l.id}" style="display:inline-flex;align-items:center;gap:5px;border:none;background:none;cursor:pointer;color:var(--ink-soft);font:inherit">${ICON_COMMENT} Comments</button>
-        ${(l.tags || []).map(t => `<span class="tag">${t}</span>`).join("")}
+        <button data-toggle-comments="${l.id}" style="display:inline-flex;align-items:center;gap:5px;border:none;background:none;cursor:pointer;color:var(--ink-soft);font:inherit;font-weight:600">${ICON_COMMENT} Comments</button>
+        ${(l.tags || []).map(t => `<span class="tag" style="background:${tagColor(t)}">${t}</span>`).join("")}
       </div>
       <div class="comments-panel" id="comments-${l.id}" style="display:none;margin-top:10px"></div>
     </div>
@@ -211,10 +220,34 @@ async function renderLeaderboard() {
     </div>`).join("");
 }
 
+async function renderStatusBar() {
+  const el = document.getElementById("statusBar");
+  if (!el) return;
+  const thisMonday = mondayOf(new Date());
+  const iso = toISODate(thisMonday);
+  const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("launch_week", iso).eq("plan", "free");
+  const left = Math.max(0, 10 - (count || 0));
+  document.getElementById("statSlots").textContent = `${left} / 10`;
+
+  const today = new Date();
+  const dow = today.getDay();
+  let label;
+  if (dow === 1) label = "Today";
+  else { const days = (8 - dow) % 7 || 7; label = `In ${days}d`; }
+  document.getElementById("statCountdown").textContent = label;
+}
+
+document.querySelectorAll(".ad-slot-empty strong").forEach(s => {
+  if (!s.previousElementSibling || !s.previousElementSibling.classList.contains("icon")) {
+    s.insertAdjacentHTML("beforebegin", `<div class="icon" style="justify-content:center">${ICON_MEGAPHONE}</div>`);
+  }
+});
+
 if (document.getElementById("launchFeed")) {
   WEEK_DATES = upcomingMondays(7, -3);
   loadWeek(3);
   renderLeaderboard();
+  renderStatusBar();
 }
 
 /* ---------- submit.html ---------- */
