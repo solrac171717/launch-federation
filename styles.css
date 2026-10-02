@@ -55,9 +55,7 @@ img { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 16px 24px;
-  max-width: 1360px;
-  margin: 0 auto;
+  padding: 16px 28px;
 }
 
 .search-box {
@@ -120,9 +118,7 @@ img { max-width: 100%; display: block; }
   display: grid;
   grid-template-columns: 236px minmax(0,1fr) 300px;
   gap: 32px;
-  padding: 32px 0 90px;
-  max-width: 1360px;
-  margin: 0 auto;
+  padding: 32px 28px 90px;
 }
 
 .sidebar-left, .sidebar-right {
