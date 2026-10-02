@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Launch Federation</title>
+<meta name="description" content="Privacy Policy for Launch Federation, the weekly launch directory for SaaS founders.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://launchfederation.com/privacy.html">
+<meta property="og:title" content="Privacy Policy — Launch Federation">
+<meta property="og:description" content="Privacy Policy for Launch Federation, the weekly launch directory for SaaS founders.">
+<meta property="og:image" content="https://launchfederation.com/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Privacy Policy — Launch Federation">
+<meta name="twitter:description" content="Privacy Policy for Launch Federation, the weekly launch directory for SaaS founders.">
+<meta name="twitter:image" content="https://launchfederation.com/og-image.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="search-box">
+      <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Search…
+      <kbd>Ctrl K</kbd>
+    </div>
+    <a class="brand" href="index.html">
+      <img class="mark" src="logo.png" alt="Launch Federation" style="width:34px;height:34px;object-fit:contain">
+      Launch Federation
+    </a>
+    <div class="topbar-spacer"></div>
+    <a class="btn btn-black" href="submit.html">+ New Launch</a>
+    <span id="authSlot"></span>
+  </div>
+</div>
+
+<div class="page" style="max-width:760px">
+  <h1>Privacy Policy</h1>
+  <p class="lead">Last updated: October 2, 2026.</p>
+
+  <p>This Privacy Policy explains what data Launch Federation collects and how it's used.</p>
+
+  <h1 style="font-size:19px;margin-top:32px">1. What we collect</h1>
+  <p class="lead">
+    When you sign in, we collect your email address (and, if you use Google, your Google profile email) via our authentication provider, Supabase. When you submit a listing, we store what you enter: product name, tagline, description, URL, logo, tags, and target market. When you buy a premium listing or ad slot, payment is handled directly by Stripe — we receive confirmation of payment, not your card number.
+  </p>
+
+  <h1 style="font-size:19px;margin-top:32px">2. How we use it</h1>
+  <p class="lead">To run your account, display your listing, show your ad if you've booked a slot, verify your badge weekly, and email you about your listing or account when needed. We don't sell your data.</p>
+
+  <h1 style="font-size:19px;margin-top:32px">3. Badge verification</h1>
+  <p class="lead">To verify a free listing, our server fetches the public HTML of the URL you submitted and checks for our badge image. We don't store the page content, only the pass/fail result and the time it was checked.</p>
+
+  <h1 style="font-size:19px;margin-top:32px">4. Third parties we rely on</h1>
+  <p class="lead">
+    <strong>Supabase</strong> — authentication and database hosting.<br>
+    <strong>Stripe</strong> — payment processing for premium listings and ad slots.<br>
+    <strong>Vercel</strong> — website and serverless function hosting.<br>
+    <strong>Google</strong> — optional sign-in via Google OAuth.
+  </p>
+
+  <h1 style="font-size:19px;margin-top:32px">5. Your choices</h1>
+  <p class="lead">You can request deletion of your account and listings at any time. Canceling an ad slot subscription stops future billing immediately.</p>
+
+  <h1 style="font-size:19px;margin-top:32px">6. Contact</h1>
+  <p class="lead" style="margin-bottom:40px">Questions about this policy or your data? Reach out via the contact details on our homepage.</p>
+
+  <p class="hint">See also our <a href="terms.html">Terms of Service</a>.</p>
+</div>
+
+<footer>
+  <div class="wrap">
+    Launch Federation — <a href="index.html">Home</a> · <a href="pricing.html">Pricing</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
