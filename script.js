@@ -326,6 +326,7 @@ async function renderSlots() {
         if (full) {
           freeRadio.checked = false; freeRadio.disabled = true;
           premiumRadio.checked = true;
+          premiumRadio.dispatchEvent(new Event("change"));
           hint.style.display = "block";
         } else {
           freeRadio.disabled = false;
@@ -349,6 +350,75 @@ async function renderSlots() {
   }
 }
 renderSlots();
+
+/* ---------- submit.html: plan cards + badge section ---------- */
+(function () {
+  const planFree = document.getElementById("planFree");
+  const planPremium = document.getElementById("planPremium");
+  const choiceFree = document.getElementById("planChoiceFree");
+  const choicePremium = document.getElementById("planChoicePremium");
+  const badgeSection = document.getElementById("badgeSection");
+  if (!planFree || !planPremium) return;
+
+  function syncPlanUI() {
+    choiceFree.classList.toggle("selected", planFree.checked);
+    choicePremium.classList.toggle("selected", planPremium.checked);
+    if (badgeSection) badgeSection.style.display = planFree.checked ? "block" : "none";
+  }
+  planFree.addEventListener("change", syncPlanUI);
+  planPremium.addEventListener("change", syncPlanUI);
+  syncPlanUI();
+
+  const img = document.getElementById("sBadgePreviewImg");
+  const pre = document.getElementById("sBadgeSnippet");
+  const btnBlack = document.getElementById("sBadgeBtnBlack");
+  const btnWhite = document.getElementById("sBadgeBtnWhite");
+  function snippetText(file) {
+    return `<a href="https://launchfederation.com" rel="dofollow">\n  <img src="https://launchfederation.com/${file}" alt="Featured on Launch Federation">\n</a>`;
+  }
+  function setVariant(file) {
+    img.src = file;
+    pre.textContent = snippetText(file);
+    btnBlack.className = file === "badge.svg" ? "btn btn-black" : "btn btn-outline";
+    btnWhite.className = file === "badge-white.svg" ? "btn btn-black" : "btn btn-outline";
+  }
+  if (btnBlack) btnBlack.addEventListener("click", () => setVariant("badge.svg"));
+  if (btnWhite) btnWhite.addEventListener("click", () => setVariant("badge-white.svg"));
+
+  const copyStatus = document.getElementById("copyBadgeStatus");
+  const copyBadgeBtn = document.getElementById("copyBadgeCodeBtn");
+  if (copyBadgeBtn) copyBadgeBtn.addEventListener("click", async () => {
+    await navigator.clipboard.writeText(pre.textContent);
+    copyStatus.textContent = "Badge code copied."; copyStatus.style.color = "#1a7f3c";
+  });
+
+  const copyAiBtn = document.getElementById("copyAiInstructionsBtn");
+  if (copyAiBtn) copyAiBtn.addEventListener("click", async () => {
+    const file = img.src.includes("badge-white") ? "badge-white.svg" : "badge.svg";
+    const instructions = `Add this exact badge to this website so it's visible in the rendered HTML (footer or homepage), inside <body>:\n\n${snippetText(file)}\n\nDo not change the href or img src. Keep it visible — don't hide it with CSS (no display:none, visibility:hidden, or 0 opacity/size). It must stay on the live page permanently, since it's checked weekly by Launch Federation.`;
+    await navigator.clipboard.writeText(instructions);
+    copyStatus.textContent = "AI instructions copied."; copyStatus.style.color = "#1a7f3c";
+  });
+
+  const verifyBtn = document.getElementById("verifyBadgeNowBtn");
+  const verifyStatus = document.getElementById("verifyBadgeStatus");
+  if (verifyBtn) verifyBtn.addEventListener("click", async () => {
+    const url = document.getElementById("urlInput")?.value.trim();
+    if (!url) { verifyStatus.textContent = "Enter your website URL above first."; verifyStatus.style.color = "#b00"; return; }
+    verifyStatus.textContent = "Checking your site…"; verifyStatus.style.color = "var(--ink-soft)";
+    try {
+      const resp = await fetch("/api/check-badge-url", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const out = await resp.json();
+      if (out.verified) { verifyStatus.textContent = "✓ Badge found — you're good to submit."; verifyStatus.style.color = "#1a7f3c"; }
+      else { verifyStatus.textContent = "Badge not found yet on that page. Add it, then verify again."; verifyStatus.style.color = "#b00"; }
+    } catch (err) {
+      verifyStatus.textContent = "Couldn't check that URL."; verifyStatus.style.color = "#b00";
+    }
+  });
+})();
 
 async function autofillFromUrl() {
   const url = document.getElementById("urlInput");

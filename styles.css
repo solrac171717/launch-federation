@@ -109,6 +109,8 @@ img { max-width: 100%; display: block; }
 .btn-black:hover { background: #26281c; }
 .btn-outline { border-color: var(--line); background: #fff; color: var(--ink); }
 .btn-outline:hover { border-color: #cac6b0; }
+.btn-blue { background: #2563eb; color: #fff; }
+.btn-blue:hover { background: #1d4ed8; }
 .btn-ghost { background: transparent; color: var(--ink-soft); }
 .btn-camo { background: var(--camo-1); color: #f3f1e6; }
 .btn-camo:hover { background: #2e3824; }
@@ -544,6 +546,23 @@ img { max-width: 100%; display: block; }
 }
 .form-group .hint { font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
 .tag-input-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+.plan-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.plan-choice {
+  position: relative;
+  display: block;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 16px 16px 16px 40px;
+  cursor: pointer;
+  background: #fff;
+  transition: border-color .15s ease, background .15s ease;
+}
+.plan-choice input { position: absolute; top: 18px; left: 16px; width: 16px; height: 16px; accent-color: var(--ink); cursor: pointer; }
+.plan-choice-title { font-family: var(--font-display); font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.plan-choice-sub { font-size: 12.5px; color: var(--ink-soft); line-height: 1.4; }
+.plan-choice.selected { border-color: var(--ink); background: var(--bg-soft); }
+@media (max-width: 560px) { .plan-choice-grid { grid-template-columns: 1fr; } }
 
 .slot-grid {
   display: grid;

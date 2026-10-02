@@ -68,7 +68,7 @@
     <label>Your website URL</label>
     <input id="urlInput" type="url" placeholder="https://yourproduct.com">
     <div class="hint">
-      <button class="btn btn-outline" id="autofillBtn" type="button" style="margin-top:10px">Auto-fill from URL</button>
+      <button class="btn btn-blue" id="autofillBtn" type="button" style="margin-top:10px">Auto-fill from URL</button>
       <div id="autofillStatus" style="margin-top:8px"></div>
     </div>
   </div>
@@ -113,20 +113,48 @@
 
   <div class="form-group">
     <label>Plan</label>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px">
-        <input id="planFree" type="radio" name="plan" value="free" checked> Free (requires badge install + weekly verification)
+    <div class="plan-choice-grid">
+      <label class="plan-choice" id="planChoiceFree">
+        <input id="planFree" type="radio" name="plan" value="free" checked>
+        <div class="plan-choice-title">Free</div>
+        <div class="plan-choice-sub">Requires the badge installed + weekly verification</div>
       </label>
-      <label style="display:flex;align-items:center;gap:6px;font-weight:600;font-size:13.5px">
-        <input id="planPremium" type="radio" name="plan" value="premium"> Premium — $7 / 7-day launch
+      <label class="plan-choice" id="planChoicePremium">
+        <input id="planPremium" type="radio" name="plan" value="premium">
+        <div class="plan-choice-title">Premium — $7</div>
+        <div class="plan-choice-sub">7-day launch, no badge required</div>
       </label>
     </div>
     <div class="hint" id="planHint" style="display:none">Free slots for that week are full — pick premium, or choose a week that still has a free slot.</div>
   </div>
 
+  <div class="form-group" id="badgeSection">
+    <label>Install the badge</label>
+    <p class="hint" style="margin-bottom:12px">Required for a free listing. Pick a color, add it to your site, then verify it's live.</p>
+
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button class="btn btn-black" id="sBadgeBtnBlack" type="button">Black</button>
+      <button class="btn btn-outline" id="sBadgeBtnWhite" type="button">White</button>
+    </div>
+
+    <img id="sBadgePreviewImg" src="badge.svg" alt="Featured on Launch Federation" style="margin-bottom:14px;max-width:220px">
+
+    <pre id="sBadgeSnippet" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:8px;padding:16px;font-size:13px;overflow:auto">&lt;a href="https://launchfederation.com" rel="dofollow"&gt;
+  &lt;img src="https://launchfederation.com/badge.svg" alt="Featured on Launch Federation"&gt;
+&lt;/a&gt;</pre>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-outline" id="copyBadgeCodeBtn" type="button">Copy badge code</button>
+      <button class="btn btn-outline" id="copyAiInstructionsBtn" type="button">Copy instructions for your AI</button>
+    </div>
+    <div id="copyBadgeStatus" style="margin-top:8px;font-size:13px"></div>
+
+    <button class="btn btn-black" id="verifyBadgeNowBtn" type="button" style="margin-top:16px">Verify badge now</button>
+    <div id="verifyBadgeStatus" style="margin-top:8px;font-size:13px"></div>
+  </div>
+
   <button class="btn btn-black" id="submitListingBtn" type="button" style="padding:12px 24px">Review &amp; submit</button>
   <div id="submitStatus" style="margin-top:14px;font-size:13px"></div>
-  <p class="hint" style="margin-top:14px">Listings and votes are now real (Supabase). Payment for premium listings and ad slots isn't wired up yet — see the README.</p>
   </div>
 </div>
 
