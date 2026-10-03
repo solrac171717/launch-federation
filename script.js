@@ -148,6 +148,9 @@ async function loadWeek(idx) {
   const feed = document.getElementById("launchFeed");
   feed.innerHTML = `<p style="color:var(--ink-soft);padding:20px 10px">Loading…</p>`;
 
+  // idx 1 is always "next week" — label it as upcoming until it rolls forward to become "this week" (idx 0).
+  const headingHtml = idx === 1 ? `<div class="section-heading" style="margin-bottom:14px"><h2>Coming to ${isoWeekLabel(WEEK_DATES[idx])}</h2></div>` : "";
+
   const { data: listings, error } = await sb
     .from("listings")
     .select("*")
@@ -155,7 +158,7 @@ async function loadWeek(idx) {
     .eq("status", "live");
 
   if (error) { feed.innerHTML = `<p style="color:#b00">${error.message}</p>`; return; }
-  if (!listings.length) { feed.innerHTML = ""; return; }
+  if (!listings.length) { feed.innerHTML = headingHtml; return; }
 
   const ids = listings.map(l => l.id);
   const { data: voteRows } = await sb.from("listing_votes").select("*").in("listing_id", ids);
@@ -169,7 +172,7 @@ async function loadWeek(idx) {
     .map(l => ({ ...l, votes: votes[l.id] || 0 }))
     .sort((a, b) => (b.plan === "premium") - (a.plan === "premium") || b.votes - a.votes);
 
-  feed.innerHTML = ranked.map((l, i) => launchCardHTML(l, i, mine.has(l.id))).join("");
+  feed.innerHTML = headingHtml + ranked.map((l, i) => launchCardHTML(l, i, mine.has(l.id))).join("");
   feed.querySelectorAll("[data-vote]").forEach(btn => btn.addEventListener("click", () => castVote(btn.dataset.vote)));
   feed.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
 
@@ -272,17 +275,27 @@ async function toggleComments(listingId) {
   };
 }
 
-function renderWeekTabs() {
+// idx 0 (this week) and 1 (next week) are always open; weeks after that only unlock
+// once something has actually been scheduled into them.
+async function weekIsUnlocked(idx) {
+  if (idx <= 1) return true;
+  const iso = toISODate(WEEK_DATES[idx]);
+  const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("launch_week", iso);
+  return (count || 0) > 0;
+}
+
+async function renderWeekTabs() {
   const el = document.getElementById("weekTabs");
   if (!el) return;
+  const unlocked = await Promise.all(WEEK_DATES.map((_, i) => weekIsUnlocked(i)));
   el.innerHTML = `
     <button class="week-nav-arrow" id="weekPrev" ${ACTIVE_WEEK_IDX === 0 ? "disabled" : ""}>&lsaquo;</button>
-    ${WEEK_DATES.map((d, i) => `<button class="week-tab ${i === ACTIVE_WEEK_IDX ? "active" : ""}" data-week="${i}">${isoWeekLabel(d)}</button>`).join("")}
-    <button class="week-nav-arrow" id="weekNext" ${ACTIVE_WEEK_IDX === WEEK_DATES.length - 1 ? "disabled" : ""}>&rsaquo;</button>
+    ${WEEK_DATES.map((d, i) => `<button class="week-tab ${i === ACTIVE_WEEK_IDX ? "active" : ""}" data-week="${i}" ${unlocked[i] ? "" : "disabled"}>${isoWeekLabel(d)}</button>`).join("")}
+    <button class="week-nav-arrow" id="weekNext" ${(ACTIVE_WEEK_IDX === WEEK_DATES.length - 1 || !unlocked[ACTIVE_WEEK_IDX + 1]) ? "disabled" : ""}>&rsaquo;</button>
   `;
-  el.querySelectorAll("[data-week]").forEach(b => b.onclick = () => loadWeek(Number(b.dataset.week)));
+  el.querySelectorAll("[data-week]:not(:disabled)").forEach(b => b.onclick = () => loadWeek(Number(b.dataset.week)));
   document.getElementById("weekPrev").onclick = () => ACTIVE_WEEK_IDX > 0 && loadWeek(ACTIVE_WEEK_IDX - 1);
-  document.getElementById("weekNext").onclick = () => ACTIVE_WEEK_IDX < WEEK_DATES.length - 1 && loadWeek(ACTIVE_WEEK_IDX + 1);
+  document.getElementById("weekNext").onclick = () => ACTIVE_WEEK_IDX < WEEK_DATES.length - 1 && unlocked[ACTIVE_WEEK_IDX + 1] && loadWeek(ACTIVE_WEEK_IDX + 1);
 }
 
 async function renderLeaderboard() {

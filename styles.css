@@ -281,7 +281,7 @@ img { max-width: 100%; display: block; }
   background: none;
 }
 .week-tab.active { background: var(--camo-1); color: #fff; }
-.week-tab:disabled { opacity: .35; cursor: default; }
+.week-tab:disabled { opacity: .35; cursor: not-allowed; }
 .week-nav-arrow {
   border: none; background: none; cursor: pointer;
   color: var(--ink-soft); font-size: 17px; padding: 4px;
