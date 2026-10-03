@@ -3,6 +3,7 @@
 
 const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 let currentUser = null;
+let isAdmin = false;
 
 function getCookie(name) {
   const match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
@@ -12,8 +13,20 @@ function datafastIds() {
   return { datafastVisitorId: getCookie("datafast_visitor_id"), datafastSessionId: getCookie("datafast_session_id") };
 }
 
-sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); if (typeof renderMyListings === "function") renderMyListings(); });
-sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); renderAuthGate(); if (typeof renderMyListings === "function") renderMyListings(); });
+async function refreshAdminFlag() {
+  if (!currentUser) { isAdmin = false; renderAdminNav(); return; }
+  const { data } = await sb.from("profiles").select("is_admin").eq("id", currentUser.id).single();
+  isAdmin = !!data?.is_admin;
+  renderAdminNav();
+  if (typeof renderAdminPage === "function") renderAdminPage();
+}
+function renderAdminNav() {
+  const link = document.getElementById("adminNavLink");
+  if (link) link.style.display = isAdmin ? "flex" : "none";
+}
+
+sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); refreshAdminFlag(); if (typeof renderMyListings === "function") renderMyListings(); });
+sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); renderAuthGate(); refreshAdminFlag(); if (typeof renderMyListings === "function") renderMyListings(); });
 
 /* ---------- auth gate: shown instead of the submit form until signed in ---------- */
 function renderAuthGate() {
@@ -660,3 +673,55 @@ async function renderAdSlots() {
     </div>`).join("");
   el.innerHTML = bought + empty;
 }
+
+/* ---------- admin.html ---------- */
+async function renderAdminPage() {
+  const gate = document.getElementById("adminGate");
+  const content = document.getElementById("adminContent");
+  if (!gate || !content) return;
+
+  if (!currentUser) {
+    gate.innerHTML = `<button class="btn btn-black" id="adminSignIn">Sign in to continue</button>`;
+    content.style.display = "none";
+    document.getElementById("adminSignIn").onclick = openAuthModal;
+    return;
+  }
+  if (!isAdmin) {
+    gate.innerHTML = `<p style="color:#b00">Not authorized — this account doesn't have admin access.</p>`;
+    content.style.display = "none";
+    return;
+  }
+
+  gate.innerHTML = "";
+  content.style.display = "block";
+
+  const { data: profiles } = await sb.from("profiles").select("id, display_name");
+  const nameOf = (id) => profiles?.find((p) => p.id === id)?.display_name || id?.slice(0, 8) || "—";
+  const fmt = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
+
+  const { data: listings } = await sb.from("listings").select("*").order("created_at", { ascending: false });
+  document.getElementById("adminListingsBody").innerHTML = (listings || []).map((l) => `
+    <tr>
+      <td>${l.launch_week}</td>
+      <td>${l.name}</td>
+      <td>${l.plan}</td>
+      <td>${l.status}</td>
+      <td>${l.badge_status}</td>
+      <td>${l.dofollow ? "yes" : "no"}</td>
+      <td>${nameOf(l.user_id)}</td>
+      <td><a href="${l.url}" target="_blank" rel="noopener">${l.url}</a></td>
+      <td>${fmt(l.created_at)}</td>
+    </tr>`).join("") || `<tr><td colspan="9" style="color:var(--ink-soft)">No listings yet.</td></tr>`;
+
+  const { data: adSlots } = await sb.from("ad_slots").select("*").order("created_at", { ascending: false });
+  document.getElementById("adminAdSlotsBody").innerHTML = (adSlots || []).map((a) => `
+    <tr>
+      <td>${a.name || "—"}</td>
+      <td>${a.tagline || "—"}</td>
+      <td>${a.target_url ? `<a href="${a.target_url}" target="_blank" rel="noopener">${a.target_url}</a>` : "—"}</td>
+      <td>${a.status}</td>
+      <td>${nameOf(a.user_id)}</td>
+      <td>${fmt(a.created_at)}</td>
+    </tr>`).join("") || `<tr><td colspan="6" style="color:var(--ink-soft)">No ad slots claimed yet.</td></tr>`;
+}
+if (document.getElementById("adminGate")) renderAdminPage();
