@@ -127,9 +127,8 @@ img { max-width: 100%; display: block; }
   position: sticky;
   top: 86px;
   align-self: start;
-  max-height: calc(100vh - 106px);
-  overflow-y: auto;
 }
+.sidebar-left { max-height: calc(100vh - 106px); overflow-y: auto; }
 
 @media (max-width: 1140px) {
   .layout { grid-template-columns: minmax(0,1fr); padding: 24px 0 70px; }
