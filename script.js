@@ -175,6 +175,7 @@ async function loadWeek(idx) {
   feed.innerHTML = headingHtml + ranked.map((l, i) => launchCardHTML(l, i, mine.has(l.id))).join("");
   feed.querySelectorAll("[data-vote]").forEach(btn => btn.addEventListener("click", () => castVote(btn.dataset.vote)));
   feed.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
+  wireLaunchCards(feed);
 
   // Sneak peek: on the default "this week" view, pin next week's top listing at the top, locked.
   if (idx === 0 && WEEK_DATES[1]) {
@@ -221,7 +222,7 @@ function tagColor(tag) {
 function launchCardHTML(l, i, voted) {
   const initial = l.name.charAt(0).toUpperCase();
   return `
-  <div class="launch-card ${l.plan === "premium" ? "is-premium" : ""}">
+  <div class="launch-card ${l.plan === "premium" ? "is-premium" : ""}" data-card-link="${l.id}" style="cursor:pointer">
     <div class="rank">${i + 1}</div>
     <div class="logo" style="background:linear-gradient(135deg,var(--camo-1),var(--camo-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px">
       ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:13px">` : initial}
@@ -243,6 +244,16 @@ function launchCardHTML(l, i, voted) {
       <span class="arrow">${ICON_UP}</span>${l.votes}
     </button>
   </div>`;
+}
+
+// Makes the whole card clickable, while leaving vote/comments/external-link clicks alone.
+function wireLaunchCards(container) {
+  container.querySelectorAll("[data-card-link]").forEach((card) => {
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("[data-vote], [data-toggle-comments], .comments-panel, a[target='_blank']")) return;
+      location.href = `listing.html?id=${card.dataset.cardLink}`;
+    });
+  });
 }
 
 async function castVote(listingId) {
@@ -387,6 +398,7 @@ async function renderFeaturedPreview() {
   el.innerHTML = `<div class="section-heading" style="margin-bottom:14px"><h2>Early preview — live now</h2></div>` + launchCardHTML({ ...l, votes }, 0, voted);
   el.querySelectorAll("[data-vote]").forEach(btn => btn.addEventListener("click", () => castVote(btn.dataset.vote)));
   el.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
+  wireLaunchCards(el);
 }
 
 if (document.getElementById("launchFeed")) {
