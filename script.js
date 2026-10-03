@@ -18,11 +18,20 @@ async function refreshAdminFlag() {
   const { data } = await sb.from("profiles").select("is_admin").eq("id", currentUser.id).single();
   isAdmin = !!data?.is_admin;
   renderAdminNav();
+  refreshAdminPendingBadge();
   if (typeof renderAdminPage === "function") renderAdminPage();
 }
 function renderAdminNav() {
   const link = document.getElementById("adminNavLink");
   if (link) link.style.display = isAdmin ? "flex" : "none";
+}
+async function refreshAdminPendingBadge() {
+  const badge = document.getElementById("adminPendingBadge");
+  if (!badge) return;
+  if (!isAdmin) { badge.style.display = "none"; return; }
+  const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("status", "scheduled");
+  if (count) { badge.textContent = count; badge.style.display = "inline-flex"; }
+  else badge.style.display = "none";
 }
 
 sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); refreshAdminFlag(); if (typeof renderMyListings === "function") renderMyListings(); });

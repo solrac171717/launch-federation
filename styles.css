@@ -189,6 +189,7 @@ img { max-width: 100%; display: block; }
   padding: 2px 7px;
   border-radius: 999px;
 }
+.nav-link .pill.alert { background: #c0392b; color: #fff; }
 
 .promo-card {
   border: 1px solid var(--line);
