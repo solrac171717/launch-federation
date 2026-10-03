@@ -79,7 +79,9 @@ function isoWeekLabel(date) {
   const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
   return `Week ${weekNo}`;
 }
-function toISODate(d) { return d.toISOString().slice(0, 10); }
+function toISODate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function upcomingMondays(count, startOffsetWeeks = -3) {
   const base = mondayOf(new Date());
@@ -161,6 +163,15 @@ async function loadWeek(idx) {
   feed.innerHTML = ranked.map((l, i) => launchCardHTML(l, i, mine.has(l.id))).join("");
   feed.querySelectorAll("[data-vote]").forEach(btn => btn.addEventListener("click", () => castVote(btn.dataset.vote)));
   feed.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
+
+  // Sneak peek: on the default "this week" view, pin next week's top listing at the top, locked.
+  if (idx === 3 && WEEK_DATES[4]) {
+    const nextWeekIso = toISODate(WEEK_DATES[4]);
+    const { data: nextListings } = await sb.from("listings")
+      .select("*").eq("launch_week", nextWeekIso).eq("status", "live")
+      .order("created_at", { ascending: true }).limit(1);
+    if (nextListings && nextListings.length) feed.insertAdjacentHTML("afterbegin", lockedTeaserHTML(nextListings[0]));
+  }
 }
 
 const ICON_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M8 12.5l2.5 2.5L16 9" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -168,6 +179,23 @@ const ICON_STAR = `<svg width="12" height="12" viewBox="0 0 24 24" fill="current
 const ICON_COMMENT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 const ICON_UP = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>`;
 const ICON_MEGAPHONE = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 0 0 2 2h1l3 5v-7"/><path d="M9 9 19 4v16L9 15"/></svg>`;
+const ICON_LOCK = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+
+function lockedTeaserHTML(l) {
+  const initial = l.name.charAt(0).toUpperCase();
+  const weekLabel = isoWeekLabel(new Date(l.launch_week + "T00:00:00"));
+  return `
+  <div class="launch-card" style="background:var(--bg-soft)">
+    <div class="rank" style="color:var(--ink-soft)">${ICON_LOCK}</div>
+    <div class="logo" style="background:linear-gradient(135deg,var(--camo-1),var(--camo-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px;filter:grayscale(.4)">
+      ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:13px">` : initial}
+    </div>
+    <div class="launch-main">
+      <div class="launch-title-row">${l.name} <span style="font-size:11px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-left:6px">Launching ${weekLabel}</span></div>
+      <div class="tagline">${l.tagline}</div>
+    </div>
+  </div>`;
+}
 
 /* Camouflage-toned tag palette — rotates by tag name so the same tag is always the same color. */
 const TAG_PALETTE = ["#0b0c08"];
