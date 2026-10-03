@@ -34,8 +34,8 @@ async function refreshAdminPendingBadge() {
   else badge.style.display = "none";
 }
 
-sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); refreshAdminFlag(); if (typeof renderMyListings === "function") renderMyListings(); });
-sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); renderAuthGate(); refreshAdminFlag(); if (typeof renderMyListings === "function") renderMyListings(); });
+sb.auth.getSession().then(({ data }) => { currentUser = data.session?.user || null; renderAuthUI(); renderAuthGate(); refreshAdminFlag(); if (typeof renderMyListings === "function") renderMyListings(); if (document.getElementById("listingDetail") && typeof renderListingPage === "function") renderListingPage(); });
+sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; renderAuthUI(); renderAuthGate(); refreshAdminFlag(); if (typeof renderMyListings === "function") renderMyListings(); if (document.getElementById("listingDetail") && typeof renderListingPage === "function") renderListingPage(); });
 
 /* ---------- auth gate: shown instead of the submit form until signed in ---------- */
 function renderAuthGate() {
@@ -190,6 +190,7 @@ const ICON_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24"><circle cx="
 const ICON_STAR = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="star-icon"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></svg>`;
 const ICON_COMMENT = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 const ICON_UP = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>`;
+const ICON_EXTERNAL = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>`;
 const ICON_MEGAPHONE = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 0 0 2 2h1l3 5v-7"/><path d="M9 9 19 4v16L9 15"/></svg>`;
 const ICON_LOCK = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 
@@ -226,7 +227,11 @@ function launchCardHTML(l, i, voted) {
       ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:13px">` : initial}
     </div>
     <div class="launch-main">
-      <div class="launch-title-row"><a href="${l.url}" target="_blank" rel="${l.dofollow ? "" : "nofollow"}">${l.name}</a> ${l.plan === "premium" ? `<span class="verified">${ICON_CHECK}</span>` : ""}</div>
+      <div class="launch-title-row">
+        <a href="listing.html?id=${l.id}">${l.name}</a>
+        <a href="${l.url}" target="_blank" rel="${l.dofollow ? "" : "nofollow"} noopener" title="Visit site" style="color:var(--ink-soft);margin-left:4px">${ICON_EXTERNAL}</a>
+        ${l.plan === "premium" ? `<span class="verified">${ICON_CHECK}</span>` : ""}
+      </div>
       <div class="tagline">${l.tagline}</div>
       <div class="meta-row">
         <button data-toggle-comments="${l.id}" style="display:inline-flex;align-items:center;gap:5px;border:none;background:none;cursor:pointer;color:var(--ink-soft);font:inherit;font-weight:600">${ICON_COMMENT} Comments</button>
@@ -243,13 +248,14 @@ function launchCardHTML(l, i, voted) {
 async function castVote(listingId) {
   if (!currentUser) return openAuthModal();
   const { error } = await sb.from("votes").insert({ listing_id: listingId, user_id: currentUser.id });
-  if (!error) { loadWeek(ACTIVE_WEEK_IDX); if (typeof renderFeaturedPreview === "function") renderFeaturedPreview(); }
+  if (!error) {
+    if (document.getElementById("launchFeed")) loadWeek(ACTIVE_WEEK_IDX);
+    if (document.getElementById("featuredPreview") && typeof renderFeaturedPreview === "function") renderFeaturedPreview();
+    if (document.getElementById("listingDetail") && typeof renderListingPage === "function") renderListingPage();
+  }
 }
 
-async function toggleComments(listingId) {
-  const panel = document.getElementById(`comments-${listingId}`);
-  if (panel.style.display === "block") { panel.style.display = "none"; return; }
-  panel.style.display = "block";
+async function renderCommentsInto(listingId, panel) {
   panel.innerHTML = "Loading…";
   const { data: cs } = await sb
     .from("comments")
@@ -271,8 +277,14 @@ async function toggleComments(listingId) {
     const body = input.value.trim();
     if (!body) return;
     const { error } = await sb.from("comments").insert({ listing_id: listingId, user_id: currentUser.id, body });
-    if (!error) { input.value = ""; toggleComments(listingId); toggleComments(listingId); }
+    if (!error) { input.value = ""; renderCommentsInto(listingId, panel); }
   };
+}
+async function toggleComments(listingId) {
+  const panel = document.getElementById(`comments-${listingId}`);
+  if (panel.style.display === "block") { panel.style.display = "none"; return; }
+  panel.style.display = "block";
+  renderCommentsInto(listingId, panel);
 }
 
 // idx 0 (this week) and 1 (next week) are always open; weeks after that only unlock
@@ -839,3 +851,61 @@ async function setListingStatus(id, status, extra = {}) {
   renderAdminPage();
 }
 if (document.getElementById("adminGate")) renderAdminPage();
+
+/* ---------- listing.html: full product detail page ---------- */
+async function renderListingPage() {
+  const el = document.getElementById("listingDetail");
+  if (!el) return;
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) { el.innerHTML = `<p style="color:#b00">Missing listing id.</p>`; return; }
+
+  const { data: l, error } = await sb.from("listings").select("*").eq("id", id).single();
+  if (error || !l) { el.innerHTML = `<p style="color:#b00">Listing not found.</p>`; return; }
+
+  document.title = `${l.name} — Launch Federation`;
+
+  const { data: voteRows } = await sb.from("listing_votes").select("votes").eq("listing_id", l.id);
+  const votes = voteRows?.[0]?.votes || 0;
+  const { data: myVotes } = currentUser
+    ? await sb.from("votes").select("listing_id").eq("listing_id", l.id).eq("user_id", currentUser.id)
+    : { data: [] };
+  const voted = !!(myVotes && myVotes.length);
+
+  const esc = (s) => (s || "").toString().replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const initial = l.name.charAt(0).toUpperCase();
+
+  el.innerHTML = `
+    <div style="display:flex;gap:18px;align-items:flex-start;margin-bottom:20px">
+      <div style="width:72px;height:72px;flex:none;border-radius:14px;overflow:hidden;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:26px">
+        ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover">` : initial}
+      </div>
+      <div style="flex:1;min-width:0">
+        <h1 style="margin:0 0 4px;display:flex;align-items:center;gap:8px">${esc(l.name)} ${l.plan === "premium" ? ICON_CHECK : ""}</h1>
+        <div class="tagline" style="font-size:15px">${esc(l.tagline)}</div>
+      </div>
+      <button class="upvote-btn ${voted ? "voted" : ""}" data-vote="${l.id}" ${voted ? "disabled" : ""} style="flex:none">
+        <span class="arrow">${ICON_UP}</span>${votes}
+      </button>
+    </div>
+
+    ${l.description ? `<p class="lead" style="margin-bottom:18px;white-space:pre-wrap">${esc(l.description)}</p>` : ""}
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
+      <a class="btn btn-black" href="${l.url}" target="_blank" rel="${l.dofollow ? "" : "nofollow"} noopener">Visit site ${ICON_EXTERNAL}</a>
+      ${(l.tags || []).map(t => `<span class="tag" style="background:${tagColor(t)}">${esc(t)}</span>`).join("")}
+    </div>
+
+    ${l.target_market ? `<p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:18px"><strong>Target market:</strong> ${esc(l.target_market)}</p>` : ""}
+
+    ${(l.screenshots || []).length ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px">
+      ${l.screenshots.map((s) => `<a href="${s}" target="_blank" rel="noopener"><img src="${s}" style="width:220px;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--line)"></a>`).join("")}
+    </div>` : ""}
+
+    <div class="section-heading"><h2>Comments</h2></div>
+    <div id="comments-${l.id}" style="margin-top:14px"></div>
+  `;
+
+  document.querySelector(`[data-vote="${l.id}"]`).addEventListener("click", () => castVote(l.id));
+  renderCommentsInto(l.id, document.getElementById(`comments-${l.id}`));
+}
+if (document.getElementById("listingDetail")) renderListingPage();
