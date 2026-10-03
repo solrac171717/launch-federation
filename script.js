@@ -388,16 +388,19 @@ async function renderFeaturedPreview() {
   const nextWeekIso = toISODate(WEEK_DATES[1]);
   const { data: previewListings } = await sb.from("listings")
     .select("*").eq("launch_week", nextWeekIso).eq("status", "live")
-    .order("created_at", { ascending: true }).limit(1);
+    .order("created_at", { ascending: true });
   if (!previewListings || !previewListings.length) { el.innerHTML = ""; return; }
-  const l = previewListings[0];
-  const { data: voteRows } = await sb.from("listing_votes").select("votes").eq("listing_id", l.id);
-  const votes = voteRows?.[0]?.votes || 0;
+
+  const ids = previewListings.map((l) => l.id);
+  const { data: voteRows } = await sb.from("listing_votes").select("*").in("listing_id", ids);
+  const votes = Object.fromEntries((voteRows || []).map((v) => [v.listing_id, v.votes]));
   const { data: myVotes } = currentUser
-    ? await sb.from("votes").select("listing_id").eq("listing_id", l.id).eq("user_id", currentUser.id)
+    ? await sb.from("votes").select("listing_id").in("listing_id", ids).eq("user_id", currentUser.id)
     : { data: [] };
-  const voted = !!(myVotes && myVotes.length);
-  el.innerHTML = `<div class="section-heading" style="margin-bottom:14px"><h2>Early preview — live now</h2></div>` + launchCardHTML({ ...l, votes }, 0, voted);
+  const mine = new Set((myVotes || []).map((v) => v.listing_id));
+
+  el.innerHTML = `<div class="section-heading" style="margin-bottom:14px"><h2>Early preview — live now</h2></div>`
+    + previewListings.map((l, i) => launchCardHTML({ ...l, votes: votes[l.id] || 0 }, i, mine.has(l.id))).join("");
   el.querySelectorAll("[data-vote]").forEach(btn => btn.addEventListener("click", () => castVote(btn.dataset.vote)));
   el.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
   wireLaunchCards(el);
