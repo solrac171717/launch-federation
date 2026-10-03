@@ -631,16 +631,31 @@ if (submitBtn) submitBtn.addEventListener("click", async () => {
   const targetMarket = document.getElementById("fieldMarket").value.trim();
   const tags = document.getElementById("fieldTags").value.split(",").map(t => t.trim()).filter(Boolean);
   const launchWeek = toISODate(SLOT_WEEKS[selectedWeekIdx]);
-  if (!name || !tagline || !url) { statusEl.textContent = "Name, tagline and URL are required."; statusEl.style.color = "#b00"; return; }
+
+  const logoFile = document.getElementById("fieldLogoFile")?.files?.[0] || null;
+  const logoUrlAuto = document.getElementById("fieldLogoUrlAuto")?.value || "";
+  const screenshotFiles = screenshotsInputEl && screenshotsInputEl.files ? Array.from(screenshotsInputEl.files).slice(0, 5) : [];
+
+  const missing = [];
+  if (!name) missing.push("product name");
+  if (!tagline) missing.push("tagline");
+  if (!description) missing.push("description");
+  if (!url) missing.push("URL");
+  if (!targetMarket) missing.push("target market");
+  if (!tags.length) missing.push("at least 1 tag");
+  if (!logoFile && !logoUrlAuto) missing.push("logo");
+  if (!screenshotFiles.length) missing.push("at least 1 screenshot");
+  if (missing.length) {
+    statusEl.textContent = `Missing required fields: ${missing.join(", ")}.`;
+    statusEl.style.color = "#b00";
+    return;
+  }
+
   if (plan === "free" && badgeVerifiedUrl !== url) {
     statusEl.textContent = "Install the badge on that URL and click \"Verify badge now\" above before submitting a free listing.";
     statusEl.style.color = "#b00";
     return;
   }
-
-  const logoFile = document.getElementById("fieldLogoFile")?.files?.[0] || null;
-  const logoUrlAuto = document.getElementById("fieldLogoUrlAuto")?.value || "";
-  const screenshotFiles = screenshotsInputEl && screenshotsInputEl.files ? Array.from(screenshotsInputEl.files).slice(0, 5) : [];
 
   statusEl.textContent = "Uploading images…"; statusEl.style.color = "var(--ink-soft)";
   let logoUrl = logoUrlAuto || null;
