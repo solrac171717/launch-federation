@@ -23,10 +23,22 @@ function renderAuthGate() {
   gate.style.display = currentUser ? "none" : "flex";
   form.style.display = currentUser ? "block" : "none";
 }
-const googleBtn = document.getElementById("googleSignIn");
-if (googleBtn) googleBtn.addEventListener("click", () => {
-  sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.href } });
-});
+/* Google Identity Services: sign-in happens on this page (no redirect through
+   Supabase's own domain), we just hand the resulting ID token to Supabase. */
+async function handleGoogleCredential(response) {
+  const { error } = await sb.auth.signInWithIdToken({ provider: "google", token: response.credential });
+  if (error) { console.error("Google sign-in failed", error); }
+}
+function initGoogleSignIn() {
+  const div = document.getElementById("googleSignInDiv");
+  if (!div || !window.google || !window.GOOGLE_CLIENT_ID) return;
+  google.accounts.id.initialize({ client_id: window.GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
+  google.accounts.id.renderButton(div, { theme: "outline", size: "large", shape: "pill", text: "continue_with", width: 300 });
+}
+if (document.getElementById("googleSignInDiv")) {
+  window.addEventListener("load", initGoogleSignIn);
+}
+
 const emailGateBtn = document.getElementById("emailSignInGate");
 if (emailGateBtn) emailGateBtn.addEventListener("click", () => openAuthModal());
 
