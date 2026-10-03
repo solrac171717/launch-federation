@@ -139,7 +139,7 @@ ensureAuthModal();
 
 /* ---------- index.html: directory feed ---------- */
 let WEEK_DATES = [];
-let ACTIVE_WEEK_IDX = 3; // index into WEEK_DATES, defaults to "this week"
+let ACTIVE_WEEK_IDX = 0; // index into WEEK_DATES, defaults to "this week" — no past weeks are offered since none ever had listings
 
 async function loadWeek(idx) {
   ACTIVE_WEEK_IDX = idx;
@@ -174,8 +174,8 @@ async function loadWeek(idx) {
   feed.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
 
   // Sneak peek: on the default "this week" view, pin next week's top listing at the top, locked.
-  if (idx === 3 && WEEK_DATES[4]) {
-    const nextWeekIso = toISODate(WEEK_DATES[4]);
+  if (idx === 0 && WEEK_DATES[1]) {
+    const nextWeekIso = toISODate(WEEK_DATES[1]);
     const { data: nextListings } = await sb.from("listings")
       .select("*").eq("launch_week", nextWeekIso).eq("status", "live")
       .order("created_at", { ascending: true }).limit(1);
@@ -349,8 +349,8 @@ async function renderComingSoon() {
 
 async function renderFeaturedPreview() {
   const el = document.getElementById("featuredPreview");
-  if (!el || !WEEK_DATES[4]) return;
-  const nextWeekIso = toISODate(WEEK_DATES[4]);
+  if (!el || !WEEK_DATES[1]) return;
+  const nextWeekIso = toISODate(WEEK_DATES[1]);
   const { data: previewListings } = await sb.from("listings")
     .select("*").eq("launch_week", nextWeekIso).eq("status", "live")
     .order("created_at", { ascending: true }).limit(1);
@@ -368,8 +368,8 @@ async function renderFeaturedPreview() {
 }
 
 if (document.getElementById("launchFeed")) {
-  WEEK_DATES = upcomingMondays(7, -3);
-  loadWeek(3);
+  WEEK_DATES = upcomingMondays(5, 0);
+  loadWeek(0);
   renderLeaderboard();
   renderStatusBar();
   renderAdSlots();
