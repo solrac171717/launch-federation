@@ -814,7 +814,10 @@ async function renderAdminPage() {
       </div>
     </div>`).join("") : `<p style="color:var(--ink-soft)">No listings yet.</p>`;
 
-  document.querySelectorAll("[data-approve]").forEach((btn) => btn.addEventListener("click", () => setListingStatus(btn.dataset.approve, "live")));
+  document.querySelectorAll("[data-approve]").forEach((btn) => btn.addEventListener("click", () => {
+    const nextMonday = toISODate(upcomingMondays(1, 1)[0]);
+    setListingStatus(btn.dataset.approve, "live", { launch_week: nextMonday });
+  }));
   document.querySelectorAll("[data-reject]").forEach((btn) => btn.addEventListener("click", () => setListingStatus(btn.dataset.reject, "rejected")));
   document.querySelectorAll("[data-unpublish]").forEach((btn) => btn.addEventListener("click", () => setListingStatus(btn.dataset.unpublish, "scheduled")));
 
@@ -829,8 +832,8 @@ async function renderAdminPage() {
       <td>${fmt(a.created_at)}</td>
     </tr>`).join("") || `<tr><td colspan="6" style="color:var(--ink-soft)">No ad slots claimed yet.</td></tr>`;
 }
-async function setListingStatus(id, status) {
-  const { error } = await sb.from("listings").update({ status }).eq("id", id);
+async function setListingStatus(id, status, extra = {}) {
+  const { error } = await sb.from("listings").update({ status, ...extra }).eq("id", id);
   if (error) { alert(error.message); return; }
   renderAdminPage();
 }
