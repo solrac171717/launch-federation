@@ -335,7 +335,6 @@ async function renderStatusBar() {
 
 async function renderComingSoon() {
   const el = document.getElementById("comingSoon");
-  const heading = document.getElementById("comingSoonHeading");
   if (!el) return;
   const candidates = upcomingMondays(8, 1); // next 8 weeks, rolling forward past full ones
   for (const weekDate of candidates) {
@@ -343,7 +342,6 @@ async function renderComingSoon() {
     const { count } = await sb.from("listings").select("id", { count: "exact", head: true }).eq("launch_week", iso).eq("plan", "free");
     const slotsLeft = Math.max(0, 10 - (count || 0));
     if (slotsLeft > 0) {
-      heading.textContent = `Coming to ${isoWeekLabel(weekDate)}`;
       el.innerHTML = Array.from({ length: slotsLeft }).map((_, i) => `
         <div class="claim-slot">
           <div class="n">${(count || 0) + i + 1}</div>
@@ -352,7 +350,6 @@ async function renderComingSoon() {
       return;
     }
   }
-  heading.textContent = "Free slots are full for now";
   el.innerHTML = `
     <div class="claim-slot">
       <div class="n">★</div>
