@@ -231,7 +231,7 @@ function launchCardHTML(l, i, voted) {
 async function castVote(listingId) {
   if (!currentUser) return openAuthModal();
   const { error } = await sb.from("votes").insert({ listing_id: listingId, user_id: currentUser.id });
-  if (!error) loadWeek(ACTIVE_WEEK_IDX);
+  if (!error) { loadWeek(ACTIVE_WEEK_IDX); if (typeof renderFeaturedPreview === "function") renderFeaturedPreview(); }
 }
 
 async function toggleComments(listingId) {
@@ -338,6 +338,26 @@ async function renderComingSoon() {
     </div>`;
 }
 
+async function renderFeaturedPreview() {
+  const el = document.getElementById("featuredPreview");
+  if (!el || !WEEK_DATES[4]) return;
+  const nextWeekIso = toISODate(WEEK_DATES[4]);
+  const { data: previewListings } = await sb.from("listings")
+    .select("*").eq("launch_week", nextWeekIso).eq("status", "live")
+    .order("created_at", { ascending: true }).limit(1);
+  if (!previewListings || !previewListings.length) { el.innerHTML = ""; return; }
+  const l = previewListings[0];
+  const { data: voteRows } = await sb.from("listing_votes").select("votes").eq("listing_id", l.id);
+  const votes = voteRows?.[0]?.votes || 0;
+  const { data: myVotes } = currentUser
+    ? await sb.from("votes").select("listing_id").eq("listing_id", l.id).eq("user_id", currentUser.id)
+    : { data: [] };
+  const voted = !!(myVotes && myVotes.length);
+  el.innerHTML = `<div class="section-heading" style="margin-top:34px"><h2>Early preview — live now</h2></div>` + launchCardHTML({ ...l, votes }, 0, voted);
+  el.querySelectorAll("[data-vote]").forEach(btn => btn.addEventListener("click", () => castVote(btn.dataset.vote)));
+  el.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
+}
+
 if (document.getElementById("launchFeed")) {
   WEEK_DATES = upcomingMondays(7, -3);
   loadWeek(3);
@@ -345,6 +365,7 @@ if (document.getElementById("launchFeed")) {
   renderStatusBar();
   renderAdSlots();
   renderComingSoon();
+  renderFeaturedPreview();
 }
 
 /* ---------- submit.html ---------- */
