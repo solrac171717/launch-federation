@@ -144,6 +144,7 @@ let ACTIVE_WEEK_IDX = 0; // index into WEEK_DATES, defaults to "this week" — n
 async function loadWeek(idx) {
   ACTIVE_WEEK_IDX = idx;
   renderWeekTabs();
+  if (typeof renderFeaturedPreview === "function") renderFeaturedPreview();
   const launchWeek = toISODate(WEEK_DATES[idx]);
   const feed = document.getElementById("launchFeed");
   feed.innerHTML = `<p style="color:var(--ink-soft);padding:20px 10px">Loading…</p>`;
@@ -383,6 +384,7 @@ async function renderComingSoon() {
 async function renderFeaturedPreview() {
   const el = document.getElementById("featuredPreview");
   if (!el || !WEEK_DATES[1]) return;
+  if (ACTIVE_WEEK_IDX === 1) { el.innerHTML = ""; return; } // already viewing that week's own tab — no need to preview it
   const nextWeekIso = toISODate(WEEK_DATES[1]);
   const { data: previewListings } = await sb.from("listings")
     .select("*").eq("launch_week", nextWeekIso).eq("status", "live")
