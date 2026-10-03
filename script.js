@@ -841,12 +841,13 @@ function badgeStatusLabel(status) {
 
 /* ---------- index.html: real ad slots in the sidebar ---------- */
 async function renderAdSlots() {
-  const el = document.getElementById("adSlots");
+  const el = document.getElementById("sponsorSlots");
   if (!el) return;
-  const { data: ads, error } = await sb.from("ad_slots_public").select("*").order("created_at", { ascending: false }).limit(4);
+  const { data: ads, error } = await sb.from("sponsor_slots_public").select("*").order("created_at", { ascending: false }).limit(4);
+  if (error) console.error("sponsor slots fetch failed", error);
   const bought = (ads || []).map(ad => `
-    <div class="ad-card">
-      <div class="ad-top">
+    <div class="sponsor-card">
+      <div class="sponsor-top">
         <div style="display:flex;align-items:center;gap:10px;min-width:0">
           <div class="logo" style="width:36px;height:36px;flex:none;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
             ${ad.logo_url ? `<img src="${ad.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:9px">` : (ad.name || "?").charAt(0).toUpperCase()}
@@ -859,9 +860,9 @@ async function renderAdSlots() {
     </div>`).join("");
   const emptySlotsNeeded = Math.max(0, 2 - (ads ? ads.length : 0));
   const empty = Array.from({ length: emptySlotsNeeded }).map(() => `
-    <div class="ad-slot-empty">
+    <div class="sponsor-slot-empty">
       <div class="icon" style="justify-content:center">${ICON_MEGAPHONE}</div>
-      <strong>Your ad here</strong>
+      <strong>Your spot here</strong>
       <div class="price">From $15/mo</div>
       <div style="margin-top:10px"><a class="btn btn-outline" href="advertise.html" style="font-size:12.5px;padding:6px 14px">Book this slot</a></div>
     </div>`).join("");
