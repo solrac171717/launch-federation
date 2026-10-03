@@ -939,7 +939,44 @@ async function renderAdminPage() {
       <td>${a.status}</td>
       <td>${nameOf(a.user_id)}</td>
       <td>${fmt(a.created_at)}</td>
-    </tr>`).join("") || `<tr><td colspan="6" style="color:var(--ink-soft)">No ad slots claimed yet.</td></tr>`;
+      <td><button class="btn btn-outline" data-remove-ad="${a.id}" style="padding:3px 10px;font-size:12px">Remove</button></td>
+    </tr>`).join("") || `<tr><td colspan="7" style="color:var(--ink-soft)">No ad slots claimed yet.</td></tr>`;
+
+  document.querySelectorAll("[data-remove-ad]").forEach((btn) => btn.addEventListener("click", async () => {
+    if (!confirm("Remove this ad slot?")) return;
+    const { error } = await sb.from("ad_slots").delete().eq("id", btn.dataset.removeAd);
+    if (error) { alert("Error: " + error.message); return; }
+    renderAdminPage();
+  }));
+
+  const addAdBtn = document.getElementById("adminAddAdSlotBtn");
+  if (addAdBtn) addAdBtn.onclick = async () => {
+    const statusEl = document.getElementById("adminAddAdSlotStatus");
+    const name = document.getElementById("adminAdName").value.trim();
+    const tagline = document.getElementById("adminAdTagline").value.trim();
+    const targetUrl = document.getElementById("adminAdTargetUrl").value.trim();
+    const logoFile = document.getElementById("adminAdLogoFile")?.files?.[0] || null;
+    if (!name || !targetUrl) { statusEl.textContent = "Name and target URL are required."; statusEl.style.color = "#b00"; return; }
+    statusEl.textContent = "Saving…"; statusEl.style.color = "var(--ink-soft)";
+    try {
+      let logoUrl = null;
+      if (logoFile) logoUrl = await uploadListingImage(logoFile, "ad-logo");
+      const { error } = await sb.from("ad_slots").insert({
+        user_id: currentUser.id,
+        status: "active",
+        name, tagline: tagline || null, target_url: targetUrl, logo_url: logoUrl,
+      });
+      if (error) throw error;
+      statusEl.textContent = "Added."; statusEl.style.color = "#1a7f3c";
+      document.getElementById("adminAdName").value = "";
+      document.getElementById("adminAdTagline").value = "";
+      document.getElementById("adminAdTargetUrl").value = "";
+      document.getElementById("adminAdLogoFile").value = "";
+      renderAdminPage();
+    } catch (err) {
+      statusEl.textContent = "Error: " + err.message; statusEl.style.color = "#b00";
+    }
+  };
 }
 async function setListingStatus(id, status, extra = {}) {
   const { data, error } = await sb.from("listings").update({ status, ...extra }).eq("id", id).select();

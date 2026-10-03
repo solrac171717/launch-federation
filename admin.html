@@ -41,10 +41,29 @@
     <div id="adminListingsCards" style="margin-bottom:40px"></div>
 
     <div class="section-heading"><h2>Ad slots claimed</h2></div>
+
+    <div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;margin-bottom:20px;max-width:480px">
+      <strong style="display:block;margin-bottom:10px">Add a free ad slot (admin only, no payment)</strong>
+      <div class="form-group" style="margin-bottom:10px">
+        <input id="adminAdName" type="text" placeholder="Name">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <input id="adminAdTagline" type="text" placeholder="Tagline">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <input id="adminAdTargetUrl" type="url" placeholder="https://target-site.com">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <input id="adminAdLogoFile" type="file" accept="image/*">
+      </div>
+      <button class="btn btn-black" id="adminAddAdSlotBtn" type="button">Add ad slot</button>
+      <div id="adminAddAdSlotStatus" style="margin-top:8px;font-size:13px"></div>
+    </div>
+
     <div style="overflow-x:auto">
       <table class="admin-table" id="adminAdSlotsTable">
         <thead>
-          <tr><th>Name</th><th>Tagline</th><th>Target URL</th><th>Status</th><th>Claimed by</th><th>Created</th></tr>
+          <tr><th>Name</th><th>Tagline</th><th>Target URL</th><th>Status</th><th>Claimed by</th><th>Created</th><th></th></tr>
         </thead>
         <tbody id="adminAdSlotsBody"></tbody>
       </table>
