@@ -846,12 +846,14 @@ async function renderAdSlots() {
   const { data: ads, error } = await sb.from("sponsor_slots_public").select("*").order("created_at", { ascending: false }).limit(4);
   if (error) console.error("sponsor slots fetch failed", error);
   const bought = (ads || []).map(ad => `
-    <a href="${ad.target_url}" target="_blank" rel="noopener sponsored" class="sponsor-card sponsor-card-filled">
-      <div class="logo" style="width:48px;height:48px;flex:none;border-radius:10px;overflow:hidden;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;margin:0 auto 10px">
-        ${ad.logo_url ? `<img src="${ad.logo_url}" style="width:100%;height:100%;object-fit:cover">` : (ad.name || "?").charAt(0).toUpperCase()}
+    <a href="${ad.target_url}" target="_blank" rel="noopener sponsored" class="sponsor-card sponsor-card-filled" style="text-align:left">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="logo" style="width:56px;height:56px;flex:none;border-radius:12px;overflow:hidden;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px">
+          ${ad.logo_url ? `<img src="${ad.logo_url}" style="width:100%;height:100%;object-fit:cover">` : (ad.name || "?").charAt(0).toUpperCase()}
+        </div>
+        <strong style="font-size:19px;min-width:0;overflow:hidden;text-overflow:ellipsis">${ad.name || ""}</strong>
       </div>
-      <strong>${ad.name || ""}</strong>
-      <div class="price" style="-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden">${ad.tagline || ""}</div>
+      <div class="price" style="margin-top:10px;-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden">${ad.tagline || ""}</div>
     </a>`).join("");
   const emptySlotsNeeded = Math.max(0, 2 - (ads ? ads.length : 0));
   const empty = Array.from({ length: emptySlotsNeeded }).map(() => `
