@@ -1,5 +1,11 @@
 {
   "crons": [
     { "path": "/api/verify-badges-weekly", "schedule": "0 6 * * 1" }
+  ],
+  "redirects": [
+    { "source": "/index.html", "destination": "/home", "permanent": true }
+  ],
+  "rewrites": [
+    { "source": "/home", "destination": "/index.html" }
   ]
 }
