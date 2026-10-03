@@ -869,12 +869,14 @@ async function renderAdSlots() {
     <a href="https://rocketito.com" target="_blank" rel="noopener sponsored" class="ad-card" style="display:block;text-decoration:none;color:inherit;cursor:pointer">
       <div class="ad-top">
         <div style="display:flex;align-items:center;gap:10px;min-width:0">
-          <div class="logo" style="width:36px;height:36px;flex:none;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">R</div>
+          <div class="logo" style="width:36px;height:36px;flex:none;border-radius:9px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center">
+            <img src="https://www.google.com/s2/favicons?domain=rocketito.com&sz=64" style="width:100%;height:100%;object-fit:contain">
+          </div>
           <strong style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rocketito.com</strong>
         </div>
         <span class="btn btn-outline" style="padding:4px 10px;font-size:12px;flex:none">Visit</span>
       </div>
-      <h4>This is what your ad slot looks like — book yours below</h4>
+      <h4>Rocketito - AI SEO Agent on Autopilot</h4>
     </a>`;
   el.innerHTML = bought + empty + demoAd;
 }
