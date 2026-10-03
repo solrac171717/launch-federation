@@ -29,14 +29,26 @@ async function handleGoogleCredential(response) {
   const { error } = await sb.auth.signInWithIdToken({ provider: "google", token: response.credential });
   if (error) { console.error("Google sign-in failed", error); }
 }
-function initGoogleSignIn() {
-  const div = document.getElementById("googleSignInDiv");
-  if (!div || !window.google || !window.GOOGLE_CLIENT_ID) return;
+let googleIdInitialized = false;
+function ensureGoogleInit() {
+  if (googleIdInitialized) return true;
+  if (!window.google || !window.GOOGLE_CLIENT_ID) return false;
   google.accounts.id.initialize({ client_id: window.GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
-  google.accounts.id.renderButton(div, { theme: "outline", size: "large", shape: "pill", text: "continue_with", width: 300 });
+  googleIdInitialized = true;
+  return true;
+}
+function renderGoogleButton(containerId, opts, triesLeft = 20) {
+  const div = document.getElementById(containerId);
+  if (!div || div.dataset.rendered) return;
+  if (!ensureGoogleInit()) {
+    if (triesLeft > 0) setTimeout(() => renderGoogleButton(containerId, opts, triesLeft - 1), 300);
+    return;
+  }
+  google.accounts.id.renderButton(div, Object.assign({ theme: "outline", size: "large", shape: "pill", text: "continue_with", width: 300 }, opts));
+  div.dataset.rendered = "1";
 }
 if (document.getElementById("googleSignInDiv")) {
-  window.addEventListener("load", initGoogleSignIn);
+  window.addEventListener("load", () => renderGoogleButton("googleSignInDiv"));
 }
 
 const emailGateBtn = document.getElementById("emailSignInGate");
@@ -81,13 +93,16 @@ function ensureAuthModal() {
   el.innerHTML = `
     <div style="background:#fff;border-radius:12px;padding:24px;width:320px;max-width:90vw">
       <h3 style="margin:0 0 6px">Sign in</h3>
-      <p style="margin:0 0 14px;color:var(--ink-soft);font-size:13px">We'll email you a magic link — no password needed.</p>
+      <p style="margin:0 0 14px;color:var(--ink-soft);font-size:13px">Not registered yet? Signing in with Google creates your account automatically.</p>
+      <div id="googleModalBtnDiv" style="display:flex;justify-content:center;margin-bottom:14px"></div>
+      <div style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 14px">or</div>
       <input id="authEmail" type="email" placeholder="you@email.com" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px">
       <button id="authSend" class="btn btn-black" style="width:100%;justify-content:center">Send magic link</button>
       <div id="authMsg" style="font-size:12.5px;margin-top:10px;color:var(--ink-soft)"></div>
       <button id="authClose" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:6px">Cancel</button>
     </div>`;
   document.body.appendChild(el);
+  renderGoogleButton("googleModalBtnDiv", { width: 272 });
   document.getElementById("authClose").onclick = () => el.style.display = "none";
   document.getElementById("authSend").onclick = async () => {
     const email = document.getElementById("authEmail").value.trim();
