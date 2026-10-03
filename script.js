@@ -37,22 +37,17 @@ function ensureGoogleInit() {
   googleIdInitialized = true;
   return true;
 }
-function renderGoogleButton(containerId, opts, triesLeft = 20) {
+function renderGoogleButton(containerId, opts, triesLeft = 60) {
   const div = document.getElementById(containerId);
   if (!div || div.dataset.rendered) return;
   if (!ensureGoogleInit()) {
-    if (triesLeft > 0) setTimeout(() => renderGoogleButton(containerId, opts, triesLeft - 1), 300);
+    if (triesLeft > 0) setTimeout(() => renderGoogleButton(containerId, opts, triesLeft - 1), 100);
     return;
   }
   google.accounts.id.renderButton(div, Object.assign({ theme: "outline", size: "large", shape: "pill", text: "continue_with", width: 300 }, opts));
   div.dataset.rendered = "1";
 }
-if (document.getElementById("googleSignInDiv")) {
-  window.addEventListener("load", () => renderGoogleButton("googleSignInDiv"));
-}
-
-const emailGateBtn = document.getElementById("emailSignInGate");
-if (emailGateBtn) emailGateBtn.addEventListener("click", () => openAuthModal());
+renderGoogleButton("googleSignInDiv");
 
 /* ---------- date / week helpers ---------- */
 function mondayOf(date) {
@@ -95,23 +90,11 @@ function ensureAuthModal() {
       <h3 style="margin:0 0 6px">Sign in</h3>
       <p style="margin:0 0 14px;color:var(--ink-soft);font-size:13px">Not registered yet? Signing in with Google creates your account automatically.</p>
       <div id="googleModalBtnDiv" style="display:flex;justify-content:center;margin-bottom:14px"></div>
-      <div style="text-align:center;color:var(--ink-soft);font-size:12px;margin:0 0 14px">or</div>
-      <input id="authEmail" type="email" placeholder="you@email.com" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:10px">
-      <button id="authSend" class="btn btn-black" style="width:100%;justify-content:center">Send magic link</button>
-      <div id="authMsg" style="font-size:12.5px;margin-top:10px;color:var(--ink-soft)"></div>
       <button id="authClose" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:6px">Cancel</button>
     </div>`;
   document.body.appendChild(el);
   renderGoogleButton("googleModalBtnDiv", { width: 272 });
   document.getElementById("authClose").onclick = () => el.style.display = "none";
-  document.getElementById("authSend").onclick = async () => {
-    const email = document.getElementById("authEmail").value.trim();
-    const msg = document.getElementById("authMsg");
-    if (!email) return;
-    msg.textContent = "Sending…";
-    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href } });
-    msg.textContent = error ? error.message : "Check your inbox for the link.";
-  };
 }
 function openAuthModal() {
   ensureAuthModal();
