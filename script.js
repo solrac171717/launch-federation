@@ -577,11 +577,11 @@ if (submitBtn) submitBtn.addEventListener("click", async () => {
     const row = {
       user_id: currentUser.id, name, tagline, description, url,
       logo_url: logoUrl, screenshots, target_market: targetMarket, tags,
-      plan, launch_week: launchWeek, status: "live", dofollow: false,
+      plan, launch_week: launchWeek, status: "scheduled", dofollow: false,
     };
     const { error } = await sb.from("listings").insert(row);
     if (error) { statusEl.textContent = error.message; statusEl.style.color = "#b00"; return; }
-    statusEl.textContent = "Submitted! Install the badge (see badge.html) — it's checked weekly to keep your dofollow link.";
+    statusEl.textContent = "Submitted! It'll go live once approved. Install the badge (see badge.html) — it's checked weekly to keep your dofollow link.";
     statusEl.style.color = "#1a7f3c";
     return;
   }
@@ -730,7 +730,7 @@ async function renderAdminPage() {
   const { data: listings } = await sb.from("listings").select("*").order("created_at", { ascending: false });
   const esc = (s) => (s || "").toString().replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   document.getElementById("adminListingsCards").innerHTML = (listings || []).length ? listings.map((l) => `
-    <div style="display:flex;gap:16px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;margin-bottom:14px">
+    <div style="display:flex;gap:16px;border:1px solid ${l.status === "scheduled" ? "#cf9a00" : "var(--line)"};border-radius:var(--radius-sm);padding:18px;margin-bottom:14px">
       <div style="width:64px;height:64px;flex:none;border-radius:10px;overflow:hidden;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px">
         ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover">` : esc(l.name).charAt(0).toUpperCase()}
       </div>
@@ -738,6 +738,10 @@ async function renderAdminPage() {
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
           <strong style="font-family:var(--font-display);font-size:16px">${esc(l.name)}</strong>
           <span style="font-size:12px;color:var(--ink-soft)">${l.plan} · ${l.status} · badge: ${l.badge_status} · dofollow: ${l.dofollow ? "yes" : "no"}</span>
+          ${l.status === "scheduled" ? `
+            <button class="btn btn-black" data-approve="${l.id}" style="padding:4px 12px;font-size:12px">Approve</button>
+            <button class="btn btn-outline" data-reject="${l.id}" style="padding:4px 12px;font-size:12px">Reject</button>
+          ` : l.status === "live" ? `<button class="btn btn-outline" data-unpublish="${l.id}" style="padding:4px 12px;font-size:12px">Unpublish</button>` : ""}
         </div>
         <div style="font-size:13.5px;margin:4px 0">${esc(l.tagline)}</div>
         ${l.description ? `<div style="font-size:13px;color:var(--ink-soft);margin-bottom:6px;white-space:pre-wrap">${esc(l.description)}</div>` : ""}
@@ -753,6 +757,10 @@ async function renderAdminPage() {
       </div>
     </div>`).join("") : `<p style="color:var(--ink-soft)">No listings yet.</p>`;
 
+  document.querySelectorAll("[data-approve]").forEach((btn) => btn.addEventListener("click", () => setListingStatus(btn.dataset.approve, "live")));
+  document.querySelectorAll("[data-reject]").forEach((btn) => btn.addEventListener("click", () => setListingStatus(btn.dataset.reject, "rejected")));
+  document.querySelectorAll("[data-unpublish]").forEach((btn) => btn.addEventListener("click", () => setListingStatus(btn.dataset.unpublish, "scheduled")));
+
   const { data: adSlots } = await sb.from("ad_slots").select("*").order("created_at", { ascending: false });
   document.getElementById("adminAdSlotsBody").innerHTML = (adSlots || []).map((a) => `
     <tr>
@@ -763,5 +771,10 @@ async function renderAdminPage() {
       <td>${nameOf(a.user_id)}</td>
       <td>${fmt(a.created_at)}</td>
     </tr>`).join("") || `<tr><td colspan="6" style="color:var(--ink-soft)">No ad slots claimed yet.</td></tr>`;
+}
+async function setListingStatus(id, status) {
+  const { error } = await sb.from("listings").update({ status }).eq("id", id);
+  if (error) { alert(error.message); return; }
+  renderAdminPage();
 }
 if (document.getElementById("adminGate")) renderAdminPage();

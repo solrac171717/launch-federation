@@ -1,6 +1,7 @@
-// Stripe webhook: on checkout.session.completed, marks the listing live/dofollow (premium)
-// or activates an ad slot (ad_slot). Uses the Supabase service_role key to bypass RLS —
-// this is the only place that key is used, and it never reaches the client.
+// Stripe webhook: on checkout.session.completed, creates/updates the paid listing as
+// "scheduled" (awaiting admin approval, dofollow already set) or activates an ad slot.
+// Uses the Supabase service_role key to bypass RLS — this is the only place that key
+// is used, and it never reaches the client.
 const Stripe = require("stripe");
 const { createClient } = require("@supabase/supabase-js");
 
@@ -37,7 +38,7 @@ module.exports = async (req, res) => {
 
     if (kind === "premium" && listingId) {
       const { error } = await sb.from("listings")
-        .update({ status: "live", dofollow: true })
+        .update({ status: "scheduled", dofollow: true })
         .eq("id", listingId);
       if (error) console.error("premium update failed", error);
     }
@@ -60,7 +61,7 @@ module.exports = async (req, res) => {
         tags: (meta.tags || "").split(",").map((t) => t.trim()).filter(Boolean),
         plan: "premium",
         launch_week: meta.launchWeek,
-        status: "live",
+        status: "scheduled",
         dofollow: true,
       });
       if (error) console.error("premium_new insert failed", error);
