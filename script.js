@@ -589,6 +589,15 @@ async function autofillFromUrl() {
       document.getElementById("fieldLogoUrlAuto").value = data.logo;
       const hint = document.getElementById("logoFileHint");
       if (hint) hint.textContent = "Found a logo on your site — it'll be used unless you upload your own below.";
+      const preview = document.getElementById("logoUploadPreview");
+      const removeBtn = document.getElementById("logoUploadRemove");
+      const tile = document.getElementById("logoUploadTile");
+      if (preview && !document.getElementById("fieldLogoFile")?.files?.[0]) {
+        preview.src = data.logo;
+        preview.style.display = "block";
+        removeBtn.style.display = "flex";
+        tile.querySelector(".upload-plus").style.display = "none";
+      }
     }
     status.textContent = "Auto-filled from your site — target market and tags aren't detected automatically, add those yourself. Review before submitting.";
     status.style.color = "#1a7f3c";
@@ -608,16 +617,75 @@ async function uploadListingImage(file, prefix) {
   return data.publicUrl;
 }
 
+const logoUploadTile = document.getElementById("logoUploadTile");
+const logoFileInputEl = document.getElementById("fieldLogoFile");
+const logoUploadPreview = document.getElementById("logoUploadPreview");
+const logoUploadRemove = document.getElementById("logoUploadRemove");
+if (logoUploadTile && logoFileInputEl) {
+  logoUploadTile.addEventListener("click", (e) => {
+    if (e.target === logoUploadRemove) return;
+    logoFileInputEl.click();
+  });
+  logoFileInputEl.addEventListener("change", () => {
+    const file = logoFileInputEl.files && logoFileInputEl.files[0];
+    if (!file) return;
+    logoUploadPreview.src = URL.createObjectURL(file);
+    logoUploadPreview.style.display = "block";
+    logoUploadRemove.style.display = "flex";
+    logoUploadTile.querySelector(".upload-plus").style.display = "none";
+  });
+  logoUploadRemove.addEventListener("click", (e) => {
+    e.stopPropagation();
+    logoFileInputEl.value = "";
+    const autoField = document.getElementById("fieldLogoUrlAuto");
+    if (autoField) autoField.value = "";
+    logoUploadPreview.style.display = "none";
+    logoUploadRemove.style.display = "none";
+    logoUploadTile.querySelector(".upload-plus").style.display = "block";
+  });
+}
+
 const screenshotsInputEl = document.getElementById("fieldScreenshots");
+const screenshotsUploadGrid = document.getElementById("screenshotsUploadGrid");
+const screenshotAddTile = document.getElementById("screenshotAddTile");
+let screenshotFileList = [];
+function syncScreenshotsInput() {
+  const dt = new DataTransfer();
+  screenshotFileList.forEach((f) => dt.items.add(f));
+  screenshotsInputEl.files = dt.files;
+}
+function renderScreenshotTiles() {
+  screenshotsUploadGrid.querySelectorAll(".upload-rect[data-shot]").forEach((el) => el.remove());
+  screenshotFileList.forEach((file, i) => {
+    const tile = document.createElement("div");
+    tile.className = "upload-rect";
+    tile.dataset.shot = String(i);
+    tile.innerHTML = `<img src="${URL.createObjectURL(file)}"><button type="button" class="upload-remove" title="Remove">&times;</button>`;
+    tile.querySelector(".upload-remove").addEventListener("click", (e) => {
+      e.stopPropagation();
+      screenshotFileList.splice(i, 1);
+      syncScreenshotsInput();
+      renderScreenshotTiles();
+    });
+    screenshotsUploadGrid.insertBefore(tile, screenshotAddTile);
+  });
+  screenshotAddTile.style.display = screenshotFileList.length >= 5 ? "none" : "flex";
+}
+if (screenshotAddTile) screenshotAddTile.addEventListener("click", () => screenshotsInputEl.click());
 if (screenshotsInputEl) screenshotsInputEl.addEventListener("change", () => {
   const hint = document.getElementById("screenshotsHint");
-  if (screenshotsInputEl.files.length > 5) {
-    hint.textContent = "Only the first 5 images will be uploaded.";
+  const incoming = Array.from(screenshotsInputEl.files || []);
+  const room = 5 - screenshotFileList.length;
+  screenshotFileList = screenshotFileList.concat(incoming.slice(0, room));
+  if (incoming.length > room) {
+    hint.textContent = "Only up to 5 screenshots are kept.";
     hint.style.color = "#b00";
   } else {
     hint.textContent = "Shown on your product page.";
     hint.style.color = "var(--ink-soft)";
   }
+  syncScreenshotsInput();
+  renderScreenshotTiles();
 });
 
 const submitBtn = document.getElementById("submitListingBtn");

@@ -549,6 +549,33 @@ img { max-width: 100%; display: block; }
 .form-group input[type="file"] { padding: 9px 13px; font-size: 13.5px; background: #fff; }
 .tag-input-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
+.upload-square, .upload-rect {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-soft);
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color .15s, background .15s;
+}
+.upload-square:hover, .upload-rect:hover { border-color: var(--ink-soft); background: #f1f1f1; }
+.upload-square { width: 92px; height: 92px; }
+.upload-rect { width: 120px; height: 90px; }
+.upload-square img, .upload-rect img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.upload-plus { font-size: 30px; line-height: 1; color: var(--ink-soft); font-weight: 400; }
+.upload-remove {
+  position: absolute; top: 4px; right: 4px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(0,0,0,.65); color: #fff; border: none;
+  font-size: 14px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.upload-remove:hover { background: rgba(0,0,0,.85); }
+.upload-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+
 .plan-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .plan-choice {
   position: relative;

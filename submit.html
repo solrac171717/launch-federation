@@ -97,14 +97,24 @@
 
   <div class="form-group">
     <label>Logo *</label>
-    <input id="fieldLogoFile" type="file" accept="image/*">
+    <input id="fieldLogoFile" type="file" accept="image/*" style="display:none">
     <input id="fieldLogoUrlAuto" type="hidden">
+    <div class="upload-square" id="logoUploadTile">
+      <span class="upload-plus">+</span>
+      <img id="logoUploadPreview" style="display:none">
+      <button type="button" class="upload-remove" id="logoUploadRemove" style="display:none" title="Remove">&times;</button>
+    </div>
     <div class="hint" id="logoFileHint"></div>
   </div>
 
   <div class="form-group">
     <label>Screenshots * (at least 1, up to 5)</label>
-    <input id="fieldScreenshots" type="file" accept="image/*" multiple>
+    <input id="fieldScreenshots" type="file" accept="image/*" multiple style="display:none">
+    <div class="upload-grid" id="screenshotsUploadGrid">
+      <div class="upload-rect" id="screenshotAddTile">
+        <span class="upload-plus">+</span>
+      </div>
+    </div>
     <div class="hint" id="screenshotsHint">Shown on your product page.</div>
   </div>
 
