@@ -392,6 +392,7 @@ if (document.getElementById("launchFeed")) {
 
 /* ---------- submit.html ---------- */
 let SLOT_WEEKS = [];
+let badgeVerifiedUrl = null; // set to the exact URL once "Verify badge now" confirms it — required for free submissions
 let selectedWeekIdx = null;
 let SLOT_COUNTS = [];
 let SLOT_FULL = [];
@@ -525,12 +526,20 @@ renderSlots();
         body: JSON.stringify({ url }),
       });
       const out = await resp.json();
-      if (out.verified) { verifyStatus.textContent = "✓ Badge found — you're good to submit."; verifyStatus.style.color = "#1a7f3c"; }
-      else { verifyStatus.textContent = "Badge not found yet on that page. Add it, then verify again."; verifyStatus.style.color = "#b00"; }
+      if (out.verified) {
+        verifyStatus.textContent = "✓ Badge found — you're good to submit."; verifyStatus.style.color = "#1a7f3c";
+        badgeVerifiedUrl = url;
+      } else {
+        verifyStatus.textContent = "Badge not found yet on that page. Add it, then verify again."; verifyStatus.style.color = "#b00";
+        badgeVerifiedUrl = null;
+      }
     } catch (err) {
       verifyStatus.textContent = "Couldn't check that URL."; verifyStatus.style.color = "#b00";
+      badgeVerifiedUrl = null;
     }
   });
+  const urlInputEl = document.getElementById("urlInput");
+  if (urlInputEl) urlInputEl.addEventListener("input", () => { badgeVerifiedUrl = null; });
 })();
 
 async function autofillFromUrl() {
@@ -600,6 +609,11 @@ if (submitBtn) submitBtn.addEventListener("click", async () => {
   const tags = document.getElementById("fieldTags").value.split(",").map(t => t.trim()).filter(Boolean);
   const launchWeek = toISODate(SLOT_WEEKS[selectedWeekIdx]);
   if (!name || !tagline || !url) { statusEl.textContent = "Name, tagline and URL are required."; statusEl.style.color = "#b00"; return; }
+  if (plan === "free" && badgeVerifiedUrl !== url) {
+    statusEl.textContent = "Install the badge on that URL and click \"Verify badge now\" above before submitting a free listing.";
+    statusEl.style.color = "#b00";
+    return;
+  }
 
   const logoFile = document.getElementById("fieldLogoFile")?.files?.[0] || null;
   const logoUrlAuto = document.getElementById("fieldLogoUrlAuto")?.value || "";
@@ -620,7 +634,7 @@ if (submitBtn) submitBtn.addEventListener("click", async () => {
     const row = {
       user_id: currentUser.id, name, tagline, description, url,
       logo_url: logoUrl, screenshots, target_market: targetMarket, tags,
-      plan, launch_week: launchWeek, status: "scheduled", dofollow: false,
+      plan, launch_week: launchWeek, status: "scheduled", dofollow: true, badge_status: "verified", badge_checked_at: new Date().toISOString(),
     };
     const { error } = await sb.from("listings").insert(row);
     if (error) { statusEl.textContent = error.message; statusEl.style.color = "#b00"; return; }
