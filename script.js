@@ -700,18 +700,30 @@ async function renderAdminPage() {
   const fmt = (iso) => iso ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
 
   const { data: listings } = await sb.from("listings").select("*").order("created_at", { ascending: false });
-  document.getElementById("adminListingsBody").innerHTML = (listings || []).map((l) => `
-    <tr>
-      <td>${l.launch_week}</td>
-      <td>${l.name}</td>
-      <td>${l.plan}</td>
-      <td>${l.status}</td>
-      <td>${l.badge_status}</td>
-      <td>${l.dofollow ? "yes" : "no"}</td>
-      <td>${nameOf(l.user_id)}</td>
-      <td><a href="${l.url}" target="_blank" rel="noopener">${l.url}</a></td>
-      <td>${fmt(l.created_at)}</td>
-    </tr>`).join("") || `<tr><td colspan="9" style="color:var(--ink-soft)">No listings yet.</td></tr>`;
+  const esc = (s) => (s || "").toString().replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  document.getElementById("adminListingsCards").innerHTML = (listings || []).length ? listings.map((l) => `
+    <div style="display:flex;gap:16px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;margin-bottom:14px">
+      <div style="width:64px;height:64px;flex:none;border-radius:10px;overflow:hidden;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px">
+        ${l.logo_url ? `<img src="${l.logo_url}" style="width:100%;height:100%;object-fit:cover">` : esc(l.name).charAt(0).toUpperCase()}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+          <strong style="font-family:var(--font-display);font-size:16px">${esc(l.name)}</strong>
+          <span style="font-size:12px;color:var(--ink-soft)">${l.plan} · ${l.status} · badge: ${l.badge_status} · dofollow: ${l.dofollow ? "yes" : "no"}</span>
+        </div>
+        <div style="font-size:13.5px;margin:4px 0">${esc(l.tagline)}</div>
+        ${l.description ? `<div style="font-size:13px;color:var(--ink-soft);margin-bottom:6px;white-space:pre-wrap">${esc(l.description)}</div>` : ""}
+        <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:6px">
+          ${l.target_market ? `Target market: ${esc(l.target_market)} · ` : ""}${(l.tags || []).length ? `Tags: ${l.tags.map(esc).join(", ")}` : ""}
+        </div>
+        ${(l.screenshots || []).length ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          ${l.screenshots.map((s) => `<a href="${s}" target="_blank" rel="noopener"><img src="${s}" style="width:90px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--line)"></a>`).join("")}
+        </div>` : ""}
+        <div style="font-size:12px;color:var(--ink-soft)">
+          Week ${l.launch_week} · <a href="${l.url}" target="_blank" rel="noopener">${esc(l.url)}</a> · submitted by ${esc(nameOf(l.user_id))} · ${fmt(l.created_at)}
+        </div>
+      </div>
+    </div>`).join("") : `<p style="color:var(--ink-soft)">No listings yet.</p>`;
 
   const { data: adSlots } = await sb.from("ad_slots").select("*").order("created_at", { ascending: false });
   document.getElementById("adminAdSlotsBody").innerHTML = (adSlots || []).map((a) => `
