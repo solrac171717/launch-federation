@@ -843,7 +843,7 @@ function badgeStatusLabel(status) {
 async function renderAdSlots() {
   const el = document.getElementById("adSlots");
   if (!el) return;
-  const { data: ads, error } = await sb.from("ad_slots_public").select("*").order("created_at", { ascending: false }).limit(4);
+  const { data: ads, error } = await sb.from("ad_slots_public").select("*").order("created_at", { ascending: false }).limit(1);
   const bought = (ads || []).map(ad => `
     <div class="ad-card">
       <div class="ad-top">
@@ -857,7 +857,7 @@ async function renderAdSlots() {
       </div>
       <h4>${ad.tagline || ""}</h4>
     </div>`).join("");
-  const emptySlotsNeeded = Math.max(0, 2 - (ads ? ads.length : 0));
+  const emptySlotsNeeded = Math.max(0, 1 - (ads ? ads.length : 0));
   const empty = Array.from({ length: emptySlotsNeeded }).map(() => `
     <div class="ad-slot-empty">
       <div class="icon" style="justify-content:center">${ICON_MEGAPHONE}</div>
@@ -865,7 +865,18 @@ async function renderAdSlots() {
       <div class="price">From $15/mo</div>
       <div style="margin-top:10px"><a class="btn btn-outline" href="advertise.html" style="font-size:12.5px;padding:6px 14px">Book this slot</a></div>
     </div>`).join("");
-  el.innerHTML = bought + empty;
+  const demoAd = `
+    <a href="https://rocketito.com" target="_blank" rel="noopener sponsored" class="ad-card" style="display:block;text-decoration:none;color:inherit;cursor:pointer">
+      <div class="ad-top">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <div class="logo" style="width:36px;height:36px;flex:none;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">R</div>
+          <strong style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rocketito.com</strong>
+        </div>
+        <span class="btn btn-outline" style="padding:4px 10px;font-size:12px;flex:none">Visit</span>
+      </div>
+      <h4>This is what your ad slot looks like — book yours below</h4>
+    </a>`;
+  el.innerHTML = bought + empty + demoAd;
 }
 
 /* ---------- admin.html ---------- */
