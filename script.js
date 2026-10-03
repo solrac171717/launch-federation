@@ -375,7 +375,7 @@ async function renderFeaturedPreview() {
     ? await sb.from("votes").select("listing_id").eq("listing_id", l.id).eq("user_id", currentUser.id)
     : { data: [] };
   const voted = !!(myVotes && myVotes.length);
-  el.innerHTML = `<div class="section-heading" style="margin-top:34px"><h2>Early preview — live now</h2></div>` + launchCardHTML({ ...l, votes }, 0, voted);
+  el.innerHTML = `<div class="section-heading" style="margin-bottom:14px"><h2>Early preview — live now</h2></div>` + launchCardHTML({ ...l, votes }, 0, voted);
   el.querySelectorAll("[data-vote]").forEach(btn => btn.addEventListener("click", () => castVote(btn.dataset.vote)));
   el.querySelectorAll("[data-toggle-comments]").forEach(btn => btn.addEventListener("click", () => toggleComments(btn.dataset.toggleComments)));
 }
