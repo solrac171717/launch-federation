@@ -37,9 +37,52 @@
   </div>
 </div>
 
-<div class="page" style="max-width:760px">
-  <a href="/home" style="display:inline-block;margin-bottom:18px;color:var(--ink-soft);font-size:13.5px">&larr; Back to directory</a>
-  <div id="listingDetail">Loading…</div>
+<div class="layout">
+  <div class="sidebar-left">
+    <div class="side-label">Explore</div>
+    <a class="nav-link" href="/home">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg>
+      Home
+    </a>
+    <a class="nav-link" href="/home">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Products
+    </a>
+    <a class="nav-link" href="pricing.html">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Pricing
+    </a>
+    <a class="nav-link" href="advertise.html">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a2 2 0 0 0 2 2h1l3 5v-7"/><path d="M9 9 19 4v16L9 15"/></svg>
+      Advertise
+    </a>
+
+    <div class="side-label">Your workspace</div>
+    <a class="nav-link" href="submit.html">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      My products
+    </a>
+    <a class="nav-link" href="badge.html">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      Badge &amp; verification
+    </a>
+    <a class="nav-link" href="admin.html" id="adminNavLink" style="display:none">
+      <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 3 6v6c0 5 4 8 9 10 5-2 9-5 9-10V6z"/></svg>
+      Admin
+      <span class="pill alert" id="adminPendingBadge" style="display:none"></span>
+    </a>
+  </div>
+
+  <div style="max-width:760px">
+    <a href="/home" style="display:inline-block;margin-bottom:18px;color:var(--ink-soft);font-size:13.5px">&larr; Back to directory</a>
+    <div id="listingDetail">Loading…</div>
+  </div>
+
+  <div class="sidebar-right">
+    <div id="sponsorSlots"></div>
+    <div class="side-label">Last week's best</div>
+    <div id="leaderboard"></div>
+  </div>
 </div>
 
 <footer>

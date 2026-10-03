@@ -1043,4 +1043,8 @@ async function renderListingPage() {
   document.querySelector(`[data-vote="${l.id}"]`).addEventListener("click", () => castVote(l.id));
   renderCommentsInto(l.id, document.getElementById(`comments-${l.id}`));
 }
-if (document.getElementById("listingDetail")) renderListingPage();
+if (document.getElementById("listingDetail")) {
+  renderListingPage();
+  renderAdSlots();
+  renderLeaderboard();
+}
