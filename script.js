@@ -846,18 +846,13 @@ async function renderAdSlots() {
   const { data: ads, error } = await sb.from("sponsor_slots_public").select("*").order("created_at", { ascending: false }).limit(4);
   if (error) console.error("sponsor slots fetch failed", error);
   const bought = (ads || []).map(ad => `
-    <div class="sponsor-card">
-      <div class="sponsor-top">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0">
-          <div class="logo" style="width:36px;height:36px;flex:none;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">
-            ${ad.logo_url ? `<img src="${ad.logo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:9px">` : (ad.name || "?").charAt(0).toUpperCase()}
-          </div>
-          <strong style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ad.name || ""}</strong>
-        </div>
-        <a class="btn btn-outline" href="${ad.target_url}" target="_blank" rel="noopener sponsored" style="padding:4px 10px;font-size:12px;flex:none">Visit</a>
+    <a href="${ad.target_url}" target="_blank" rel="noopener sponsored" class="sponsor-card sponsor-card-filled">
+      <div class="logo" style="width:48px;height:48px;flex:none;border-radius:10px;overflow:hidden;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;margin:0 auto 10px">
+        ${ad.logo_url ? `<img src="${ad.logo_url}" style="width:100%;height:100%;object-fit:cover">` : (ad.name || "?").charAt(0).toUpperCase()}
       </div>
-      <h4>${ad.tagline || ""}</h4>
-    </div>`).join("");
+      <strong>${ad.name || ""}</strong>
+      <div class="price" style="-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden">${ad.tagline || ""}</div>
+    </a>`).join("");
   const emptySlotsNeeded = Math.max(0, 2 - (ads ? ads.length : 0));
   const empty = Array.from({ length: emptySlotsNeeded }).map(() => `
     <div class="sponsor-slot-empty">
@@ -866,7 +861,7 @@ async function renderAdSlots() {
       <div class="price">From $15/mo</div>
       <div style="margin-top:10px"><a class="btn btn-outline" href="advertise.html" style="font-size:12.5px;padding:6px 14px">Book this slot</a></div>
     </div>`).join("");
-  el.innerHTML = bought + empty;
+  el.innerHTML = empty + bought;
 }
 
 /* ---------- admin.html ---------- */
