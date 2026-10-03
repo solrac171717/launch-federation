@@ -833,8 +833,12 @@ async function renderAdminPage() {
     </tr>`).join("") || `<tr><td colspan="6" style="color:var(--ink-soft)">No ad slots claimed yet.</td></tr>`;
 }
 async function setListingStatus(id, status, extra = {}) {
-  const { error } = await sb.from("listings").update({ status, ...extra }).eq("id", id);
-  if (error) { alert(error.message); return; }
+  const { data, error } = await sb.from("listings").update({ status, ...extra }).eq("id", id).select();
+  if (error) { alert("Error: " + error.message); return; }
+  if (!data || !data.length) {
+    alert("Nothing changed — 0 rows updated. This means the database is still blocking this update (RLS policy for admins isn't applied correctly), not a bug in this page.");
+    return;
+  }
   renderAdminPage();
 }
 if (document.getElementById("adminGate")) renderAdminPage();
