@@ -37,6 +37,16 @@
   <div id="adminGate"></div>
 
   <div id="adminContent" style="display:none">
+    <div class="section-heading"><h2>Reddit leads (live)</h2></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:13px">
+      <button class="btn btn-black" id="rlRefresh" type="button" style="padding:6px 14px">Refresh</button>
+      <label>Min score <select id="rlMin"><option value="3">3 (more)</option><option value="5" selected>5</option><option value="8">8 (best only)</option></select></label>
+      <label>Last <select id="rlHours"><option value="24">24h</option><option value="72" selected>3 days</option><option value="168">7 days</option></select></label>
+      <label><input type="checkbox" id="rlHideDone" checked> Hide handled</label>
+      <span id="rlStatus" style="color:var(--ink-soft)"></span>
+    </div>
+    <div id="rlList" style="margin-bottom:40px"></div>
+
     <div class="section-heading"><h2>Listings (launch slots claimed)</h2></div>
     <div id="adminListingsCards" style="margin-bottom:40px"></div>
 

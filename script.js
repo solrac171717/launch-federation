@@ -886,6 +886,7 @@ async function renderAdminPage() {
 
   gate.innerHTML = "";
   content.style.display = "block";
+  if (!rlTimer) initRedditLeads();
 
   const { data: profiles } = await sb.from("profiles").select("id, display_name");
   const nameOf = (id) => profiles?.find((p) => p.id === id)?.display_name || id?.slice(0, 8) || "—";
@@ -985,6 +986,61 @@ async function setListingStatus(id, status, extra = {}) {
   }
   renderAdminPage();
 }
+
+/* ---------- admin.html: Reddit leads ---------- */
+const RL_DONE_KEY = "rl_done_v1";
+let rlTimer = null;
+function rlDone() { try { return new Set(JSON.parse(localStorage.getItem(RL_DONE_KEY) || "[]")); } catch { return new Set(); } }
+function rlMarkDone(url) { const d = rlDone(); d.add(url); try { localStorage.setItem(RL_DONE_KEY, JSON.stringify([...d].slice(-1000))); } catch {} }
+function rlAgo(iso) {
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  return m < 60 ? m + "m ago" : m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago";
+}
+async function loadRedditLeads() {
+  const list = document.getElementById("rlList");
+  const statusEl = document.getElementById("rlStatus");
+  if (!list || !isAdmin) return;
+  statusEl.textContent = "Loading…";
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const qs = new URLSearchParams({ min: document.getElementById("rlMin").value, hours: document.getElementById("rlHours").value });
+    const r = await fetch("/api/reddit-leads?" + qs, { headers: { Authorization: "Bearer " + session.access_token } });
+    const out = await r.json();
+    if (!r.ok) throw new Error(out.error || "Request failed");
+    const done = rlDone();
+    const hide = document.getElementById("rlHideDone").checked;
+    const leads = out.leads.filter((l) => !(hide && done.has(l.url)));
+    const esc = (s) => (s || "").toString().replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    list.innerHTML = leads.length ? leads.map((l) => `
+      <div style="border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:10px;${done.has(l.url) ? "opacity:.5" : ""}">
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);margin-bottom:4px">
+          <strong style="color:${l.score >= 8 ? "#1a7f3c" : "var(--ink)"}">Score ${l.score}</strong>
+          <span>r/${esc(l.subreddit)}</span><span>u/${esc(l.author)}</span><span>${rlAgo(l.created)}</span>
+        </div>
+        <a href="${esc(l.url)}" target="_blank" rel="noopener" style="font-weight:600;font-size:15px;display:block;margin-bottom:4px">${esc(l.title)}</a>
+        ${l.body ? `<div style="font-size:13px;color:var(--ink-soft);margin-bottom:6px">${esc(l.body.slice(0, 280))}${l.body.length > 280 ? "…" : ""}</div>` : ""}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          ${l.reasons.filter((x) => x !== "is a question").map((x) => `<span style="font-size:11.5px;background:var(--bg-soft);border-radius:999px;padding:2px 9px">${esc(x)}</span>`).join("")}
+          <span style="flex:1"></span>
+          <a class="btn btn-black" href="${esc(l.url)}" target="_blank" rel="noopener" style="padding:3px 12px;font-size:12px">Open &amp; reply</a>
+          <button class="btn btn-outline" data-rl-done="${esc(l.url)}" style="padding:3px 12px;font-size:12px">Handled</button>
+        </div>
+      </div>`).join("") : `<p style="color:var(--ink-soft)">No matching posts right now. Try a lower min score or a longer window.</p>`;
+    list.querySelectorAll("[data-rl-done]").forEach((b) => b.addEventListener("click", () => { rlMarkDone(b.dataset.rlDone); loadRedditLeads(); }));
+    statusEl.textContent = `${leads.length} leads · ${out.feedsOk}/${out.feedsTotal} sources ok${out.source === "archive" ? " · Reddit blocked the server, showing archive (may lag)" : ""} · updated ${new Date(out.fetchedAt).toLocaleTimeString()}`;
+  } catch (err) {
+    statusEl.textContent = "Error: " + err.message;
+  }
+}
+function initRedditLeads() {
+  if (!document.getElementById("rlList") || !isAdmin) return;
+  document.getElementById("rlRefresh").onclick = loadRedditLeads;
+  ["rlMin", "rlHours", "rlHideDone"].forEach((id) => { document.getElementById(id).onchange = loadRedditLeads; });
+  loadRedditLeads();
+  clearInterval(rlTimer);
+  rlTimer = setInterval(loadRedditLeads, 120000);
+}
+
 if (document.getElementById("adminGate")) renderAdminPage();
 
 /* ---------- listing.html: full product detail page ---------- */
