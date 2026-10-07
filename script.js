@@ -1027,7 +1027,7 @@ async function loadRedditLeads() {
         </div>
       </div>`).join("") : `<p style="color:var(--ink-soft)">No matching posts right now. Try a lower min score or a longer window.</p>`;
     list.querySelectorAll("[data-rl-done]").forEach((b) => b.addEventListener("click", () => { rlMarkDone(b.dataset.rlDone); loadRedditLeads(); }));
-    statusEl.textContent = `${leads.length} leads · ${out.feedsOk}/${out.feedsTotal} sources ok${out.source === "archive" ? " · Reddit blocked the server, showing archive (may lag)" : ""} · updated ${new Date(out.fetchedAt).toLocaleTimeString()}`;
+    statusEl.textContent = `${leads.length} leads · ${out.feedsOk}/${out.feedsTotal} sources ok${out.source === "archive" ? " · Reddit blocked the server, showing archive (may lag)" + (out.firstError ? " [" + out.firstError + "]" : "") : out.source === "reddit-api" ? " · official API" : ""} · updated ${new Date(out.fetchedAt).toLocaleTimeString()}`;
   } catch (err) {
     statusEl.textContent = "Error: " + err.message;
   }

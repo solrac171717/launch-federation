@@ -100,6 +100,48 @@ async function fetchPullpush(q) {
     }));
 }
 
+
+// Official API (app-only token). Needs REDDIT_CLIENT_ID + REDDIT_CLIENT_SECRET; avoids the datacenter blocks
+// that Reddit applies to the public RSS feeds.
+const UA = "web:rocketito-leads:1.0 (by /u/" + (process.env.REDDIT_USERNAME || "rocketito") + ")";
+let tokenCache = { token: "", exp: 0 };
+async function redditToken() {
+  if (tokenCache.token && Date.now() < tokenCache.exp) return tokenCache.token;
+  const basic = Buffer.from(`${process.env.REDDIT_CLIENT_ID}:${process.env.REDDIT_CLIENT_SECRET}`).toString("base64");
+  const r = await fetch("https://www.reddit.com/api/v1/access_token", {
+    method: "POST",
+    headers: { Authorization: "Basic " + basic, "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=client_credentials",
+  });
+  if (!r.ok) throw new Error("Reddit token HTTP " + r.status);
+  const j = await r.json();
+  if (!j.access_token) throw new Error("Reddit token error: " + (j.error || "unknown"));
+  tokenCache = { token: j.access_token, exp: Date.now() + (j.expires_in - 60) * 1000 };
+  return tokenCache.token;
+}
+async function fetchApi(path) {
+  const token = await redditToken();
+  const r = await fetch("https://oauth.reddit.com" + path + (path.includes("?") ? "&" : "?") + "raw_json=1", {
+    headers: { Authorization: "Bearer " + token, "User-Agent": UA },
+  });
+  if (!r.ok) throw new Error("Reddit API HTTP " + r.status);
+  const j = await r.json();
+  return (j.data?.children || []).map((c) => c.data)
+    .filter((p) => p && !p.removed_by_category && p.selftext !== "[removed]" && p.selftext !== "[deleted]")
+    .map((p) => ({
+      id: "t3_" + p.id,
+      title: p.title || "",
+      url: "https://www.reddit.com" + p.permalink,
+      subreddit: p.subreddit,
+      author: p.author,
+      created: new Date(p.created_utc * 1000).toISOString(),
+      body: (p.selftext || "").replace(/\s+/g, " ").slice(0, 600),
+      comments: p.num_comments,
+      upvotes: p.score,
+    }));
+}
+const HAS_API = !!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET);
+
 function score(post) {
   const text = post.title + " " + post.body;
   let pts = 0;
@@ -145,13 +187,19 @@ module.exports = async (req, res) => {
   // Several subreddits per feed (r/a+b+c) keeps this to ~8 requests, which Reddit tolerates far better than 38.
   const chunks = [];
   for (let i = 0; i < SUBREDDITS.length; i += 10) chunks.push(SUBREDDITS.slice(i, i + 10).join("+"));
-  const tasks = [
-    ...chunks.map((c) => () => fetchRss(`https://www.reddit.com/r/${c}/new.rss?limit=100`)),
-    ...SEARCHES.slice(0, 5).map((q) => () => fetchRss(`https://www.reddit.com/search.rss?${new URLSearchParams({ q, sort: "new", t: "week" })}`)),
-  ];
+  const tasks = HAS_API
+    ? [
+        ...chunks.map((c) => () => fetchApi(`/r/${c}/new?limit=100`)),
+        ...SEARCHES.map((q) => () => fetchApi(`/search?${new URLSearchParams({ q, sort: "new", t: "week", limit: "50" })}`)),
+      ]
+    : [
+        ...chunks.map((c) => () => fetchRss(`https://www.reddit.com/r/${c}/new.rss?limit=100`)),
+        ...SEARCHES.slice(0, 5).map((q) => () => fetchRss(`https://www.reddit.com/search.rss?${new URLSearchParams({ q, sort: "new", t: "week" })}`)),
+      ];
   let results = await pool(tasks, 2);
-  let source = "reddit";
+  let source = HAS_API ? "reddit-api" : "reddit";
   const failed = results.filter((r) => !r.ok).length;
+  const firstError = (results.find((r) => !r.ok) || {}).e;
 
   // Reddit blocks many datacenter IPs. If most feeds failed, use the archive so the page isn't empty.
   if (failed > tasks.length / 2) {
@@ -172,7 +220,7 @@ module.exports = async (req, res) => {
     }
   }
   const leads = [...seen.values()].sort((a, b) => b.score - a.score || new Date(b.created) - new Date(a.created)).slice(0, 80);
-  const body = { leads, source, feedsOk: results.length - results.filter((r) => !r.ok).length, feedsTotal: results.length, fetchedAt: new Date().toISOString() };
-  if (source === "reddit") cache = { key: cacheKey, at: Date.now(), body };
+  const body = { leads, source, feedsOk: results.length - results.filter((r) => !r.ok).length, feedsTotal: results.length, firstError, fetchedAt: new Date().toISOString() };
+  if (source !== "archive") cache = { key: cacheKey, at: Date.now(), body };
   res.status(200).json(body);
 };
