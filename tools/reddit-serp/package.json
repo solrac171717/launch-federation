@@ -1,0 +1,8 @@
+{
+  "name": "reddit-serp",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Local tool: finds Google queries where Reddit ranks #1-#2 and the subreddit allows tool recommendations",
+  "scripts": { "start": "node index.js" },
+  "dependencies": { "puppeteer-core": "^23.0.0" }
+}

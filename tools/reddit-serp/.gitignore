@@ -1,0 +1,4 @@
+.chrome-profile/
+.rules-cache.json
+results/
+node_modules/
