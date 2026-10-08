@@ -1,40 +1,53 @@
-# One Google query per line. Lines starting with # are ignored.
+# One Google query per line (lines starting with # are ignored).
+# Built around what Rocketito does: AI citation tracking + 31 auto-published articles/month for local businesses/SMBs.
+# No white-label / agency queries: Rocketito doesn't document an agency plan.
+
+# AI citations / GEO / AEO
 best tool for ai citations
-best seo tool for plumbers
-best seo white label for agency
-best seo tool for lawyer
 ai citation tracker
 best geo tool
 best aeo tool
 best generative engine optimization tool
-how to get recommended by chatgpt
-how to show up in chatgpt answers for my business
-how to rank in ai overviews
 ai search visibility tool
 best tool to track brand mentions in chatgpt
-profound alternative
-otterly ai alternative
-best ai seo tool for local business
+how to get recommended by chatgpt
+how to get my business recommended by chatgpt
+how to show up in chatgpt answers for my business
+how to get cited by perplexity
+how to rank in google ai overviews
+chatgpt not recommending my business
+is seo dead because of chatgpt
+does seo still work with ai search
+best tool to get cited by ai
+
+# Local / service niches
+best seo tool for plumbers
+best seo tool for lawyer
 best seo tool for dentists
 best seo tool for hvac
 best seo tool for roofers
 best seo tool for real estate agents
+best seo tool for restaurants
 best seo tool for small business
-best white label seo reporting tool
-best white label seo software for agencies
-best ai seo tool for agencies
-best ai content writing tool for seo
-best seo tool for startups
-best seo tool for saas
+best local seo tool
+best ai seo tool for local business
 cheapest seo tool for small business
-semrush alternative
+how do local businesses get found on chatgpt
+
+# Automated SEO content
+best ai blog writer for seo
+best seo automation tool
+best ai tool to write seo articles automatically
+auto publish seo articles wordpress
+best seo tool for saas
+best seo tool for startups
+
+# Competitor alternatives
+profound alternative
+otterly ai alternative
+peec ai alternative
+semrush alternative for small business
 ahrefs alternative
 surfer seo alternative
-best tool to get cited by perplexity
-is seo dead because of chatgpt
-chatgpt not recommending my business
-how to get my business recommended by ai
-best local seo tool
-best seo automation tool
-best ai blog writer for seo
-best seo audit tool
+jasper alternative for seo
+semrush too expensive
