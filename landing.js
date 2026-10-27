@@ -253,26 +253,66 @@ function flowChart(host) {
 /* ------------------------------------------------------------- reports */
 {
   const host = clear(document.getElementById('reports'));
-  const top = [...ASSETS].sort((x, y) => y.value - x.value).slice(0, 6);
   const alloc = Object.entries(ASSETS.reduce((m, x) => ((m[x.category] = (m[x.category] || 0) + x.value), m), {})).sort((p, q) => q[1] - p[1]);
-  const pdf = h('div', { class: 'paper', role: 'img', 'aria-label': 'Preview of a portfolio summary report with sample data' },
-    h('div', { class: 'pp-h' }, h('b', {}, 'ATLAS'), h('span', {}, `Portfolio summary · ${VALUATION_DATE}`)),
-    h('div', { class: 'pp-kpis' }, h('div', {}, h('em', {}, 'Value'), h('b', {}, compact(P.value))), h('div', {}, h('em', {}, 'Cost'), h('b', {}, compact(P.cost))), h('div', {}, h('em', {}, 'NOI'), h('b', {}, compact(P.noi))), h('div', {}, h('em', {}, 'NOI yield'), h('b', {}, pct1(P.noiYield)))),
-    h('div', { class: 'pp-alloc' }, alloc.map(([k, v]) => h('span', { style: `flex:${v}`, title: `${CATEGORIES[k]} ${pct1(v / P.value)}` }))),
-    h('ul', { class: 'pp-leg' }, alloc.slice(0, 4).map(([k, v]) => h('li', {}, CATEGORIES[k], h('b', {}, pct1(v / P.value))))),
-    h('table', {}, h('thead', {}, h('tr', {}, ['Asset', 'Location', 'Value'].map(t => h('th', {}, t)))), h('tbody', {}, top.map(x => h('tr', {}, h('td', {}, x.name), h('td', {}, x.place), h('td', {}, compact(x.value)))))));
-  const sheet = h('div', { class: 'sheet', role: 'img', 'aria-label': 'Preview of a spreadsheet export with sample data' },
-    h('div', { class: 'sh-bar' }, h('i', {}), h('span', {}, 'atlas-assets.xlsx')),
-    h('table', {}, h('thead', {}, h('tr', {}, ['', 'Asset', 'Cost', 'Value', 'NOI'].map(t => h('th', {}, t)))),
-      h('tbody', {}, ASSETS.slice(0, 8).map((x, i) => h('tr', {}, h('th', {}, i + 1), h('td', {}, x.name), h('td', { class: 'r' }, x.cost.toLocaleString('en-US')), h('td', { class: 'r' }, x.value.toLocaleString('en-US')), h('td', { class: 'r' }, x.earning ? x.noi.toLocaleString('en-US') : '—'))))));
-  const frame = h('div', { class: 'rep-frame' }, pdf);
+  const shades = ['#0B1736', '#2563EB', '#60A5FA', '#93C5FD', '#BFD7FB', '#DCE8FB', '#EEF3FC'];
+  const top = [...ASSETS].sort((x, y) => y.value - x.value).slice(0, 6);
+  const maxV = top[0].value;
+
+  // donut (real allocation shares)
+  const donut = (() => {
+    const R = 44, r = 30, C = 50; let ang = -Math.PI / 2;
+    const arcs = alloc.map(([k, v], i) => {
+      const sw = Math.min(v / P.value, 0.9999) * Math.PI * 2, b2 = ang + sw, big = sw > Math.PI ? 1 : 0;
+      const pt = (rad, t) => `${(C + rad * Math.cos(t)).toFixed(2)},${(C + rad * Math.sin(t)).toFixed(2)}`;
+      const d = `M${pt(R, ang)}A${R},${R} 0 ${big} 1 ${pt(R, b2)}L${pt(r, b2)}A${r},${r} 0 ${big} 0 ${pt(r, ang)}Z`;
+      ang = b2; return s('path', { d, fill: shades[i % shades.length] });
+    });
+    return s('svg', { viewBox: '0 0 100 100', class: 'pp-donut', 'aria-hidden': 'true' }, ...arcs,
+      s('text', { x: 50, y: 49, 'text-anchor': 'middle', class: 'dv' }, compact(P.value)), s('text', { x: 50, y: 60, 'text-anchor': 'middle', class: 'dl' }, 'TOTAL'));
+  })();
+
+  const pdf = h('div', { class: 'doc doc-pdf', role: 'img', 'aria-label': 'Preview of a portfolio summary report page with sample data' },
+    h('div', { class: 'pp-top' }, h('div', { class: 'pp-brand' }, h('i', {}), 'ATLAS'), h('span', {}, 'Portfolio summary')),
+    h('div', { class: 'pp-title' }, h('b', {}, 'Quarterly portfolio report'), h('span', {}, `As of ${VALUATION_DATE} · USD · sample data`)),
+    h('div', { class: 'pp-kpis' },
+      h('div', {}, h('em', {}, 'Portfolio value'), h('b', {}, compact(P.value)), Delta(P.appreciation, fmtPct(P.appreciationPct, { sign: true }))),
+      h('div', {}, h('em', {}, 'Acquisition cost'), h('b', {}, compact(P.cost)), h('small', {}, `${P.count} assets`)),
+      h('div', {}, h('em', {}, 'Net operating income'), h('b', {}, compact(P.noi)), h('small', {}, 'Annual')),
+      h('div', {}, h('em', {}, 'NOI yield'), h('b', {}, pct1(P.noiYield)), h('small', {}, `${P.earningCount} income assets`))),
+    h('div', { class: 'pp-row' },
+      h('div', { class: 'pp-card' }, h('h4', {}, 'Allocation by category'),
+        h('div', { class: 'pp-alloc-row' }, donut, h('ul', { class: 'pp-leg' }, alloc.slice(0, 5).map(([k, v], i) => h('li', {}, h('i', { style: `background:${shades[i]}` }), CATEGORIES[k], h('b', {}, pct1(v / P.value))))))),
+      h('div', { class: 'pp-card' }, h('h4', {}, 'Largest holdings'),
+        h('ul', { class: 'pp-bars' }, top.slice(0, 4).map(x => h('li', {}, h('span', {}, x.name), h('i', { style: `width:${(x.value / maxV) * 100}%` }), h('b', {}, compact(x.value))))))),
+    h('table', {}, h('thead', {}, h('tr', {}, ['Asset', 'Location', 'Value', 'vs. cost'].map((t, i) => h('th', { class: i > 1 ? 'r' : '' }, t)))),
+      h('tbody', {}, top.map(x => h('tr', {}, h('td', {}, h('b', {}, x.name)), h('td', {}, x.place), h('td', { class: 'r' }, compact(x.value)), h('td', { class: 'r' }, Delta(x.appreciation, fmtPct(x.appreciationPct, { sign: true }))))))),
+    h('div', { class: 'pp-foot' }, h('span', {}, 'Illustrative sample data'), h('span', {}, 'Page 1 of 3')));
+
+  const hdr = ['Asset', 'Category', 'Cost', 'Value', 'Δ vs. cost', 'NOI'];
+  const L = 'ABCDEF';
+  const sheet = h('div', { class: 'doc doc-xls', role: 'img', 'aria-label': 'Preview of a spreadsheet export with sample data' },
+    h('div', { class: 'xl-top' }, h('span', { class: 'xl-logo' }, 'X'), h('b', {}, 'atlas-assets.xlsx'), h('span', { class: 'xl-saved' }, 'Sample data')),
+    h('div', { class: 'xl-ribbon' }, ['Home', 'Insert', 'Formulas', 'Data'].map((t, i) => h('span', { class: i === 0 ? 'on' : '' }, t))),
+    h('div', { class: 'xl-fx' }, h('span', { class: 'xl-name' }, 'E12'), h('i', {}, 'fx'), h('span', { class: 'xl-f' }, `=SUM(E2:E${ASSETS.length + 1})`)),
+    h('div', { class: 'xl-grid' }, h('table', {},
+      h('thead', {}, h('tr', {}, h('th', { class: 'corner' }), L.split('').map(c => h('th', {}, c)))),
+      h('tbody', {},
+        h('tr', { class: 'hdr' }, h('th', {}, 1), hdr.map((t, i) => h('td', { class: i > 1 ? 'r' : '' }, t))),
+        ASSETS.map((x, i) => h('tr', {}, h('th', {}, i + 2), h('td', {}, x.name), h('td', {}, CATEGORIES[x.category]), h('td', { class: 'r' }, x.cost.toLocaleString('en-US')), h('td', { class: 'r' }, x.value.toLocaleString('en-US')),
+          h('td', { class: 'r ' + tone(x.appreciation) }, fmtPct(x.appreciationPct, { sign: true })), h('td', { class: 'r' }, x.earning ? x.noi.toLocaleString('en-US') : '—'))),
+        h('tr', { class: 'tot' }, h('th', {}, ASSETS.length + 2), h('td', {}, 'Total'), h('td', {}, ''), h('td', { class: 'r' }, P.cost.toLocaleString('en-US')), h('td', { class: 'r sel' }, P.value.toLocaleString('en-US')),
+          h('td', { class: 'r ' + tone(P.appreciation) }, fmtPct(P.appreciationPct, { sign: true })), h('td', { class: 'r' }, P.noi.toLocaleString('en-US')))))),
+    h('div', { class: 'xl-tabs' }, ['Assets', 'Income', 'Valuations'].map((t, i) => h('span', { class: i === 0 ? 'on' : '' }, t))));
+
+  const stage = h('div', { class: 'rep-stage', 'data-front': 'pdf' }, pdf, sheet);
   const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Report format' });
   const pick = k => {
-    frame.replaceChildren(k === 'pdf' ? pdf : sheet);
+    stage.dataset.front = k;
     seg.querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.k === k); b.setAttribute('aria-pressed', String(b.dataset.k === k)); });
   };
   seg.append(h('button', { type: 'button', 'data-k': 'pdf', onclick: () => pick('pdf') }, 'PDF summary'), h('button', { type: 'button', 'data-k': 'xlsx', onclick: () => pick('xlsx') }, 'Spreadsheet'));
-  host.append(seg, frame, h('p', { class: 'fine' }, 'Preview of planned report layouts. CSV export is available today in the app preview; PDF and Excel are in development.'));
+  pdf.addEventListener('click', () => pick('pdf')); sheet.addEventListener('click', () => pick('xlsx'));
+  host.append(seg, stage, h('p', { class: 'fine' }, 'Preview of planned report layouts. CSV export is available today in the app preview; PDF and Excel are in development.'));
   pick('pdf');
 }
 
