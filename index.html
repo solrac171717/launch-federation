@@ -47,8 +47,10 @@
 
 <!-- HERO -->
 <section class="hero" aria-labelledby="hero-title">
+  <div class="aurora" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
   <div class="wrap">
     <div class="hero-copy">
+      <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Global asset intelligence</p>
       <h1 id="hero-title" data-variant-slot="hero-headline">Every asset. <span>One intelligent view.</span></h1>
       <p class="lead">Map, value, and analyze real estate, vehicles, yachts, and aircraft in one workspace.</p>
       <div class="cta-row">
@@ -58,6 +60,7 @@
     </div>
 
     <figure class="device" aria-label="ATLAS dashboard preview with sample data">
+      <div class="float f-a" id="float-a" aria-hidden="true"></div><div class="float f-b" id="float-b" aria-hidden="true"></div>
       <div class="window">
         <div class="titlebar" aria-hidden="true"><i></i><i></i><i></i><span>atlas.app / portfolio</span></div>
         <div class="app">
@@ -96,18 +99,21 @@
 <section class="section" id="platform" aria-labelledby="map-title">
   <div class="wrap">
     <div class="sec-head">
+      <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Global map</p>
       <h2 id="map-title">Your portfolio, mapped.</h2>
       <p class="lead">Every property, vehicle, vessel, and aircraft, exactly where it is.</p>
     </div>
-    <div class="mapstage" id="mapstage">
-      <div class="mapstage-bar">
+    <div class="globe-stage" id="globe-stage">
+      <div class="globe-bar">
         <div class="seg" role="group" aria-label="Filter by category" id="map-filter"></div>
-        <div class="seg" role="group" aria-label="View"><button type="button" class="on" data-view="map" aria-pressed="true">Map</button><button type="button" data-view="list" aria-pressed="false">List</button></div>
+        <span class="hint">Drag to rotate · select a marker</span>
       </div>
-      <div class="mapstage-body">
-        <div class="demo-map" id="demo-map"></div>
-        <div class="demo-list" id="demo-list" hidden></div>
-        <div class="pins" id="pins"></div>
+      <div class="globe-body">
+        <div class="globe-wrap" id="globe-main"></div>
+        <aside class="globe-side" aria-live="polite">
+          <div id="globe-card"></div>
+          <ul class="rows" id="globe-list"></ul>
+        </aside>
       </div>
     </div>
   </div>
@@ -117,6 +123,7 @@
 <section class="section alt" id="financials" aria-labelledby="fin-title">
   <div class="wrap">
     <div class="sec-head">
+      <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Financials</p>
       <h2 id="fin-title">The numbers behind every asset.</h2>
       <p class="lead">Value, income, expenses, and yield, side by side and clearly defined.</p>
     </div>
@@ -128,6 +135,7 @@
 <section class="section" id="assets" aria-labelledby="col-title">
   <div class="wrap">
     <div class="sec-head">
+      <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Assets</p>
       <h2 id="col-title">More than properties.</h2>
       <p class="lead">Homes, cars, trucks, yachts, and aircraft share one consistent record.</p>
     </div>
@@ -139,6 +147,7 @@
 <section class="section alt" id="report" aria-labelledby="rep-title">
   <div class="wrap">
     <div class="sec-head">
+      <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Reports</p>
       <h2 id="rep-title">Reports, ready to share.</h2>
       <p class="lead">Turn portfolio data into a clear summary and a spreadsheet.</p>
     </div>
@@ -148,6 +157,7 @@
 
 <!-- CTA -->
 <section class="final" id="early-access" aria-labelledby="final-title">
+  <div class="aurora" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
   <div class="wrap final-grid">
     <div class="final-copy">
       <h2 id="final-title">See everything you own in one place.</h2>

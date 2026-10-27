@@ -5,7 +5,7 @@ import {
   WESTLAKE_VALUATIONS, portfolio, byId,
 } from './src/demo-data.js';
 import { validateLead } from './src/lead.js';
-import { WORLD_MAP } from './assets/world-map.js';
+import { createGlobe } from './src/globe.js';
 
 document.documentElement.classList.add('js');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -57,33 +57,6 @@ const ICON = {
 };
 const icon = (key, size = 22) => s('svg', { viewBox: '0 0 24 24', width: size, height: size, class: 'ico', 'aria-hidden': 'true' }, s('path', { d: ICON[key] }));
 
-/* ------------------------------------------------------------------ dot map */
-function dotMap(host, { selectedId, onSelect, filter = null, label }) {
-  clear(host);
-  const { w, h: ht, dots, markers } = WORLD_MAP;
-  const svg = s('svg', { viewBox: `0 0 ${w} ${ht}`, class: 'dotmap', role: 'group', 'aria-label': label });
-  svg.append(s('path', { d: dots, class: 'dots' }));
-  const layer = s('g');
-  const shown = ASSETS.filter(a => !filter || a.category === filter);
-  [...shown].sort((a, b) => (a.id === selectedId) - (b.id === selectedId)).forEach(a => {
-    const [x, y] = markers[a.id];
-    const sel = a.id === selectedId;
-    const g = s('g', {
-      class: 'mk' + (sel ? ' sel' : ''), transform: `translate(${x} ${y})`, tabindex: 0, role: 'button',
-      'aria-pressed': String(sel), 'aria-label': `${a.name}, ${a.place}, ${compact(a.value)}`,
-    },
-    sel && s('circle', { r: 17, class: 'halo' }),
-    s('circle', { r: 20, class: 'hit' }),
-    s('circle', { r: 11, class: 'pin' }),
-    s('g', { transform: 'translate(-6.5 -6.5) scale(.54)', class: 'glyph' }, s('path', { d: ICON[a.category] })));
-    g.addEventListener('click', () => onSelect(a.id));
-    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(a.id); } });
-    layer.append(g);
-  });
-  svg.append(layer);
-  host.append(svg);
-}
-
 /* ---------------------------------------------------------- shared UI pieces */
 const Delta = (n, text) => {
   const t = tone(n, 0.5);
@@ -119,11 +92,9 @@ function sparkline(host, series) {
 {
   const host = document.getElementById('hero-map'), sel = document.getElementById('hero-sel');
   let cur = 'austin';
-  const render = () => {
-    dotMap(host, { selectedId: cur, onSelect: id => { cur = id; render(); }, label: 'Interactive sample portfolio map. Select a marker to view an asset.' });
-    clear(sel).append(assetCard(byId(cur)));
-  };
-  render();
+  const globe = createGlobe(host, { assets: ASSETS, icons: ICON, selectedId: cur, label: 'Rotating 3D globe of sample assets', startLon: -88, tilt: 24,
+    onSelect: id => { cur = id; globe.setSelected(id); globe.focus(id); clear(sel).append(assetCard(byId(id))); } });
+  clear(sel).append(assetCard(byId(cur)));
   const ch = FEATURED.value - WESTLAKE_VALUATIONS[0].v;
   clear(document.getElementById('hero-value')).append(h('span', {}, 'Portfolio value'), h('b', {}, money(P.value)), Delta(P.appreciation, `${fmtSigned(P.appreciation, { compact: true })} · ${fmtPct(P.appreciationPct, { sign: true })} vs. cost`));
   const k = (l, v, sub) => h('div', { class: 'kpi' }, h('span', {}, l), h('b', {}, v), h('em', {}, sub));
@@ -131,40 +102,34 @@ function sparkline(host, series) {
   const mc = document.getElementById('hero-chart');
   mc.append(h('div', { class: 'mc-h' }, h('span', {}, 'Westlake Residence'), Delta(ch, `${fmtPct(ch / WESTLAKE_VALUATIONS[0].v, { sign: true })} since ${WESTLAKE_VALUATIONS[0].label}`)), h('div', {}));
   sparkline(mc.lastChild, WESTLAKE_VALUATIONS);
+  // floating highlights (computed from the same sample data)
+  const fa = byId('lisbon'), fb = byId('austin');
+  document.getElementById('float-a').append(h('span', { class: 'ac-ico' }, icon(fa.category, 18)), h('div', {}, h('b', {}, fa.name), h('span', {}, fa.place)), Delta(fa.appreciation, fmtPct(fa.appreciationPct, { sign: true })));
+  document.getElementById('float-b').append(h('div', {}, h('span', {}, 'NOI yield'), h('b', {}, pct1(fb.noiYield))), h('em', {}, fb.name));
 }
 
-/* ---------------------------------------------------------- map section */
+/* ---------------------------------------------------------- globe section */
 {
-  const state = { sel: 'austin', filter: null, view: 'map' };
-  const mapHost = document.getElementById('demo-map'), listHost = document.getElementById('demo-list');
-  const pins = document.getElementById('pins'), filterHost = document.getElementById('map-filter');
+  const state = { sel: 'austin', filter: null };
+  const card = document.getElementById('globe-card'), list = document.getElementById('globe-list'), filterHost = document.getElementById('map-filter');
   const visible = () => ASSETS.filter(a => !state.filter || a.category === state.filter);
-
-  const placeCard = () => {
-    const a = byId(state.sel), [x, y] = WORLD_MAP.markers[a.id];
-    const fx = x / WORLD_MAP.w, fy = y / WORLD_MAP.h;
-    const side = fx > 0.45 ? 'left' : 'right', v = fy < 0.3 ? 'top' : fy > 0.7 ? 'bottom' : 'mid';
-    clear(pins).append(h('div', { class: `pop ${side} ${v}`, style: `left:${(fx * 100).toFixed(2)}%;top:${(fy * 100).toFixed(2)}%` }, assetCard(a)));
-    pins.hidden = state.view !== 'map';
-  };
-  const select = id => { state.sel = id; render(); };
+  const globe = createGlobe(document.getElementById('globe-main'), { assets: ASSETS, icons: ICON, selectedId: state.sel, startLon: -96, tilt: 22,
+    label: 'Rotating 3D globe of sample asset locations', onSelect: id => select(id, true) });
   const render = () => {
-    if (!visible().some(a => a.id === state.sel)) state.sel = visible()[0]?.id ?? state.sel;
-    dotMap(mapHost, { selectedId: state.sel, onSelect: select, filter: state.filter, label: 'Interactive sample portfolio map. Select a marker to see an asset.' });
-    clear(listHost).append(h('ul', { class: 'rows' }, visible().map(a => h('li', {}, h('button', {
-      type: 'button', class: a.id === state.sel ? 'on' : '', 'aria-pressed': String(a.id === state.sel), onclick: () => select(a.id),
-    }, icon(a.category, 18), h('span', {}, h('b', {}, a.name), h('em', {}, a.place)), h('strong', {}, compact(a.value)))))));
-    placeCard();
+    clear(card).append(assetCard(byId(state.sel)));
+    clear(list).append(...visible().map(a => h('li', {}, h('button', {
+      type: 'button', class: a.id === state.sel ? 'on' : '', 'aria-pressed': String(a.id === state.sel), onclick: () => select(a.id, true),
+    }, icon(a.category, 18), h('span', {}, h('b', {}, a.name), h('em', {}, a.place)), h('strong', {}, compact(a.value))))));
     filterHost.querySelectorAll('button').forEach(b => { const on = (b.dataset.k || null) === state.filter; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   };
+  function select(id, focus) { state.sel = id; globe.setSelected(id); if (focus) globe.focus(id); render(); }
+  const setFilter = c => {
+    state.filter = c; globe.setFilter(c);
+    if (!visible().some(a => a.id === state.sel)) select(visible()[0].id, true); else render();
+  };
   const cats = [...new Set(ASSETS.map(a => a.category))];
-  filterHost.append(h('button', { type: 'button', class: 'on', 'aria-pressed': 'true', onclick: () => { state.filter = null; render(); } }, 'All'),
-    ...cats.map(c => h('button', { type: 'button', 'data-k': c, 'aria-pressed': 'false', onclick: () => { state.filter = c; render(); } }, CATEGORIES[c])));
-  document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
-    state.view = b.dataset.view;
-    document.querySelectorAll('[data-view]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); });
-    mapHost.hidden = state.view !== 'map'; listHost.hidden = state.view !== 'list'; pins.hidden = state.view !== 'map';
-  }));
+  filterHost.append(h('button', { type: 'button', class: 'on', 'aria-pressed': 'true', onclick: () => setFilter(null) }, 'All'),
+    ...cats.map(c => h('button', { type: 'button', 'data-k': c, 'aria-pressed': 'false', onclick: () => setFilter(c) }, CATEGORIES[c])));
   render();
 }
 
@@ -371,7 +336,7 @@ function flowChart(host) {
     if (c) analytics.track(c.dataset.cta === 'primary' ? 'primary_cta_click' : 'secondary_cta_click', { where: c.dataset.where || '' });
     if (c && c.getAttribute('href') === '#early-access') setTimeout(() => document.getElementById('f-email')?.focus({ preventScroll: true }), reduceMotion ? 0 : 600);
   });
-  const targets = document.querySelectorAll('.sec-head, .mapstage, .fin, .collection, .reports');
+  const targets = document.querySelectorAll('.sec-head, .globe-stage, .fin, .collection, .reports');
   if (!reduceMotion && 'IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }), { rootMargin: '0px 0px -8% 0px' });
     targets.forEach(t => { t.setAttribute('data-reveal', ''); io.observe(t); });
