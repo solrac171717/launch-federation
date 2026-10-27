@@ -34,11 +34,10 @@ export function validateLead(raw = {}) {
   const investorType = String(raw.investorType ?? '');
 
   if (!EMAIL.test(email) || email.length > 254) errors.email = 'Enter a valid email address.';
-  if (!firstName) errors.firstName = 'Enter your first name.';
-  else if (firstName.length > 80) errors.firstName = 'First name is too long.';
-  if (!(portfolioSize in PORTFOLIO_SIZES)) errors.portfolioSize = 'Choose a portfolio size range.';
-  if (assetTypes.length === 0) errors.assetTypes = 'Select at least one asset category.';
-  else if (!assetTypes.every(t => t in ASSET_TYPES)) errors.assetTypes = 'Unknown asset category.';
+  // Only email + consent are required: the form is deliberately short. The rest is optional qualification.
+  if (firstName.length > 80) errors.firstName = 'First name is too long.';
+  if (portfolioSize && !(portfolioSize in PORTFOLIO_SIZES)) errors.portfolioSize = 'Choose a portfolio size range.';
+  if (!assetTypes.every(t => t in ASSET_TYPES)) errors.assetTypes = 'Unknown asset category.';
   if (investorType && !(investorType in INVESTOR_TYPES)) errors.investorType = 'Unknown investor type.';
   if (raw.consent !== true && raw.consent !== 'on' && raw.consent !== 'true') errors.consent = 'Please confirm you agree to be contacted.';
 
@@ -46,7 +45,7 @@ export function validateLead(raw = {}) {
   return {
     ok, errors,
     value: ok ? {
-      email, first_name: firstName, portfolio_size: portfolioSize,
+      email, first_name: firstName || null, portfolio_size: portfolioSize || null,
       asset_types: [...new Set(assetTypes)], investor_type: investorType || null,
     } : null,
   };

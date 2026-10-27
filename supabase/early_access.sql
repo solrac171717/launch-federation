@@ -3,9 +3,9 @@ create table if not exists public.early_access_leads (
   id            uuid primary key default gen_random_uuid(),
   created_at    timestamptz not null default now(),
   email         text not null unique, -- stored lowercase by the API
-  first_name    text not null,
-  portfolio_size text not null,
-  asset_types   text[] not null,
+  first_name    text,
+  portfolio_size text,
+  asset_types   text[] not null default '{}',
   investor_type text,
   consent_at    timestamptz not null,
   consent_text  text not null,

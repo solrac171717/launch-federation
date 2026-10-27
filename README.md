@@ -2,7 +2,7 @@
 
 Marketing site and app preview for ATLAS, a global asset intelligence platform.
 
-- `index.html` + `landing.css` + `landing.js` — the landing page (static, no framework, no map SDK).
+- `index.html` + `landing.css` + `landing.js` — the visual-first landing page (static, no framework, no map SDK). The form asks only for email + consent; `src/lead.js` still accepts optional name, portfolio size, asset types and investor type.
 - `app.html` + `src/app.js` — the working app preview: a local-first world map of holdings with KPIs,
   allocation, per-asset pages, CSV/JSON export and backup/restore. Data lives in browser `localStorage`.
 - `api/early-access.js` — serverless endpoint that stores early-access leads.

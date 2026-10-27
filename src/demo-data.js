@@ -5,7 +5,7 @@
 export const CITIES = {
   austin: [30.27, -97.74], miami: [25.76, -80.19], chicago: [41.88, -87.63], seattle: [47.61, -122.33],
   denver: [39.74, -104.99], nashville: [36.16, -86.78], teterboro: [40.85, -74.06],
-  lisbon: [38.72, -9.14], london: [51.51, -0.13],
+  lisbon: [38.72, -9.14], london: [51.51, -0.13], scottsdale: [33.49, -111.93],
 };
 
 export const CATEGORIES = {
@@ -45,6 +45,8 @@ const RAW = [
     value: 540000, cost: 410000, gross: 0, expenses: 2400, status: 'Held' },
   { id: 'denver', name: 'CAT 320 Excavator', place: 'Denver, CO', category: 'equipment', kind: 'Heavy equipment',
     value: 214000, cost: 268000, gross: 0, expenses: 6800, status: 'In service' },
+  { id: 'scottsdale', name: 'Porsche 911 Carrera', place: 'Scottsdale, AZ', category: 'vehicle', kind: 'Automobile',
+    value: 142000, cost: 126000, gross: 0, expenses: 4100, status: 'Garaged' },
   { id: 'nashville', name: 'Freightliner Cascadia', place: 'Nashville, TN', category: 'vehicle', kind: 'Commercial truck',
     value: 98000, cost: 124000, gross: 0, expenses: 5200, status: 'In service' },
   { id: 'teterboro', name: 'Citation M2', place: 'Teterboro, NJ', category: 'aircraft', kind: 'Light jet',

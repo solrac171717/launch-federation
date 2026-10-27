@@ -18,6 +18,13 @@ test('validateLead rejects bad email, missing consent, unknown category', () => 
   assert.deepEqual(Object.keys(r.errors).sort(), ['assetTypes', 'consent', 'email', 'portfolioSize']);
 });
 
+test('validateLead needs only email and consent', () => {
+  const r = validateLead({ email: 'a@b.co', consent: true });
+  assert.ok(r.ok);
+  assert.equal(r.value.first_name, null);
+  assert.deepEqual(r.value.asset_types, []);
+});
+
 function call(body, method = 'POST') {
   return new Promise(resolve => {
     const res = {
