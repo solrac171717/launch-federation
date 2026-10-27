@@ -6,6 +6,12 @@
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
     "build": "node scripts/build.mjs",
-    "start": "node scripts/serve.mjs"
+    "start": "node scripts/serve.mjs",
+    "make-map": "node scripts/make-map.mjs"
+  },
+  "devDependencies": {
+    "d3-geo": "^3.1.1",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   }
 }

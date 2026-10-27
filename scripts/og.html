@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ATLAS OG image source</title>
+<!-- Source for assets/og-image.png. Serve the repo (npm start) and screenshot this page at 1200x630. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; font-family: Inter, system-ui, sans-serif; }
+  body { background: #0B1736; color: #fff; position: relative; }
+  .map { position: absolute; right: -60px; bottom: -40px; width: 760px; opacity: .9; }
+  .dots { stroke: #3B5390; stroke-width: 3.4; stroke-linecap: round; fill: none; }
+  .t { position: absolute; left: 72px; top: 72px; width: 640px; }
+  .b { font-weight: 700; letter-spacing: .16em; font-size: 26px; color: #93C5FD; }
+  h1 { font-size: 70px; line-height: 1.05; letter-spacing: -.035em; margin: 36px 0 0; font-weight: 650; }
+  h1 span { color: #60A5FA; display: block; }
+  p { margin: 28px 0 0; width: 480px; font-size: 24px; color: #B7C5E3; line-height: 1.4; }
+</style>
+<div class="t"><div class="b">ATLAS</div><h1>Your entire asset portfolio. <span>One clear view.</span></h1><p>Global asset intelligence for real estate and tangible assets.</p></div>
+<svg class="map" id="m"></svg>
+<script type="module">
+  import { WORLD_MAP as W } from '../assets/world-map.js';
+  const m = document.getElementById('m');
+  m.setAttribute('viewBox', `0 0 ${W.w} ${W.h}`);
+  m.innerHTML = `<path class="dots" d="${W.dots}"/>` + Object.values(W.markers).map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9" fill="#2563EB" stroke="#fff" stroke-width="2.5"/>`).join('');
+</script>
