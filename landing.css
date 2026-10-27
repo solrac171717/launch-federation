@@ -216,3 +216,50 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--blue); f
   .mapstage-bar { padding: 10px; } .seg button { padding: 8px 10px; font-size: 13px; }
   .foot { flex-direction: column; align-items: flex-start; }
 }
+
+/* ===== Sky theme (matches the approved reference: soft sky hero, pill UI, large rounded white cards) ===== */
+:root { --ink: #0A0F1F; --alt: #F3F5F9; --r-btn: 999px; --r-card: 24px; --r-panel: 32px; }
+body { color: var(--ink); }
+h1, h2 { font-weight: 500; letter-spacing: -.035em; color: var(--ink); }
+h1 span { color: inherit; }
+h3 { font-weight: 600; }
+.site-header { background: transparent; backdrop-filter: none; position: absolute; left: 0; right: 0; }
+.site-header.scrolled { position: fixed; background: rgba(255,255,255,.85); backdrop-filter: saturate(1.4) blur(14px); }
+.bar { position: relative; }
+.pill-nav { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; padding: 5px; background: rgba(255,255,255,.65); border: 1px solid rgba(255,255,255,.8); backdrop-filter: blur(10px); border-radius: 999px; box-shadow: 0 6px 20px -12px rgba(10,15,31,.25); }
+.pill-nav a { text-decoration: none; font-size: 14px; font-weight: 500; color: #3A4256; padding: 8px 16px; border-radius: 999px; transition: background .15s, color .15s; }
+.pill-nav a:hover { background: #fff; color: var(--ink); }
+.btn-primary { background: linear-gradient(180deg, #3B82F6, #2563EB); }
+.btn-dark { background: #0A0F1F; color: #fff; } .btn-dark:hover { background: #1b2238; box-shadow: 0 8px 20px -8px rgba(10,15,31,.6); }
+.dotlive { width: 9px; height: 9px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,.25); }
+.cta-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.hero { padding-top: clamp(120px, 12vw, 160px); background:
+  radial-gradient(ellipse 55% 30% at 12% 24%, rgba(255,255,255,.95), transparent 62%),
+  radial-gradient(ellipse 45% 28% at 88% 34%, rgba(255,255,255,.9), transparent 62%),
+  radial-gradient(ellipse 70% 30% at 50% 66%, rgba(255,255,255,.9), transparent 68%),
+  linear-gradient(180deg, #86BCF4 0%, #B4D7FA 28%, #D9EAFC 52%, #F6FAFF 80%, #fff 100%); }
+.hero-copy .lead { color: #3F4A63; max-width: 36ch; }
+.device { perspective: 2200px; margin-top: clamp(40px, 5vw, 64px); }
+.device .window { border-radius: 26px 26px 0 0; transform: rotateX(9deg) scale(.98); transform-origin: 50% 100%; box-shadow: 0 60px 110px -40px rgba(30,64,130,.5); -webkit-mask-image: linear-gradient(#000 78%, transparent 100%); mask-image: linear-gradient(#000 78%, transparent 100%); }
+.device figcaption { padding-top: 6px; }
+.section.alt { background: var(--alt); border: 0; }
+.sec-head h2 { font-weight: 500; }
+.mapstage, .chart-card, .tile, .col-card, .paper, .ea-form, .kpi, .mini-chart, .map-card, .asset-card { border-radius: var(--r-card); }
+.mapstage { border-radius: var(--r-panel); border-color: #E9EDF4; }
+.tile.dark { background: linear-gradient(160deg, #3B82F6 0%, #1D4ED8 80%); border-color: transparent; }
+.tile.dark span, .tile.dark em { color: #D6E4FF; }
+.tile.blue { background: #fff; border-color: #DCE7FA; }
+.seg { border-radius: 999px; } .seg button { border-radius: 999px; }
+.seg button.on { background: #0A0F1F; }
+.chip { border-radius: 999px; }
+.col-card { border-color: #E9EDF4; } .col-card.lg { box-shadow: 0 30px 60px -40px rgba(37,99,235,.5); }
+.final { background:
+  radial-gradient(ellipse 60% 50% at 20% 100%, rgba(255,255,255,.7), transparent 65%),
+  radial-gradient(ellipse 50% 45% at 90% 20%, rgba(255,255,255,.6), transparent 65%),
+  linear-gradient(180deg, #F6FAFF 0%, #BBD9FA 55%, #86BCF4 100%); color: var(--ink); }
+.final h2 { color: var(--ink); } .final .lead { color: #34405A; }
+.ea-form { box-shadow: 0 40px 80px -40px rgba(30,64,130,.5); border: 1px solid rgba(255,255,255,.9); }
+.field input:not([type="checkbox"]) { border-radius: 14px; }
+.footer { border: 0; }
+@media (max-width: 860px) { .pill-nav { display: none; } .device .window { transform: none; -webkit-mask-image: none; mask-image: none; } }
+@media (max-width: 620px) { .hero { padding-top: 96px; } .cta-row .btn { flex: 1 1 100%; } .hero-copy .btn { width: auto; } }
