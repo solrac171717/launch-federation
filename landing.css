@@ -441,3 +441,10 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 .pill-nav { position: static; transform: none; background: none; border: 0; box-shadow: none; backdrop-filter: none; padding: 0; justify-self: center; }
 .pill-nav a { padding: 8px 14px; }
 @media (max-width: 860px) { .site-header .bar.wrap { grid-template-columns: 1fr auto; } }
+
+/* v5.1 navbar: wider, more breathing room above */
+.site-header { padding-top: 26px; }
+.site-header .bar.wrap { width: min(calc(var(--h1) * 11.2), calc(100% - 32px)); height: 62px; padding: 0 10px 0 24px; }
+.hero { padding-top: clamp(150px, 13vw, 190px); }
+.pill-nav a { padding: 9px 16px; }
+@media (max-width: 860px) { .site-header { padding-top: 18px; } .hero { padding-top: 120px; } }
