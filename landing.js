@@ -58,6 +58,12 @@ const ICON = {
   equipment: 'M4 19h12M6 19v-4h8v4M10 15V9l6-5M16 4l3 6',
 };
 const icon = (key, size = 22) => s('svg', { viewBox: '0 0 24 24', width: size, height: size, class: 'ico', 'aria-hidden': 'true' }, s('path', { d: ICON[key] }));
+const ASSET_IMG = { austin: 'house', miami: 'house', chicago: 'house', london: 'commercial', seattle: 'land', scottsdale: 'porsche', nashville: 'truck', teterboro: 'jet',
+  lisbon: 'yacht', boston: 'parking', columbus: 'industrial', moab: 'rv', sturgis: 'moto', newport: 'sail', keywest: 'jetski' };
+/** 3D illustration of the asset when we have one, otherwise the category icon. */
+const thumb = (a, size = 22) => ASSET_IMG[a.id]
+  ? h('img', { class: 'thumb', src: `assets/collection/thumb/${ASSET_IMG[a.id]}.jpg`, width: size, height: size, alt: '', loading: 'lazy', decoding: 'async' })
+  : icon(a.category, Math.round(size * 0.62));
 
 /* ---------------------------------------------------------- shared UI pieces */
 const Delta = (n, text) => {
@@ -69,7 +75,7 @@ const statusDot = st => h('span', { class: 'st st-' + ({ Occupied: 'ok', Leased:
 
 function assetCard(a) {
   return h('div', { class: 'asset-card' },
-    h('div', { class: 'ac-top' }, h('span', { class: 'ac-ico' }, icon(a.category, 18)), h('div', {}, h('b', {}, a.name), h('span', {}, `${a.place} · ${a.kind}`)), statusDot(a.status)),
+    h('div', { class: 'ac-top' }, h('span', { class: 'ac-ico' }, thumb(a, 34)), h('div', {}, h('b', {}, a.name), h('span', {}, `${a.place} · ${a.kind}`)), statusDot(a.status)),
     h('dl', { class: 'ac-grid' },
       h('div', {}, h('dt', {}, 'Estimated value'), h('dd', {}, money(a.value))),
       h('div', {}, h('dt', {}, 'Acquisition cost'), h('dd', {}, money(a.cost))),
@@ -131,7 +137,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
       }));
       const keep = row.scrollLeft;
       row.replaceChildren(...vis.filter(a => a.country === st.cc).map((a, i) => h('button', { type: 'button', 'data-id': a.id, style: `--i:${i}`, onclick: () => onPick(a.id, false) },
-        icon(a.category, 16), h('span', {}, a.name), h('b', {}, compact(a.value)))));
+        thumb(a, 24), h('span', {}, a.name), h('b', {}, compact(a.value)))));
       row.scrollLeft = keep;
     }
     chips.querySelectorAll('button').forEach(b => { const on = b.dataset.c === st.cc; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
@@ -272,7 +278,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
         const t = tone(r.appreciationPct, 1e-6);
         return h('tr', { class: r.id === state.sel ? 'on' : '', style: `--i:${Math.min(i, 14)}` },
           h('td', {}, h('button', { type: 'button', class: 'rowbtn two', 'aria-pressed': String(r.id === state.sel), onclick: () => select(r.id, true) },
-            h('span', { class: 'rico' }, icon(r.category, 17)), h('span', { class: 'rtx' }, h('b', {}, r.name), h("em", {}, r.place)))),
+            h('span', { class: 'rico' }, thumb(r, 44)), h('span', { class: 'rtx' }, h('b', {}, r.name), h("em", {}, r.place)))),
           h('td', { class: 'r' }, compact(r.value)),
           h('td', {}, h('span', { class: 'share' }, h('i', { style: `width:${(r.value / total) * 100}%` }), h('b', {}, `${((r.value / total) * 100).toFixed(1)}%`))),
           h('td', { class: 'r' }, Delta(r.appreciation, fmtPct(r.appreciationPct, { sign: true })), h('span', { class: 'mb', 'aria-hidden': 'true' }, h('i', { class: t, style: `width:${(Math.abs(r.appreciationPct) / maxAbs) * 100}%` }))),
@@ -365,7 +371,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
     clear(card).append(assetCard(byId(state.sel)));
     clear(list).append(...shown().map(a => h('li', {}, h('button', {
       type: 'button', class: a.id === state.sel ? 'on' : '', 'aria-pressed': String(a.id === state.sel), onclick: () => select(a.id, true),
-    }, icon(a.category, 18), h('span', {}, h('b', {}, a.name), h('em', {}, a.place)), h('strong', {}, compact(a.value))))));
+    }, thumb(a, 32), h('span', {}, h('b', {}, a.name), h('em', {}, a.place)), h('strong', {}, compact(a.value))))));
     filterHost.querySelectorAll('button').forEach(b => { const on = (b.dataset.k || null) === state.filter; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   };
   function select(id, focus) { state.sel = id; globe.setSelected(id); if (focus) globe.focus(id); render(); geo.sync(); }

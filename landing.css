@@ -789,3 +789,14 @@ tr.on .rico, .app-tbl tbody tr:hover .rico { background: var(--blue); color: #ff
 .app-tbl th button { white-space: nowrap; }
 .perf-grid .rank { max-height: 380px; }
 .perf-grid .rank button { grid-template-columns: minmax(0, 178px) 1fr 62px; }
+/* 3D thumbnails */
+.thumb { display: block; width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+.rico { width: 44px; height: 44px; border-radius: 12px; background: #fff; border: 1px solid #E6ECF6; overflow: hidden; }
+tr.on .rico, .app-tbl tbody tr:hover .rico { background: #fff; border-color: #93B4F5; color: var(--blue); }
+.rico .ico { color: var(--blue); }
+tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
+.rowbtn.two { gap: 12px; padding: 6px 0; }
+.ac-ico { width: 44px; height: 44px; border-radius: 12px; background: #fff; border: 1px solid #E6ECF6; overflow: hidden; }
+.ac-ico .ico { color: var(--blue); width: 22px; height: 22px; }
+.geo-assets button .thumb { width: 24px; height: 24px; border-radius: 7px; flex: none; }
+.rows button .thumb { width: 32px; height: 32px; border-radius: 9px; flex: none; background: #fff; border: 1px solid #E6ECF6; }
