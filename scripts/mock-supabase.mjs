@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-const COLS = ['id', 'user_id', 'name', 'type', 'place', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debt_payment', 'status', 'acquired_on', 'notes', 'history', 'is_sample', 'created_at', 'updated_at'];
+const COLS = ['id', 'user_id', 'name', 'type', 'place', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debt_payment', 'ownership', 'owner', 'status', 'acquired_on', 'notes', 'history', 'is_sample', 'created_at', 'updated_at'];
 const TYPES = ['house', 'office', 'warehouse', 'parking', 'land', 'car', 'truck', 'motorcycle', 'rv', 'yacht', 'sailboat', 'jetski', 'aircraft', 'equipment'];
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
 
@@ -15,9 +15,10 @@ export function startMock({ port = 4180, root = '.' } = {}) {
   const access = new Map();      // access token -> { user, exp }
   const refresh = new Map();     // refresh token -> user
   const table = [];              // all rows, every user
-  const docs = [], rems = [], files = new Map(); // other tables + the private file bucket
+  const docs = [], rems = [], shares = [], files = new Map(); // other tables + the private file bucket
   const log = [];
   const origin = `http://localhost:${port}`;
+  const SERVICE = 'mock-service-key'; // the server-side key used by /api/* (bypasses row security, like the real service role)
 
   const issue = user => {
     const at = 'at_' + randomUUID(), rt = 'rt_' + randomUUID();
@@ -25,7 +26,8 @@ export function startMock({ port = 4180, root = '.' } = {}) {
     return { access_token: at, refresh_token: rt, expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer', user };
   };
   const json = (res, status, body) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(body === undefined ? '' : JSON.stringify(body)); };
-  const bearer = req => { const t = (req.headers.authorization || '').replace(/^Bearer /, ''); const a = access.get(t); return a && a.exp > Date.now() ? a.user : null; };
+  const bearer = req => { const t = (req.headers.authorization || '').replace(/^Bearer /, ''); if (t === SERVICE) return { id: '*service*', service: true }; const a = access.get(t); return a && a.exp > Date.now() ? a.user : null; };
+  const owns = (r, user) => user.service || r.user_id === user.id;
   const readRaw = async req => { const c = []; for await (const x of req) c.push(x); return Buffer.concat(c); };
   const readBody = async req => { const c = []; for await (const x of req) c.push(x); const t = Buffer.concat(c).toString(); try { return t ? JSON.parse(t) : undefined; } catch { return undefined; } };
 
@@ -58,7 +60,16 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/__expire') { for (const a of access.values()) a.exp = 0; return json(res, 200, {}); }
       if (path === '/__log') return json(res, 200, log);
       if (path === '/__rows') return json(res, 200, table);
-      if (path === '/__extras') return json(res, 200, { docs, rems, files: [...files.keys()] });
+      if (path === '/__extras') return json(res, 200, { docs, rems, files: [...files.keys()], shares });
+      if (path === '/api/share') { // run the real serverless handler against this mock
+        process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE;
+        const mod = await import('../api/share.js'); return mod.default(req, res);
+      }
+      if (path === '/__age') { // move every asset's history and creation date back, to test timelines without waiting
+        const days = Number(url.searchParams.get('days')) || 30, shift = d => new Date(Date.parse(d) - days * 86400000).toISOString().slice(0, 10);
+        for (const r of table) { r.history = (r.history || []).map(p => ({ ...p, d: shift(p.d) })); r.created_at = new Date(Date.parse(r.created_at) - days * 86400000).toISOString(); }
+        return json(res, 200, {});
+      }
       if (path === '/__due') { for (const r of rems) if (url.searchParams.get('id') === r.id || !url.searchParams.get('id')) r.due_on = url.searchParams.get('on'); return json(res, 200, {}); }
       if (path === '/assets/config.js') { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(`export const CONFIG = { supabaseUrl: '${origin}', supabaseAnonKey: 'mock-anon-key' };`); }
 
@@ -79,17 +90,18 @@ export function startMock({ port = 4180, root = '.' } = {}) {
 
 
       /* ---- rest: documents + reminders (same RLS idea) and the private asset-docs bucket */
-      const sub = /^\/rest\/v1\/(asset_documents|asset_reminders)$/.exec(path);
+      const sub = /^\/rest\/v1\/(asset_documents|asset_reminders|asset_shares)$/.exec(path);
       if (sub) {
         const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
-        const tbl = sub[1] === 'asset_documents' ? docs : rems, mine = tbl.filter(r => r.user_id === user.id), want = /return=representation/.test(req.headers.prefer || '');
+        const tbl = sub[1] === 'asset_documents' ? docs : sub[1] === 'asset_shares' ? shares : rems, mine = tbl.filter(r => owns(r, user)), want = /return=representation/.test(req.headers.prefer || '');
         if (req.method === 'GET') return json(res, 200, mine.filter(r => matches(r, url.searchParams)));
         if (req.method === 'POST') {
           const b = await readBody(req);
-          if (!table.some(a => a.id === b.asset_id && a.user_id === user.id)) return json(res, 403, { code: '42501', message: 'new row violates row-level security policy' });
+          if (tbl !== shares && !table.some(a => a.id === b.asset_id && a.user_id === user.id)) return json(res, 403, { code: '42501', message: 'new row violates row-level security policy' });
           if (tbl === docs && !(b.size >= 0 && b.size <= 10485760 && b.path && b.name)) return json(res, 400, { code: '23514', message: 'check constraint' });
           if (tbl === rems && !(b.title && b.due_on)) return json(res, 400, { code: '23502', message: 'not-null constraint' });
-          const row = tbl === rems ? { repeat: 'none', notify_days: 14, done: false, last_notified_on: null, kind: 'other', ...b } : { kind: 'other', ...b };
+          if (tbl === shares && !(b.label && b.token_hash && b.token_hash.length === 64)) return json(res, 400, { code: '23514', message: 'check constraint' });
+          const row = tbl === rems ? { repeat: 'none', notify_days: 14, done: false, last_notified_on: null, kind: 'other', ...b } : tbl === shares ? { include_debt: true, expires_at: null, revoked: false, last_viewed_at: null, ...b } : { kind: 'other', ...b };
           Object.assign(row, { id: randomUUID(), user_id: user.id, created_at: new Date().toISOString() }); tbl.push(row);
           return json(res, 201, want ? [row] : undefined);
         }
@@ -114,7 +126,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/rest/v1/assets') {
         const user = bearer(req);
         if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
-        const mine = table.filter(r => r.user_id === user.id);
+        const mine = table.filter(r => owns(r, user));
         const wantRows = /return=representation/.test(req.headers.prefer || '');
         if (req.method === 'GET') {
           let rows = mine.filter(r => matches(r, url.searchParams)).sort((a, b) => (a.created_at < b.created_at ? -1 : 1));

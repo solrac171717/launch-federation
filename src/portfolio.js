@@ -4,11 +4,15 @@ const sum = a => a.reduce((s, x) => s + x, 0);
 
 /** Adds the derived fields to a raw asset ({ value, cost, gross, expenses, ... }). */
 export function enrich(a) {
-  const gross = Number(a.gross) || 0, expenses = Number(a.expenses) || 0, value = Number(a.value) || 0, cost = Number(a.cost) || 0;
-  const debt = Number(a.debt) || 0, debtPayment = Number(a.debtPayment) || 0;
+  // Figures are entered for the whole asset. When the owner holds only a share of it (50% of a flat, a stake in a company),
+  // every figure the product shows and adds up is that share, so totals and net worth are never inflated.
+  const own = Number(a.ownership) > 0 ? Math.min(100, Number(a.ownership)) : 100, k = own / 100;
+  const gross = (Number(a.gross) || 0) * k, expenses = (Number(a.expenses) || 0) * k, value = (Number(a.value) || 0) * k, cost = (Number(a.cost) || 0) * k;
+  const debt = (Number(a.debt) || 0) * k, debtPayment = (Number(a.debtPayment) || 0) * k;
   const noi = gross - expenses, earning = gross > 0;
   return {
     ...a, value, cost, gross, expenses, noi, earning,
+    ownership: own, fullValue: (Number(a.value) || 0), shared: own < 100, owner: a.owner || '',
     // Debt is the outstanding balance of the mortgage or loan secured on the asset. Equity can be negative (underwater).
     debt, debtPayment, equity: value - debt, ltv: value > 0 && debt > 0 ? debt / value : null,
     appreciation: value - cost,

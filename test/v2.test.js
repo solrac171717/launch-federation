@@ -9,6 +9,12 @@ import { ASSETS, sampleRows } from '../src/demo-data.js';
 import { statusOf, daysUntil, nextDue, validateReminder, shouldNotify, digestEmail, whenText } from '../src/reminders.js';
 import { validateFile, safeName, completionPatch, createCloudExtras } from '../src/extras-store.js';
 import { runReminders } from '../api/send-reminders.js';
+import { runShare } from '../api/share.js';
+import { portfolioTimeline } from '../src/networth.js';
+import { activityFor } from '../src/activity.js';
+import { quickValues, toView, nextHistory } from '../src/asset-store.js';
+import { makeToken, sha256Hex, shareState } from '../src/app-share.js';
+import { createHash } from 'node:crypto';
 
 /* ------------------------------------------------ debt and net worth */
 test('debt gives equity, loan-to-value and a portfolio net worth', () => {
@@ -165,6 +171,6 @@ test('cloud update: paying a debt off writes zero, an asset that never had debt 
   const bodies = [];
   const cloud = { rest: async (m, p, b) => { if (m === 'GET') return [{ history: [{ d: '2022-01-01', v: 1 }] }]; bodies.push(b); return [{ id: 'x', name: 'n', type: 'house', place: 'p', country: 'US', lat: 0, lon: 0, value: 1, cost: 1, gross: 0, expenses: 0, status: 'Held', history: [] }]; } };
   const s = createCloudStore(cloud); const v = { name: 'n', type: 'house', place: 'p', country: 'US', lat: 0, lon: 0, value: 1, cost: 1, gross: 0, expenses: 0, debt: 0, debtPayment: 0, status: 'Held', acquiredOn: null, notes: null };
-  await s.update('x', v, { hadDebt: true }); assert.equal(bodies[0].debt, 0); assert.equal(bodies[0].debt_payment, 0);
-  await s.update('x', v, { hadDebt: false }); assert.ok(!('debt' in JSON.parse(JSON.stringify(bodies[1]))) && !('debt_payment' in JSON.parse(JSON.stringify(bodies[1]))));
+  await s.update('x', v, { prev: { debt: 5000, debtPayment: 100, ownership: 100, owner: '' } }); assert.equal(bodies[0].debt, 0); assert.equal(bodies[0].debt_payment, 0);
+  await s.update('x', v, { prev: { debt: 0, debtPayment: 0, ownership: 100, owner: '' } }); assert.ok(!('debt' in JSON.parse(JSON.stringify(bodies[1]))) && !('debt_payment' in JSON.parse(JSON.stringify(bodies[1]))));
 });

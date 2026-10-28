@@ -11,7 +11,7 @@ const good = { type: 'house', name: ' Lake House ', place: 'Austin, TX', customP
 test('validateAsset normalises a good form', () => {
   const r = validateAsset(good, { today: '2026-10-28' });
   assert.equal(r.ok, true);
-  assert.deepEqual(r.value, { name: 'Lake House', type: 'house', place: 'Austin, TX', country: 'US', lat: 30.27, lon: -97.74, value: 685000, cost: 520000, gross: 61200, expenses: 17360, debt: 0, debtPayment: 0, status: 'Occupied', acquiredOn: '2022-03-01', notes: null });
+  assert.deepEqual(r.value, { name: 'Lake House', type: 'house', place: 'Austin, TX', country: 'US', lat: 30.27, lon: -97.74, value: 685000, cost: 520000, gross: 61200, expenses: 17360, debt: 0, debtPayment: 0, ownership: 100, owner: '', status: 'Occupied', acquiredOn: '2022-03-01', notes: null });
 });
 
 test('validateAsset reports every problem and rejects bad numbers', () => {
@@ -30,7 +30,7 @@ test('custom places need a country and real coordinates', () => {
 test('value history starts at acquisition and records each change once per day', () => {
   const v = { value: 685000, cost: 520000, acquiredOn: '2022-03-01' };
   let h = nextHistory([], v, { today: '2026-10-28', isNew: true });
-  assert.deepEqual(h, [{ d: '2022-03-01', v: 520000 }, { d: '2026-10-28', v: 685000 }]);
+  assert.deepEqual(h, [{ d: '2022-03-01', v: 520000 }, { d: '2026-10-28', v: 685000, b: 0 }]);
   assert.deepEqual(nextHistory(h, { ...v, value: 685000 }, { today: '2026-10-29' }), h, 'unchanged value adds nothing');
   h = nextHistory(h, { ...v, value: 700000 }, { today: '2026-10-29' });
   assert.equal(h.length, 3);

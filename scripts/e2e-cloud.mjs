@@ -41,6 +41,7 @@ const signIn = async email => {
   await until(`!document.getElementById('auth-ok').hidden`, 'check-your-inbox message');
   const { url } = await (await fetch(`${mock.origin}/__link?email=${encodeURIComponent(email)}`)).json();
   await goto(url); await until(`!document.getElementById('shell').hidden`, 'dashboard');
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
 };
 
 await step('signed out visitor sees the sign-in screen, invalid email is rejected locally', async () => {
@@ -152,14 +153,94 @@ await step('reports: Excel is a real .xlsx download and the PDF report opens wit
   await btn('PDF report', 'document'); await until(`document.querySelector('iframe[title=Report]')`, 'pdf frame');
   const html = await ev(`document.querySelector('iframe[title=Report]').srcdoc`); if (!/Portfolio report/.test(html) || !/Net worth/.test(html)) throw new Error('report html');
 });
-await step('deleting an asset also deletes its documents and reminders', async () => {
+const asset = async name => (await rows()).find(x => x.name === name);
+await step('shared ownership and monthly figures: the form stores yearly amounts, the share and the owner', async () => {
+  await tab('Map'); await click('#add-asset-btn'); await until(`document.getElementById('modal').open`, 'modal');
+  await ev(`(()=>{document.querySelector('.type-card').click(); const set=(id,v)=>{document.getElementById(id).value=v;};
+    set('f-name','Shared Flat'); set('f-place','Austin, TX'); set('f-value','400000'); set('f-cost','300000'); set('f-gross','1000'); set('f-expenses','200'); set('f-debt','100000'); set('f-debtpay','900'); set('f-own','50'); set('f-owner','Acme LLC');
+    if (document.getElementById('f-period').value !== 'month') throw new Error('new assets should default to monthly entry'); document.querySelector('.asset-form').requestSubmit();})()`);
+  await until(`!document.getElementById('modal').open`, 'saved');
+  const r = await asset('Shared Flat'); if (r.gross !== 12000 || r.expenses !== 2400 || r.ownership !== 50 || r.owner !== 'Acme LLC' || r.debt !== 100000) throw new Error(JSON.stringify(r));
+  await until(`/You own 50% of \\$400,000/.test(document.getElementById('hero-sel').textContent)`, 'share shown on the card');
+});
+await step('switching the form to per year converts what was typed and edit shows yearly figures', async () => {
+  await btn('Edit', 'document'); await until(`document.getElementById('f-name')?.value === 'Shared Flat'`, 'edit form');
+  const v = await ev(`({period: document.getElementById('f-period').value, gross: document.getElementById('f-gross').value, own: document.getElementById('f-own').value})`);
+  if (v.period !== 'year' || v.gross !== '12000' || v.own !== '50') throw new Error(JSON.stringify(v));
+  await ev(`document.getElementById('f-period').value='month'; document.getElementById('f-period').dispatchEvent(new Event('change'))`);
+  if ((await ev(`document.getElementById('f-gross').value`)) !== '1000') throw new Error('did not convert to monthly');
+  await ev(`document.querySelector('.modal-x').click()`); await until(`!document.getElementById('modal').open`, 'closed');
+});
+await step('quick update value: saves value and debt, adds history, and sets the monthly reminder', async () => {
+  await fetch(`${mock.origin}/__age?days=40`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'reloaded');
+  await tab('Map'); await until(`/Shared Flat/.test(document.getElementById('hero-sel').textContent) || true`, 'map'); await ev(`window.__noop = 1`);
+  await ev(`[...document.querySelectorAll('.tab-btn, .nav-btn')].filter(b=>b.offsetParent).find(b=>b.textContent.trim()==='Assets').click()`); await until(`[...document.querySelectorAll('.app-tbl tbody tr')].length`, 'table'); await ev(`[...document.querySelectorAll('.app-tbl tbody tr .rowbtn')].find(b=>/Shared Flat/.test(b.textContent)).click()`);
+  await btn('Update value', 'document'); await until(`document.getElementById('q-value')`, 'quick modal');
+  await ev(`document.getElementById('q-value').value='440000'; document.getElementById('q-debt').value='90000'; document.getElementById('q-remind').checked = true; document.querySelector('.asset-form').requestSubmit()`);
+  await until(`!document.getElementById('modal').open`, 'saved'); await until(`/Value updated \\(\\+10\\.0%\\)/.test(document.getElementById('toast').textContent)`, 'toast with the change');
+  const r = await asset('Shared Flat'); const last = r.history.at(-1);
+  if (r.value !== 440000 || r.debt !== 90000 || last.v !== 440000 || last.b !== 90000 || r.history.length < 2) throw new Error(JSON.stringify(r));
+  const x = await extrasState(); const rem = x.rems.find(q => q.title === 'Update estimated value'); if (!rem || rem.repeat !== 'monthly') throw new Error(JSON.stringify(x.rems));
+  await btn('Update value', 'document'); await until(`document.getElementById('q-value')`, 'again');
+  if (!/monthly reminder to update this value is due/.test(await ev(`document.querySelector('.asset-form').textContent`))) throw new Error('should show the existing reminder instead of a second checkbox');
+  await ev(`document.getElementById('q-value').value='-3'; document.querySelector('.asset-form').requestSubmit()`); await until(`document.querySelector('.asset-form .err:not(:empty)')`, 'validation');
+  await ev(`document.querySelector('.modal-x').click()`);
+});
+await step('performance shows the portfolio net worth chart with Net worth, Value and Debt', async () => {
+  await tab('Performance'); await until(`document.querySelector('.pf-card svg.fc')`, 'portfolio chart');
+  const kp = await ev(`document.querySelector('.pf-kpis').textContent`); if (!/Net worth/.test(kp) || !/Debt/.test(kp)) throw new Error(kp);
+  await btn('Debt', 'document.querySelector(".pf-card")'); await until(`document.querySelector('.pf-card button.on')?.textContent === 'Debt' && document.querySelector('.pf-card svg.fc')`, 'debt chart');
+  await btn('Value', 'document.querySelector(".pf-card")'); await until(`document.querySelector('.pf-card button.on')?.textContent === 'Value'`, 'value chart');
+});
+await step('cash flow tab: monthly income, expenses and loan payments follow the ownership share', async () => {
+  await tab('Cash flow'); await until(`document.querySelector('.cf-tbl')`, 'table');
+  const row = await ev(`[...document.querySelectorAll('.cf-tbl tbody tr')].find(r => /Shared Flat/.test(r.textContent))?.textContent`);
+  // 50% of 1000 income, 200 expenses and 900 loan payment per month: 500 - 100 - 450 = -50
+  if (!row || !/\$500/.test(row) || !/\$100/.test(row) || !/\$450/.test(row) || !/-\$50/.test(row)) throw new Error('row: ' + row);
+  if (!/Net cash flow per month/.test(await ev(`document.querySelector('#view-cashflow .perf-kpis').textContent`))) throw new Error('no kpi');
+});
+await step('asset activity timeline shows value increases and debt reduction', async () => {
+  await tab('Assets'); await btn('Documents', 'document'); await until(`document.querySelector('.extras .tl')`, 'timeline');
+  const t = await ev(`document.querySelector('.extras .tl').textContent`); if (!/Value increased/.test(t) || !/Debt reduced/.test(t) || !/Added to ATLAS/.test(t)) throw new Error(t);
+  await ev(`document.querySelector('.modal-x').click()`); await until(`!document.getElementById('modal').open`, 'closed');
+});
+await step('delete hides the asset at once, Undo brings it back, and without Undo it is really deleted with its files', async () => {
   await tab('Assets'); await btn('Documents', 'document'); await until(`document.querySelector('.extras')`, 'modal');
   await setFile('#d-file', 'deed.pdf', '%PDF-1.4 deed', 'application/pdf'); await ev(`[...document.querySelectorAll('.extras .upload-row button')].find(b=>/Upload/.test(b.textContent)).click()`);
   await until(`document.querySelector('.doc-row')`, 'uploaded'); await ev(`document.querySelector('.modal-x').click()`); await until(`!document.getElementById('modal').open`, 'closed');
   const before = await extrasState(); if (!before.files.length) throw new Error('no file to delete');
-  await ev(`[...document.querySelectorAll('.detail-actions button')].find(b=>/^Delete/.test(b.textContent)).click()`); await until(`document.getElementById('modal').open`, 'confirm');
-  await ev(`document.querySelector('.danger-fill').click()`); await until(`/Asset deleted/.test(document.getElementById('toast').textContent)`, 'deleted');
-  const after = await extrasState(); if (after.files.length || after.docs.length) throw new Error('files remain; toast says: ' + await ev(`document.getElementById('toast').textContent`));
+  const name = await ev(`document.querySelector('.detail .ac-top b').textContent`);
+  await ev(`[...document.querySelectorAll('.detail-actions button')].find(b=>/^Delete/.test(b.textContent)).click()`);
+  await until(`/deleted\\./.test(document.getElementById('toast').textContent) && document.querySelector('.toast-act')`, 'undo toast');
+  if (await ev(`[...document.querySelectorAll('#view-assets .app-tbl tbody tr')].some(r => r.textContent.includes(${JSON.stringify(name)}))`)) throw new Error('asset still listed right after deleting: ' + await ev(`JSON.stringify({name: ${JSON.stringify(name)}, rows: [...document.querySelectorAll('#view-assets .app-tbl tbody tr')].map(r => r.textContent.slice(0, 40)), toast: document.getElementById('toast').textContent, view: document.querySelector('.app-view:not([hidden])')?.id})`));
+  if (!(await asset(name))) throw new Error('it must not be deleted before the undo window ends');
+  await ev(`document.querySelector('.toast-act').click()`); await until(`[...document.querySelectorAll('#view-assets .app-tbl tbody tr')].some(r => r.textContent.includes(${JSON.stringify(name)}))`, 'restored');
+  await sleep(9500); if (!(await asset(name))) throw new Error('undone delete was executed anyway');
+  await ev(`[...document.querySelectorAll('.detail-actions button')].find(b=>/^Delete/.test(b.textContent)).click()`); await until(`document.querySelector('.toast-act')`, 'toast again');
+  for (let i = 0; i < 40 && (await asset(name)); i++) await sleep(300);
+  if (await asset(name)) throw new Error('asset was not deleted after the undo window');
+  const after = await extrasState(); if (after.files.length || after.docs.length) throw new Error('files remain');
+});
+await step('share: create a read-only link, open it without signing in, no edit controls, notes never exposed, then revoke', async () => {
+  await tab('Map'); await click('#share-btn'); await until(`document.getElementById('sh-label')`, 'share modal');
+  await ev(`document.getElementById('sh-label').value='My accountant'; document.querySelector('.share-form').requestSubmit()`);
+  await until(`document.querySelector('.share-url input')`, 'link created'); const url = await ev(`document.querySelector('.share-url input').value`);
+  if (!/\/share\.html#t=[A-Za-z0-9_-]{43}$/.test(url)) throw new Error(url);
+  const stored = (await extrasState()).shares[0]; if (!stored || /[A-Za-z0-9_-]{43}/.test(JSON.stringify(stored)) && JSON.stringify(stored).includes(url.split('#t=')[1])) throw new Error('the secret must not be stored: ' + JSON.stringify(stored));
+  const savedSession = await ev(`localStorage.getItem('atlas.session.v1')`);
+  await ev(`localStorage.removeItem('atlas.session.v1')`); // the viewer is not signed in
+  await goto(url); await until(`!document.getElementById('shell').hidden`, 'shared dashboard');
+  if (await ev(`!!document.getElementById('add-asset-btn') || !!document.getElementById('import-btn') || !!document.getElementById('share-btn')`)) throw new Error('shared view must be read only');
+  if (!/Read-only view shared with/.test(await ev(`document.getElementById('app-banner').textContent`))) throw new Error('no read-only banner');
+  await until(`/Portfolio value/.test(document.getElementById('hero-value').textContent)`, 'figures');
+  const api = await ev(`fetch('/api/share', {headers: {'x-share-token': ${JSON.stringify(url.split('#t=')[1])}}}).then(r => r.text())`); if (/"notes"/.test(api)) throw new Error('notes leaked');
+  // back as the owner to revoke
+  await ev(`localStorage.setItem('atlas.session.v1', ${JSON.stringify(savedSession)})`);
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'owner back'); await ev(`document.getElementById('modal').open && document.querySelector('.modal-x').click()`);
+  await click('#share-btn'); await until(`document.querySelector('.sh-row')`, 'list'); await btn('Revoke', 'document'); await until(`document.querySelector('.sh-st.revoked')`, 'revoked');
+  await goto(url); await until(`/no longer works/.test(document.getElementById('boot').textContent)`, 'revoked link rejected');
+  await ev(`localStorage.setItem('atlas.session.v1', ${JSON.stringify(savedSession)})`);
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'owner again'); await ev(`document.getElementById('modal').open && document.querySelector('.modal-x')?.click()`);
 });
 await step('remove sample data keeps only the user\'s own asset', async () => {
   await click('#app-banner .mini-btn'); await until(`document.getElementById('app-banner').hidden`, 'banner hides');
@@ -174,6 +255,26 @@ await step('sign out returns to the sign-in screen and clears the session', asyn
   await ev(`[...document.querySelectorAll('#side-foot button')].find(b=>/Sign out/.test(b.textContent)).click()`);
   await until(`!document.getElementById('auth').hidden`, 'auth after sign out');
   if (await ev(`localStorage.getItem('atlas.session.v1')`)) throw new Error('session still stored');
+});
+await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
+  await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
+  await ev(`document.getElementById('auth-email').value='cara@example.com'; document.getElementById('auth-form').requestSubmit()`); await until(`!document.getElementById('auth-ok').hidden`, 'sent');
+  const { url } = await (await fetch(`${mock.origin}/__link?email=cara%40example.com`)).json(); await goto(url);
+  await until(`document.querySelector('.wizard h2')?.textContent === 'What do you own?'`, 'guide opens by itself');
+  await ev(`[...document.querySelectorAll('.wz-types .type-card')].filter(b => /House|Car/.test(b.textContent)).forEach(b => b.click())`);
+  await until(`/Continue with 2/.test(document.querySelector('.wizard .btn-primary').textContent)`, 'two picked'); await btn('Continue with 2', 'document');
+  await until(`document.querySelector('.wizard h2')?.textContent === 'Add your first one'`, 'step 2'); await btn('Add your house', 'document');
+  await until(`document.getElementById('f-name')`, 'form'); if ((await ev(`document.querySelector('.type-card.on')?.textContent`)) !== 'House or apartment') throw new Error('type was not preselected');
+  await ev(`(()=>{const set=(id,v)=>{document.getElementById(id).value=v;}; set('f-name','Guided House'); set('f-place','Austin, TX'); set('f-value','500000'); set('f-cost','400000'); document.querySelector('.asset-form').requestSubmit();})()`);
+  await until(`document.querySelector('.wizard h2')?.textContent === 'Never miss a date'`, 'step 3');
+  const d = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
+  await ev(`document.querySelector('.wz-rem input[type=date]').value = ${JSON.stringify(d)}`); await btn('Finish setup', 'document');
+  await until(`!document.getElementById('modal').open`, 'finished');
+  const x = await extrasState(); const mine = x.rems.map(r => r.title);
+  if (!mine.includes('Insurance renewal') || !mine.includes('Update estimated value')) throw new Error(JSON.stringify(mine));
+  const cara = (await rows()).filter(r => r.name === 'Guided House'); if (cara.length !== 1) throw new Error('asset missing');
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'again'); await sleep(400);
+  if (await ev(`document.getElementById('modal').open`)) throw new Error('the guide must not reopen');
 });
 await step('no uncaught script errors during the whole run', async () => { if (errors.length) throw new Error(errors.slice(0, 3).join(' | ')); });
 

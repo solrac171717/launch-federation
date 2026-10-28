@@ -70,22 +70,46 @@ const TYPE_OF = { austin: 'house', miami: 'house', chicago: 'house', london: 'of
   teterboro: 'aircraft', lisbon: 'yacht', boston: 'parking', columbus: 'warehouse', moab: 'rv', sturgis: 'motorcycle', newport: 'sailboat', keywest: 'jetski' };
 const COUNTRY_OF = { london: 'GB', lisbon: 'PT' };
 
-export const ASSETS = RAW.map(a => ({
-  ...enrich(a),
-  country: COUNTRY_OF[a.id] || 'US',
-  type: TYPE_OF[a.id],
-  lat: CITIES[a.id][0], lon: CITIES[a.id][1],
-  series: a.id === 'austin' ? WESTLAKE_VALUATIONS : null,
-}));
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH_NUM = Object.fromEntries(MON.map((m, i) => [m, String(i + 1).padStart(2, '0')]));
+const monthDate = n => { const t = 2026 * 12 + 8 - n; return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, '0')}-01`; }; // n months before Sep 2026
+const labelOf = d => `${MON[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}`;
+
+/** Illustrative value (and debt) history for the sample portfolio. Westlake keeps its real-looking appraisals; the others get a
+ *  smooth, deterministic path from cost to today's value, so the net-worth chart has something honest-looking to draw. */
+function sampleHistory(a, i) {
+  if (a.id === 'austin') {
+    const debtAt = j => Math.round(a.debt * (1 + 0.032 * (WESTLAKE_VALUATIONS.length - 1 - j) / 2));
+    return WESTLAKE_VALUATIONS.map((p, j) => { const [m, y] = p.label.split(' '); return { d: `${y}-${MONTH_NUM[m]}-01`, v: p.v, b: j === 0 ? undefined : debtAt(j) }; });
+  }
+  const n = 4 + (i % 4), span = 18 + ((i * 7) % 30); // number of points, months since purchase
+  return Array.from({ length: n + 1 }, (_, j) => {
+    const f = j / n, ease = f * f * (3 - 2 * f), wobble = j === 0 || j === n ? 0 : Math.sin((i + 1) * (j + 2)) * 0.012 * Math.abs(a.value - a.cost);
+    const v = j === n ? a.value : Math.round((a.cost + (a.value - a.cost) * ease + wobble) / 100) * 100;
+    const yearsBefore = ((n - j) / n) * (span / 12), b = a.debt > 0 && j > 0 ? (j === n ? a.debt : Math.round(a.debt * (1 + 0.035 * yearsBefore))) : undefined;
+    return { d: monthDate(Math.round(span * (1 - f))), v, ...(b !== undefined ? { b } : {}) };
+  });
+}
+
+export const ASSETS = RAW.map((a, i) => {
+  const history = sampleHistory(enrich(a), i);
+  return {
+    ...enrich(a),
+    country: COUNTRY_OF[a.id] || 'US',
+    type: TYPE_OF[a.id],
+    lat: CITIES[a.id][0], lon: CITIES[a.id][1],
+    history,
+    series: history.map(p => ({ label: labelOf(p.d), v: p.v })),
+  };
+});
 
 export const portfolio = (assets = ASSETS) => portfolioOf(assets);
 export const allocation = (assets = ASSETS) => allocationOf(assets);
 export const byId = id => ASSETS.find(a => a.id === id);
 
-const MONTH_NUM = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
 /** The sample portfolio as storable rows (used by the app's "Load sample data"). */
 export const sampleRows = (today = new Date().toISOString().slice(0, 10)) => ASSETS.map(a => ({
   name: a.name, type: a.type, place: a.place, country: a.country, lat: a.lat, lon: a.lon, value: a.value, cost: a.cost, gross: a.gross, expenses: a.expenses, debt: a.debt, debtPayment: a.debtPayment,
   status: a.status, acquiredOn: null, notes: null, isSample: true,
-  history: a.series ? a.series.map(p => { const [m, y] = p.label.split(' '); return { d: `${y}-${MONTH_NUM[m]}-01`, v: p.v }; }) : [{ d: today, v: a.value }],
+  history: a.history.map(p => ({ ...p })),
 }));

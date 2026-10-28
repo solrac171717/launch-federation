@@ -3,13 +3,15 @@ import { CONFIG } from '../assets/config.js';
 import { h, clear } from './dom.js';
 import { thumb, money } from './ui.js';
 import { createCloud } from './cloud.js';
-import { createCloudStore, createLocalStore, validateAsset, toView } from './asset-store.js';
+import { createCloudStore, createLocalStore, validateAsset, toView, quickValues } from './asset-store.js';
+import { activityFor } from './activity.js';
+import { createShareUi } from './app-share.js';
 import { mountDashboard } from './dashboard.js';
 import { sampleRows } from './demo-data.js';
 import { ASSET_TYPES, TYPE_BY_KEY } from './types.js';
 import { COUNTRIES, CITIES_LIST, placeLabel, findCity } from './places.js';
 import { createCloudExtras, createLocalExtras, DOC_KINDS, validateFile, sizeText, completionPatch } from './extras-store.js';
-import { REMINDER_KINDS, REPEATS, validateReminder, statusOf, isoDay } from './reminders.js';
+import { REMINDER_KINDS, REPEATS, validateReminder, statusOf, isoDay, nextDue, UPDATE_TITLE } from './reminders.js';
 import { previewImport, TEMPLATE_CSV } from './csv-import.js';
 import { download } from './report.js';
 
@@ -20,9 +22,10 @@ let store = null, extras = null, raw = [], views = [], dash = null, docs = [], r
 
 /* ------------------------------------------------------------------ small helpers */
 let toastTimer = 0;
-function toast(msg, kind = 'ok') {
-  const t = $('toast'); t.textContent = msg; t.className = `toast show ${kind}`;
-  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = 'toast'; }, 4200);
+function toast(msg, kind = 'ok', { action = null, ms = 4200 } = {}) {
+  const t = $('toast'); t.className = `toast show ${kind}${action ? ' has-action' : ''}`;
+  t.replaceChildren(h('span', {}, msg), ...(action ? [h('button', { type: 'button', class: 'toast-act', onclick: () => { t.className = 'toast'; action.fn(); } }, action.label)] : []));
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = 'toast'; }, ms);
 }
 const recompute = () => { views = raw.map(toView); };
 const metaOf = id => ({ docs: docs.filter(d => d.assetId === id).length, reminders: rems.filter(r => r.assetId === id && !r.done).length });
@@ -83,19 +86,29 @@ async function run(label, fn) {
 async function loadSample() {
   const rows = await run('Could not load sample data', () => store.addMany(sampleRows()));
   if (!rows) return;
-  raw = await run('Could not refresh', () => store.list()) || raw; sync(); toast('Sample portfolio loaded.');
+  raw = await run('Could not refresh', listAssets) || raw; sync(); toast('Sample portfolio loaded.');
 }
 async function removeSample() {
   const sampleIds = raw.filter(r => r.isSample).map(r => r.id);
   if (!(await run('Could not remove sample data', async () => { for (const id of sampleIds) await extras.removeForAsset(id); await store.removeSample(); return true; }))) return;
   raw = raw.filter(r => !r.isSample); docs = docs.filter(d => !sampleIds.includes(d.assetId)); rems = rems.filter(r => !sampleIds.includes(r.assetId)); sync(); toast('Sample data removed.');
 }
+// Deleting hides the asset at once and really deletes it after a few seconds, so there is time to change your mind.
+// If the tab is closed inside that window the asset simply stays.
+const pending = new Map();
+const listAssets = async () => (await store.list()).filter(r => !pending.has(r.id));
+const UNDO_MS = 8000;
 async function removeAsset(id) {
   const a = raw.find(r => r.id === id); if (!a) return;
-  const yes = await confirmDialog(`Delete “${a.name}”?`, 'This removes the asset and its value history. It cannot be undone.', 'Delete asset');
-  if (!yes) return;
-  if (!(await run('Could not delete', async () => { await extras.removeForAsset(id); await store.remove(id); return true; }))) return;
-  raw = raw.filter(r => r.id !== id); docs = docs.filter(d => d.assetId !== id); rems = rems.filter(r => r.assetId !== id); sync(); toast('Asset deleted.');
+  const stash = { a, d: docs.filter(x => x.assetId === id), r: rems.filter(x => x.assetId === id) };
+  raw = raw.filter(r => r.id !== id); docs = docs.filter(x => x.assetId !== id); rems = rems.filter(x => x.assetId !== id); sync();
+  const restore = () => { raw = [...raw, stash.a].sort((x, y) => (x.createdAt < y.createdAt ? -1 : 1)); docs = [...docs, ...stash.d]; rems = [...rems, ...stash.r]; sync(stash.a.id); };
+  const timer = setTimeout(async () => {
+    const ok = await run('Could not delete', async () => { await extras.removeForAsset(id); await store.remove(id); return true; });
+    pending.delete(id); if (!ok) restore();
+  }, UNDO_MS);
+  pending.set(id, { timer });
+  toast(`\u201C${a.name}\u201D deleted.`, 'ok', { ms: UNDO_MS, action: { label: 'Undo', fn: () => { clearTimeout(timer); pending.delete(id); restore(); toast('Restored.'); } } });
 }
 
 /* ------------------------------------------------------------------ dialogs */
@@ -122,14 +135,14 @@ function confirmDialog(title, text, label) {
 }
 
 /* ------------------------------------------------------------------ add / edit form */
-function openForm(existing) {
+function openForm(existing, opts = {}) {
   const edit = Boolean(existing);
-  const init = existing || { type: '', name: '', place: '', value: '', cost: '', gross: '', expenses: '', status: '', acquiredOn: '', notes: '' };
+  const init = existing || { type: opts.type || '', name: '', place: '', value: '', cost: '', gross: '', expenses: '', status: '', acquiredOn: '', notes: '', ownership: 100, owner: '' };
   const known = existing ? findCity(existing.place) : null;
   const st = { type: init.type, custom: Boolean(existing && !known) };
   const errs = {};
   const err = k => h('p', { class: 'err', id: `er-${k}`, role: 'alert' });
-  const mkErr = {}; ['type', 'name', 'place', 'placeName', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debtPayment', 'status', 'acquiredOn', 'notes'].forEach(k => { mkErr[k] = err(k); });
+  const mkErr = {}; ['type', 'name', 'place', 'placeName', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debtPayment', 'ownership', 'owner', 'status', 'acquiredOn', 'notes'].forEach(k => { mkErr[k] = err(k); });
   const field = (label, control, k, hint) => h('div', { class: 'field' }, h('label', { for: control.id }, label), control, hint ? h('p', { class: 'hint' }, hint) : null, mkErr[k]);
   const input = (id, props = {}) => h('input', { id, ...props });
   const money_ = (id, v, ph) => input(id, { type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: ph, value: v === '' || v == null ? '' : String(v) });
@@ -170,6 +183,20 @@ function openForm(existing) {
   const value = money_('f-value', init.value, '685,000'), cost = money_('f-cost', init.cost, '520,000');
   const gross = money_('f-gross', init.gross || '', '0'), expenses = money_('f-expenses', init.expenses || '', '0');
   const debt = money_('f-debt', init.debt || '', '0'), debtPayment = money_('f-debtpay', init.debtPayment || '', '0');
+  const ownership = money_('f-own', init.ownership != null && init.ownership !== 100 ? init.ownership : '', '100');
+  const ownerList = [...new Set(raw.map(r => r.owner).filter(Boolean))];
+  const owner = input('f-owner', { type: 'text', list: 'owner-list', maxlength: 60, autocomplete: 'off', placeholder: 'Me, Acme LLC, my partner…', value: init.owner || '' });
+  const ownerData = h('datalist', { id: 'owner-list' }, ...ownerList.map(o => h('option', { value: o })));
+  // income and expenses are stored per year; people think in months for rent, so the form accepts either
+  const period = h('select', { id: 'f-period', 'aria-label': 'Enter income and expenses per' }, h('option', { value: 'month' }, 'per month'), h('option', { value: 'year' }, 'per year'));
+  period.value = edit ? 'year' : 'month';
+  const incField = field('Income (optional)', gross, 'gross', 'Rent or revenue.'), expField = field('Expenses (optional)', expenses, 'expenses', 'Taxes, insurance, upkeep.');
+  const relabel = () => { const w = period.value === 'month' ? 'per month' : 'per year'; incField.querySelector('label').textContent = `Income ${w} (optional)`; expField.querySelector('label').textContent = `Expenses ${w} (optional)`; };
+  const conv = (el, f) => { const t = el.value.trim(), n = Number(t.replace(/[$,\s]/g, '')); if (t !== '' && Number.isFinite(n)) el.value = String(Math.round(n * f * 100) / 100); };
+  let shown = period.value;
+  period.addEventListener('change', () => { if (period.value !== shown) { const f = period.value === 'month' ? 1 / 12 : 12; conv(gross, f); conv(expenses, f); shown = period.value; } relabel(); });
+  const toYear = v => { const t = String(v).trim(), n = Number(t.replace(/[$,\s]/g, '')); return period.value === 'month' && t !== '' && Number.isFinite(n) ? String(Math.round(n * 12 * 100) / 100) : v; };
+  relabel();
   const acquired = input('f-acq', { type: 'date', value: init.acquiredOn || '', max: new Date().toISOString().slice(0, 10) });
   const notes = h('textarea', { id: 'f-notes', rows: 3, maxlength: 500, placeholder: 'Anything worth remembering (optional)' }, init.notes || '');
   fillStatus(); if (init.status) status.value = init.status;
@@ -182,8 +209,10 @@ function openForm(existing) {
     field('Name', name, 'name'),
     h('div', { class: 'field' }, h('label', { for: 'f-place' }, 'Location'), place, cityList, customBox, custom, mkErr.place),
     h('div', { class: 'two' }, field('Estimated value (USD)', value, 'value'), field('Acquisition cost (USD)', cost, 'cost')),
-    h('div', { class: 'two' }, field('Annual income (optional)', gross, 'gross', 'Rent or revenue per year.'), field('Annual expenses (optional)', expenses, 'expenses', 'Taxes, insurance, upkeep.')),
+    h('div', { class: 'field period' }, h('label', { for: 'f-period' }, 'I will enter income and expenses'), period),
+    h('div', { class: 'two' }, incField, expField),
     h('div', { class: 'two' }, field('Debt owed (optional)', debt, 'debt', 'Mortgage or loan balance still to pay.'), field('Monthly payment (optional)', debtPayment, 'debtPayment', 'What you pay each month on that debt.')),
+    h('div', { class: 'two' }, field('Your share of this asset, % (optional)', ownership, 'ownership', 'Leave empty if it is all yours. Value, debt and income above are for the whole asset; ATLAS counts only your share.'), field('Held by (optional)', owner, 'owner', 'You, a company, your partner…')), ownerData,
     h('div', { class: 'two' }, field('Status', status, 'status'), field('Acquired on (optional)', acquired, 'acquiredOn', 'Starts the value history.')),
     field('Notes (optional)', notes, 'notes'),
     formErr,
@@ -195,17 +224,18 @@ function openForm(existing) {
     const r = validateAsset({
       type: st.type, name: name.value, place: place.value, customPlace: customOn,
       placeName: custom.querySelector('#f-placename').value, country: custom.querySelector('#f-country').value, lat: custom.querySelector('#f-lat').value, lon: custom.querySelector('#f-lon').value,
-      value: value.value, cost: cost.value, gross: gross.value, expenses: expenses.value, debt: debt.value, debtPayment: debtPayment.value, status: status.value, acquiredOn: acquired.value, notes: notes.value,
+      value: value.value, cost: cost.value, gross: toYear(gross.value), expenses: toYear(expenses.value), debt: debt.value, debtPayment: debtPayment.value, ownership: ownership.value, owner: owner.value, status: status.value, acquiredOn: acquired.value, notes: notes.value,
     });
     Object.entries(mkErr).forEach(([k, p]) => { p.textContent = r.errors[k] || ''; });
     form.querySelectorAll('[aria-invalid]').forEach(x => x.removeAttribute('aria-invalid'));
-    Object.keys(r.errors).forEach(k => { const el = { name, place, value, cost, gross, expenses, debt, debtPayment, status, acquiredOn: acquired, notes, placeName: custom.querySelector('#f-placename'), country: custom.querySelector('#f-country'), lat: custom.querySelector('#f-lat'), lon: custom.querySelector('#f-lon') }[k]; el && el.setAttribute('aria-invalid', 'true'); });
+    Object.keys(r.errors).forEach(k => { const el = { name, place, value, cost, gross, expenses, debt, debtPayment, ownership, owner, status, acquiredOn: acquired, notes, placeName: custom.querySelector('#f-placename'), country: custom.querySelector('#f-country'), lat: custom.querySelector('#f-lat'), lon: custom.querySelector('#f-lon') }[k]; el && el.setAttribute('aria-invalid', 'true'); });
     if (!r.ok) { formErr.textContent = ''; (form.querySelector('[aria-invalid="true"]') || typeHost.querySelector('button'))?.focus(); return; }
     formErr.textContent = ''; submit.disabled = true; submit.classList.add('busy'); submit.querySelector('.lbl').textContent = 'Saving…';
     try {
-      const saved = edit ? await store.update(existing.id, r.value, { hadDebt: existing.debt > 0 || existing.debtPayment > 0 }) : await store.add(r.value);
+      const saved = edit ? await store.update(existing.id, r.value, { prev: existing }) : await store.add(r.value);
       raw = edit ? raw.map(x => (x.id === saved.id ? saved : x)) : [...raw, saved];
       modal().close(); sync(saved.id); toast(edit ? 'Changes saved.' : 'Asset added.');
+      if (opts.onSaved) opts.onSaved(saved);
     } catch (x) {
       if (x && x.status === 401) { modal().close(); toast('Your session expired. Please sign in again.', 'err'); setTimeout(() => location.reload(), 1200); return; }
       formErr.textContent = `Could not save: ${message(x)}`;
@@ -308,6 +338,7 @@ function openExtras(assetId, { keepScroll = false } = {}) {
     h('div', { class: 'doc-main' }, h('b', {}, d.name), h('span', {}, `${DOC_KINDS[d.kind] || 'Other'} · ${sizeText(d.size)} · ${String(d.createdAt || '').slice(0, 10)}`)),
     h('div', { class: 'rem-act' }, h('button', { type: 'button', class: 'mini-btn', onclick: () => openDoc(d) }, 'Open'), h('button', { type: 'button', class: 'mini-btn danger', onclick: () => delDoc(d) }, 'Delete')));
   const today = isoDay();
+  const activity = activityFor(a, mine);
   const remRow = r => h('li', { class: `rem-row ${statusOf(r, today)}` },
     h('span', { class: 'rem-kind' }, REMINDER_KINDS[r.kind] ? REMINDER_KINDS[r.kind].label : 'Other'),
     h('div', { class: 'rem-main' }, h('b', {}, r.title), h('span', {}, r.repeat !== 'none' ? REPEATS[r.repeat] : 'One time')),
@@ -315,19 +346,21 @@ function openExtras(assetId, { keepScroll = false } = {}) {
     h('div', { class: 'rem-act' }, r.done ? null : h('button', { type: 'button', class: 'mini-btn', onclick: () => reminderApi.onDone(r.id) }, r.repeat !== 'none' ? 'Done, renew' : 'Mark done'), h('button', { type: 'button', class: 'mini-btn danger', onclick: () => reminderApi.onDelete(r.id) }, 'Delete')));
   const whenWord = r => { const d = Math.round((Date.parse(`${r.dueOn}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000); return d < 0 ? `Overdue by ${-d}d` : d === 0 ? 'Due today' : `In ${d} days`; };
   openModal(h('div', { class: 'modal-card wide extras' },
-    h('div', { class: 'modal-head' }, h('div', {}, h('h2', { id: 'modal-title' }, a.name), h('p', { class: 'hint' }, `${a.place}`)), h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')),
+    h('div', { class: 'modal-head' }, h('div', {}, h('h2', { id: 'modal-title' }, a.name), h('p', { class: 'hint' }, `${a.place}${a.owner ? ' · ' + a.owner : ''}${Number(a.ownership) < 100 ? ' · you own ' + a.ownership + '%' : ''}`)), h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')),
     h('section', { class: 'xt-sec' }, h('h3', {}, 'Documents'),
       h('p', { class: 'hint' }, extras.kind === 'cloud' ? 'Deeds, insurance, registration, invoices and your own photos. Stored privately in your account. Up to 10 MB each.' : 'Stored on this device only. Up to 10 MB each. Sign in to keep them across devices.'),
       h('div', { class: 'upload-row' }, kindSel, file, up), dErr,
       mine.length ? h('ul', { class: 'doc-list' }, mine.map(docRow)) : h('p', { class: 'xt-empty' }, 'No documents yet.')),
     h('section', { class: 'xt-sec' }, h('div', { class: 'xt-h' }, h('h3', {}, 'Reminders'), h('button', { type: 'button', class: 'mini-btn', onclick: () => openReminderForm(assetId, { back: () => openExtras(assetId) }) }, '+ Add reminder')),
-      myRems.length ? h('ul', { class: 'rem-list' }, myRems.map(remRow)) : h('p', { class: 'xt-empty' }, 'No reminders yet. Add insurance, tax or inspection dates so they never slip.'))),
+      myRems.length ? h('ul', { class: 'rem-list' }, myRems.map(remRow)) : h('p', { class: 'xt-empty' }, 'No reminders yet. Add insurance, tax or inspection dates so they never slip.')),
+    h('section', { class: 'xt-sec' }, h('h3', {}, 'Activity'),
+      activity.length ? h('ol', { class: 'tl' }, activity.map(e => h('li', { class: `tl-i ${e.type}` }, h('span', { class: 'tl-dot', 'aria-hidden': 'true' }), h('div', {}, h('b', {}, e.title), h('span', {}, e.detail)), h('time', {}, e.when)))) : h('p', { class: 'xt-empty' }, 'Nothing recorded yet.'))),
   { onClose: () => { extrasFor = null; } });
   if (prev) modal().querySelector('.modal-card').scrollTop = prev;
 }
 
 /* ------------------------------------------------------------------ import from CSV */
-function openImport() {
+function openImport(opts = {}) {
   const file = h('input', { id: 'imp-file', type: 'file', accept: '.csv,.txt,text/csv', 'aria-label': 'Choose a CSV file' });
   const out = h('div', { class: 'imp-out' }), err = h('p', { class: 'err', role: 'alert' });
   const doImport = h('button', { type: 'button', class: 'btn btn-primary btn-sm', disabled: true }, h('span', { class: 'lbl' }, 'Import'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
@@ -357,7 +390,8 @@ function openImport() {
     try {
       const batch = ready.map(v => ({ ...v, isSample: false }));
       for (let i = 0; i < batch.length; i += 100) await store.addMany(batch.slice(i, i + 100));
-      raw = await store.list(); sync(); modal().close(); toast(`${batch.length} asset${batch.length > 1 ? 's' : ''} imported.`);
+      raw = await listAssets(); sync(); modal().close(); toast(`${batch.length} asset${batch.length > 1 ? 's' : ''} imported.`);
+      if (opts.onDone) opts.onDone();
     } catch (x) { err.textContent = `Could not import: ${message(x)}`; doImport.disabled = false; }
     finally { doImport.classList.remove('busy'); }
   });
@@ -367,6 +401,105 @@ function openImport() {
     h('div', { class: 'imp-pick' }, file, h('button', { type: 'button', class: 'mini-btn', onclick: () => download('atlas-import-template.csv', new Blob([TEMPLATE_CSV], { type: 'text/csv;charset=utf-8' })) }, 'Download template')),
     err, out, h('div', { class: 'modal-actions' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => modal().close() }, 'Cancel'), doImport)));
 }
+
+/* ------------------------------------------------------------------ quick "update value" */
+function openQuick(id) {
+  const a = raw.find(r => r.id === id); if (!a) return;
+  const rem = rems.find(r => r.assetId === id && r.title === UPDATE_TITLE && !r.done);
+  const value = h('input', { id: 'q-value', type: 'text', inputmode: 'decimal', autocomplete: 'off', value: String(a.value) });
+  const debt = h('input', { id: 'q-debt', type: 'text', inputmode: 'decimal', autocomplete: 'off', value: a.debt ? String(a.debt) : '', placeholder: '0' });
+  const remind = h('input', { id: 'q-remind', type: 'checkbox', checked: !rem });
+  const err = { value: h('p', { class: 'err', role: 'alert' }), debt: h('p', { class: 'err', role: 'alert' }) }, formErr = h('p', { class: 'err form-err', role: 'alert' });
+  const save = h('button', { type: 'submit', class: 'btn btn-primary btn-sm' }, h('span', { class: 'lbl' }, 'Save value'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
+  const share = Number(a.ownership) < 100 ? h('p', { class: 'hint' }, `This is the value of the whole asset. You own ${a.ownership}%.`) : null;
+  const form = h('form', { class: 'asset-form', novalidate: true },
+    h('div', { class: 'field' }, h('label', { for: 'q-value' }, 'Estimated value today (USD)'), value, share, err.value),
+    h('div', { class: 'field' }, h('label', { for: 'q-debt' }, 'Debt still owed (USD, optional)'), debt, h('p', { class: 'hint' }, a.debt ? 'Update it if you paid some of it down.' : 'Leave empty if there is no loan on it.'), err.debt),
+    rem ? h('p', { class: 'hint' }, `Your monthly reminder to update this value is due ${rem.dueOn}. Saving moves it to next month.`) : h('label', { class: 'check' }, remind, h('span', {}, 'Remind me every month to update this value')),
+    formErr, h('div', { class: 'modal-actions' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => modal().close() }, 'Cancel'), save));
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const r = quickValues(a, { value: value.value, debt: debt.value });
+    err.value.textContent = r.errors.value || ''; err.debt.textContent = r.errors.debt || ''; formErr.textContent = '';
+    if (!r.ok) return;
+    save.disabled = true; save.classList.add('busy');
+    try {
+      const saved = await store.update(id, r.value, { prev: a });
+      raw = raw.map(x => (x.id === id ? saved : x));
+      if (rem) { const up = await extras.updateReminder(rem.id, completionPatch(rem)); rems = rems.map(x => (x.id === rem.id ? up : x)); }
+      else if (remind.checked) { const nr = await extras.addReminder(id, { kind: 'other', title: UPDATE_TITLE, dueOn: nextDue(isoDay(), 'monthly'), repeat: 'monthly', notifyDays: 3 }); rems = [...rems, nr]; }
+      modal().close(); sync(id);
+      const was = a.value ? (saved.value - a.value) / a.value : 0;
+      toast(saved.value === a.value ? 'Value confirmed.' : `Value updated (${was >= 0 ? '+' : ''}${(was * 100).toFixed(1)}%).`);
+    } catch (x) { formErr.textContent = `Could not save: ${message(x)}`; save.disabled = false; save.classList.remove('busy'); }
+  });
+  openModal(h('div', { class: 'modal-card small' }, h('div', { class: 'modal-head' }, h('div', {}, h('h2', { id: 'modal-title' }, 'Update value'), h('p', { class: 'hint' }, a.name)),
+    h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')), form));
+  setTimeout(() => { value.focus(); value.select(); }, 30);
+}
+
+/* ------------------------------------------------------------------ first-minute guide */
+const welcomeKey = () => `atlas.welcome.v1:${cloud.user()?.id || 'device'}`;
+const seenWelcome = () => { try { return localStorage.getItem(welcomeKey()) === '1'; } catch { return false; } };
+const markWelcome = () => { try { localStorage.setItem(welcomeKey(), '1'); } catch { /* the guide just shows again next time */ } };
+
+function openWelcome({ step = 1, picked = [], assetId = null } = {}) {
+  markWelcome();
+  const dots = n => h('div', { class: 'wz-dots', role: 'img', 'aria-label': `Step ${n} of 3` }, [1, 2, 3].map(i => h('i', { class: i <= n ? 'on' : '' })));
+  const frame = (n, title, text, body, actions) => openModal(h('div', { class: 'modal-card wide wizard' },
+    h('div', { class: 'modal-head' }, dots(n), h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close guide', onclick: () => modal().close() }, '×')),
+    h('h2', { id: 'modal-title' }, title), h('p', { class: 'modal-text' }, text), body, h('div', { class: 'modal-actions' }, ...actions)));
+  const skip = h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => modal().close() }, 'Skip for now');
+
+  if (step === 1) {
+    const grid = h('div', { class: 'type-grid wz-types', role: 'group', 'aria-label': 'What you own' });
+    const next = h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => openWelcome({ step: 2, picked }) }, 'Continue');
+    const draw = () => {
+      grid.replaceChildren(...ASSET_TYPES.map(t => h('button', { type: 'button', class: 'type-card' + (picked.includes(t.key) ? ' on' : ''), 'aria-pressed': String(picked.includes(t.key)),
+        onclick: () => { picked = picked.includes(t.key) ? picked.filter(k => k !== t.key) : [...picked, t.key]; draw(); } }, thumb({ type: t.key, category: t.category }, 52), h('span', {}, t.label))));
+      next.textContent = picked.length ? `Continue with ${picked.length}` : 'Continue';
+    };
+    draw(); frame(1, 'What do you own?', 'Pick everything that applies. We use it to start you off, and you can add any type later.', grid, [skip, next]);
+    return;
+  }
+  if (step === 2) {
+    const first = TYPE_BY_KEY[picked[0]];
+    const opt = (title, text, onclick, primary) => h('button', { type: 'button', class: 'wz-opt' + (primary ? ' primary' : ''), onclick }, h('b', {}, title), h('span', {}, text));
+    frame(2, 'Add your first one', first ? `Let’s start with your ${first.label.toLowerCase()}.` : 'Choose the easiest way to get your first asset in.',
+      h('div', { class: 'wz-opts' },
+        opt(first ? `Add your ${first.label.toLowerCase()}` : 'Add an asset', 'Takes about a minute: name, place, value and cost.', () => { modal().close(); openForm(null, { type: first ? first.key : '', onSaved: s => openWelcome({ step: 3, assetId: s.id }) }); }, true),
+        opt('Import a spreadsheet', 'Bring in many assets at once from a CSV file.', () => { modal().close(); openImport({ onDone: () => { if (raw[0]) openWelcome({ step: 3, assetId: raw[0].id }); } }); }),
+        opt('Look around with sample data', 'See how everything works first. You can remove it in one click.', async () => { modal().close(); await loadSample(); })),
+      [h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => openWelcome({ step: 1, picked }) }, 'Back'), skip]);
+    return;
+  }
+  const a = raw.find(r => r.id === assetId);
+  if (!a) { modal().close(); return; }
+  const presets = [
+    { kind: 'insurance', title: 'Insurance renewal', repeat: 'yearly', date: '', on: true, note: 'Every year' },
+    { kind: 'other', title: UPDATE_TITLE, repeat: 'monthly', date: nextDue(isoDay(), 'monthly'), on: true, note: 'Every month, keeps your history up to date' },
+    { kind: 'inspection', title: 'Inspection or service', repeat: 'yearly', date: '', on: false, note: 'Every year' },
+  ];
+  const rows = presets.map(p => {
+    const box = h('input', { type: 'checkbox', checked: p.on, id: `wz-${p.kind}-${p.repeat}` }), date = h('input', { type: 'date', value: p.date, 'aria-label': `${p.title} date` });
+    return { p, box, date, el: h('div', { class: 'wz-rem' }, h('label', { class: 'check', for: box.id }, box, h('span', {}, h('b', {}, p.title), h('em', {}, p.note))), date) };
+  });
+  const err = h('p', { class: 'err form-err', role: 'alert' });
+  const done = h('button', { type: 'button', class: 'btn btn-primary btn-sm' }, h('span', { class: 'lbl' }, 'Finish setup'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
+  done.addEventListener('click', async () => {
+    err.textContent = '';
+    const chosen = rows.filter(r => r.box.checked);
+    if (chosen.some(r => !r.date.value)) { err.textContent = 'Pick a date for each reminder you keep ticked.'; return; }
+    done.disabled = true; done.classList.add('busy');
+    try { for (const r of chosen) { const v = validateReminder({ kind: r.p.kind, title: r.p.title, dueOn: r.date.value, repeat: r.p.repeat, notifyDays: r.p.repeat === 'monthly' ? 3 : 14 }); if (v.ok) rems = [...rems, await extras.addReminder(a.id, v.value)]; }
+      modal().close(); sync(a.id); toast(chosen.length ? 'You are all set. Reminders added.' : 'You are all set.'); }
+    catch (x) { err.textContent = `Could not save: ${message(x)}`; done.disabled = false; done.classList.remove('busy'); }
+  });
+  frame(3, 'Never miss a date', `Set the dates that matter for ${a.name}. ${cloud.configured && CONFIG.remindersEmail ? 'We will email you before they are due.' : 'They show in the Reminders tab with a badge when due.'}`,
+    h('div', { class: 'wz-rems' }, ...rows.map(r => r.el), err), [h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => modal().close() }, 'Skip'), done]);
+}
+
+const shareUi = createShareUi({ cloud, openModal, modal, toast, run, message });
 
 /* ------------------------------------------------------------------ start */
 async function start() {
@@ -387,10 +520,13 @@ async function start() {
   recompute(); show('shell'); renderFoot();
   dash = mountDashboard({
     getAssets: () => views, csvName: 'atlas-assets.csv', globeLabel: 'Rotating 3D globe of your assets', owner: cloud.user()?.email || '', meta: metaOf,
-    actions: { onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset, onSample: loadSample, onImport: openImport, onDocs: id => openExtras(id) },
+    cashflow: true,
+    actions: { onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset, onSample: loadSample, onImport: () => openImport(), onDocs: id => openExtras(id), onQuick: openQuick, onWelcome: () => openWelcome(),
+      ...(cloud.configured ? { onShare: () => shareUi.open() } : {}) },
     reminders: reminderApi,
   });
   renderBanner();
+  if (!raw.length && !seenWelcome()) openWelcome();
   // keep tabs in sync: signing out elsewhere, or the session ending
   cloud.onAuthChange(s => { if (!s && cloud.configured) location.reload(); });
 }

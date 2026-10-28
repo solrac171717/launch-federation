@@ -81,3 +81,14 @@ Run `supabase/migrations/20261029000000_debt_documents_reminders.sql` once in th
 - **Documents:** up to 10 MB per file, stored in the private bucket (cloud) or in IndexedDB (device mode).
 - **Reminders:** always shown in the app. Email alerts need a daily job: set `RESEND_API_KEY`, `REMINDER_FROM` (a sender verified in Resend), `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel. `vercel.json` already schedules `/api/send-reminders` once a day; the build turns on the "email alerts" wording only when `RESEND_API_KEY` and `CRON_SECRET` exist.
 - **Local checks:** `npm test` and `npm run e2e` (mock Supabase incl. storage; covers import, documents, reminders, exports and cascading deletes).
+
+## Net worth over time, cash flow, shared ownership, sharing, undo and the first-minute guide
+
+Run `supabase/migrations/20261030000000_ownership_sharing.sql` once (after the earlier migrations). It adds `ownership` and `owner` to assets and the `asset_shares` table. Assets keep working before it is applied; ownership, owner and sharing need it.
+
+- **Portfolio over time:** Performance tab. Built from each asset's value history; every point also stores the debt balance (`b`) from the moment it is known.
+- **Update value:** one-click dialog (value and debt) that adds a history point and can create the monthly "Update estimated value" reminder.
+- **Ownership:** figures are entered for the whole asset; the product shows and adds up only the owner's share.
+- **Cash flow tab:** monthly income, expenses and loan payments (yearly figures divided by 12).
+- **Share links:** `Share` in the app creates `/share.html#t=SECRET`. Only a SHA-256 hash is stored; `/api/share` (service role) returns the assets, never notes, documents or reminders, and strips debt if the owner chose so. Links expire and can be revoked.
+- **Undo:** deleting hides the asset and deletes it for real after 8 seconds unless Undo is pressed; closing the tab inside that window keeps the asset.

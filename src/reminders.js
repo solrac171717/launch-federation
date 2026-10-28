@@ -8,6 +8,8 @@ export const REMINDER_KINDS = {
   maintenance: { label: 'Maintenance', title: 'Service or maintenance' },
   other: { label: 'Other', title: '' },
 };
+/** The monthly reminder that nudges the owner to refresh an estimated value. */
+export const UPDATE_TITLE = 'Update estimated value';
 export const REPEATS = { none: 'Does not repeat', monthly: 'Every month', quarterly: 'Every 3 months', yearly: 'Every year' };
 const MONTHS_OF = { monthly: 1, quarterly: 3, yearly: 12 };
 

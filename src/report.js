@@ -14,17 +14,25 @@ function allocationOf(assets, total) {
   return [...m].map(([k, v]) => ({ key: k, label: CATEGORIES[k] || k, value: v, share: total > 0 ? v / total : 0 })).sort((a, b) => b.value - a.value);
 }
 
+/** Net worth (value minus debt) grouped by legal owner. Empty unless at least one asset has an owner. */
+export function ownerRows(assets) {
+  if (!assets.some(a => a.owner)) return [];
+  const m = new Map(); for (const a of assets) { const k = a.owner || 'No owner set'; m.set(k, (m.get(k) || 0) + a.equity); }
+  const total = [...m.values()].reduce((n, x) => n + x, 0);
+  return [...m].map(([label, net]) => ({ label, net, share: total > 0 ? net / total : 0 })).sort((a, b) => b.net - a.net);
+}
+
 /** The workbook: "Assets" (one row per asset) and "Summary" (totals and allocation). */
 export function buildExcel(assets, { today, scope = 'All assets', sample = false } = {}) {
   const p = portfolio(assets);
-  const head = ['Asset', 'Category', 'Type', 'Location', 'Status', 'Acquisition cost', 'Estimated value', 'Gain vs. cost', 'Gain %', 'Debt', 'Equity', 'Loan-to-value', 'Annual income', 'Annual expenses', 'Net operating income', 'NOI yield', 'Acquired on', 'Notes']
+  const head = ['Asset', 'Category', 'Type', 'Location', 'Status', 'Owner', 'Ownership', 'Acquisition cost', 'Estimated value', 'Gain vs. cost', 'Gain %', 'Debt', 'Equity', 'Loan-to-value', 'Annual income', 'Annual expenses', 'Net operating income', 'NOI yield', 'Acquired on', 'Notes']
     .map(v => ({ v, s: 'head' }));
-  const rows = [head, ...assets.map(a => [a.name, CATEGORIES[a.category] || a.category, a.kind, a.place, a.status,
+  const rows = [head, ...assets.map(a => [a.name, CATEGORIES[a.category] || a.category, a.kind, a.place, a.status, a.owner || '', { v: a.ownership / 100, s: 'pct' },
     { v: a.cost, s: 'money' }, { v: a.value, s: 'money' }, { v: a.appreciation, s: 'money' }, { v: a.appreciationPct, s: 'pct' },
     { v: a.debt, s: 'money' }, { v: a.equity, s: 'money' }, a.ltv == null ? '' : { v: a.ltv, s: 'pct' },
     a.earning ? { v: a.gross, s: 'money' } : '', { v: a.expenses, s: 'money' }, a.earning ? { v: a.noi, s: 'money' } : '', a.noiYield == null ? '' : { v: a.noiYield, s: 'pct' },
     a.acquiredOn || '', a.notes || ''])];
-  rows.push([{ v: 'Total', s: 'bold' }, '', '', '', '', { v: p.cost, s: 'boldMoney' }, { v: p.value, s: 'boldMoney' }, { v: p.appreciation, s: 'boldMoney' }, { v: p.appreciationPct, s: 'boldPct' },
+  rows.push([{ v: 'Total', s: 'bold' }, '', '', '', '', '', '', { v: p.cost, s: 'boldMoney' }, { v: p.value, s: 'boldMoney' }, { v: p.appreciation, s: 'boldMoney' }, { v: p.appreciationPct, s: 'boldPct' },
     { v: p.debt, s: 'boldMoney' }, { v: p.netWorth, s: 'boldMoney' }, p.ltv == null ? '' : { v: p.ltv, s: 'boldPct' }, '', '', p.earningCount ? { v: p.noi, s: 'boldMoney' } : '', p.noiYield == null ? '' : { v: p.noiYield, s: 'boldPct' }]);
   const sum = [[{ v: 'ATLAS portfolio summary', s: 'title' }, ''],
     ['Scope', scope], ['As of', today], ...(sample ? [['Data', 'Illustrative sample data']] : []), ['Assets', p.count], ['', ''],
@@ -34,9 +42,10 @@ export function buildExcel(assets, { today, scope = 'All assets', sample = false
     ['Net operating income (yearly)', p.earningCount ? { v: p.noi, s: 'money' } : '–'], ['NOI yield (income assets)', p.noiYield == null ? '–' : { v: p.noiYield, s: 'pct' }], ['', ''],
     [{ v: 'Allocation by category', s: 'head' }, { v: 'Value', s: 'head' }, { v: 'Share', s: 'head' }],
     ...allocationOf(assets, p.value).map(x => [x.label, { v: x.value, s: 'money' }, { v: x.share, s: 'pct' }]),
-    ['', ''], ['Note', 'Values are estimates entered by the owner. This is not an appraisal or financial advice.']];
+    ...(ownerRows(assets).length ? [['', ''], [{ v: 'Net worth by owner', s: 'head' }, { v: 'Net worth', s: 'head' }, { v: 'Share', s: 'head' }], ...ownerRows(assets).map(o => [o.label, { v: o.net, s: 'money' }, { v: o.share, s: 'pct' }])] : []),
+    ['', ''], ['Note', 'Values are estimates entered by the owner. Figures follow the ownership share of each asset. This is not an appraisal or financial advice.']];
   return buildXlsx([
-    { name: 'Assets', rows, widths: [28, 16, 20, 22, 12, 16, 16, 14, 9, 14, 14, 12, 14, 14, 18, 10, 12, 30] },
+    { name: 'Assets', rows, widths: [28, 16, 20, 22, 12, 18, 11, 16, 16, 14, 9, 14, 14, 12, 14, 14, 18, 10, 12, 30] },
     { name: 'Summary', rows: sum, widths: [34, 18, 12], freeze: false },
   ]);
 }
@@ -46,7 +55,7 @@ export function reportHtml(assets, { today, scope = 'All assets', owner = '', sa
   const p = portfolio(assets), alloc = allocationOf(assets, p.value);
   const kpi = (l, v, sub = '') => `<div class="k"><span>${esc(l)}</span><b>${esc(v)}</b>${sub ? `<em>${esc(sub)}</em>` : ''}</div>`;
   const tone = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
-  const rows = [...assets].sort((a, b) => b.value - a.value).map(a => `<tr><td><b>${esc(a.name)}</b><small>${esc(a.kind)} · ${esc(a.place)}</small></td><td>${esc(a.status)}</td><td class="r">${usd(a.value)}</td><td class="r">${a.debt ? usd(a.debt) : '–'}</td><td class="r">${usd(a.equity)}</td><td class="r ${tone(a.appreciation)}">${a.appreciationPct >= 0 ? '+' : ''}${pct(a.appreciationPct)}</td><td class="r">${a.earning ? usd(a.noi) : '–'}</td></tr>`).join('');
+  const rows = [...assets].sort((a, b) => b.value - a.value).map(a => `<tr><td><b>${esc(a.name)}</b><small>${esc(a.kind)} · ${esc(a.place)}${a.shared ? ` · you own ${a.ownership}%` : ''}${a.owner ? ` · ${esc(a.owner)}` : ''}</small></td><td>${esc(a.status)}</td><td class="r">${usd(a.value)}</td><td class="r">${a.debt ? usd(a.debt) : '–'}</td><td class="r">${usd(a.equity)}</td><td class="r ${tone(a.appreciation)}">${a.appreciationPct >= 0 ? '+' : ''}${pct(a.appreciationPct)}</td><td class="r">${a.earning ? usd(a.noi) : '–'}</td></tr>`).join('');
   return `<!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>ATLAS portfolio report ${esc(today)}</title><style>
 @page { size: A4; margin: 16mm 14mm 18mm; }
 * { box-sizing: border-box; } html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -74,7 +83,7 @@ ${kpi('Net operating income', p.earningCount ? usd(p.noi) : '–', 'Yearly, inco
 <h2>Allocation</h2><div class="alloc">${alloc.map(x => `<div><span>${esc(x.label)}</span><i style="width:${Math.max(1, x.share * 100)}%"></i><span>${pct(x.share)}</span><span>${usd(x.value)}</span></div>`).join('')}</div>
 <h2>Assets</h2><table><thead><tr><th>Asset</th><th>Status</th><th class="r">Value</th><th class="r">Debt</th><th class="r">Equity</th><th class="r">Gain</th><th class="r">NOI</th></tr></thead><tbody>${rows}</tbody>
 <tfoot><tr><td>Total</td><td></td><td class="r">${usd(p.value)}</td><td class="r">${usd(p.debt)}</td><td class="r">${usd(p.netWorth)}</td><td class="r">${p.appreciationPct >= 0 ? '+' : ''}${pct(p.appreciationPct)}</td><td class="r">${p.earningCount ? usd(p.noi) : '–'}</td></tr></tfoot></table>
-<p class="note">Values are estimates entered by the owner, not an appraisal, and this report is not financial, tax or legal advice. Net worth is the sum of estimated values minus the outstanding debt entered for each asset. Generated by ATLAS on ${esc(prettyDate(today))}.</p>
+<p class="note">Values are estimates entered by the owner and follow the share the owner holds in each asset. This is not an appraisal, and this report is not financial, tax or legal advice. Net worth is the sum of estimated values minus the outstanding debt entered for each asset. Generated by ATLAS on ${esc(prettyDate(today))}.</p>
 </body></html>`;
 }
 

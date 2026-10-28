@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shared portfolio | ATLAS</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="landing.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="app-page">
+
+<div class="boot" id="boot" role="status">Opening the shared portfolio…</div>
+
+<main class="app-shell" id="shell" hidden>
+  <div class="device">
+    <div class="window">
+      <div class="app">
+        <aside class="side" aria-label="Dashboard navigation">
+          <a class="side-brand" href="index.html" aria-label="ATLAS website"><span class="lmark" style="--s:28px" aria-hidden="true"><img src="assets/logo-a.png" alt="" width="192" height="192"></span>ATLAS</a>
+          <ul id="app-nav"></ul>
+          <div class="side-foot" id="side-foot"><span class="sf-sync">Read-only view</span></div>
+        </aside>
+        <div class="app-main">
+          <div class="app-top">
+            <b id="view-title">Portfolio</b>
+            <div class="view-tabs" id="view-tabs" role="group" aria-label="Dashboard views"></div>
+            <div class="seg-mini" id="app-filter" role="group" aria-label="Filter by asset type"></div>
+          </div>
+          <div class="app-banner" id="app-banner" hidden></div>
+          <div class="app-view" id="view-map">
+            <div class="app-grid">
+              <div class="map-card">
+                <div class="map-box" id="hero-map"></div>
+                <div class="sel-card" id="hero-sel" aria-live="polite"></div>
+              </div>
+              <div class="side-col">
+                <div class="kpi lead-kpi" id="hero-value"></div>
+                <div class="kpi-pair" id="hero-pair"></div>
+                <div class="mini-chart" id="hero-chart"></div>
+              </div>
+            </div>
+          </div>
+          <div class="app-view" id="view-assets" hidden></div>
+          <div class="app-view" id="view-perf" hidden></div>
+          <div class="app-view" id="view-reports" hidden></div>
+          <div class="app-view" id="view-cashflow" hidden></div>
+          <div class="app-view" id="view-reminders" hidden></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<noscript><p style="padding:24px;text-align:center">ATLAS needs JavaScript to run.</p></noscript>
+<script type="module" src="src/share-main.js"></script>
+</body>
+</html>

@@ -54,8 +54,9 @@ export const statusDot = st => h('span', { class: 'st st-' + (STATUS_TONE[st] ||
 export function assetCard(a) {
   return h('div', { class: 'asset-card' },
     h('div', { class: 'ac-top' }, h('span', { class: 'ac-ico' }, thumb(a, 34)), h('div', {}, h('b', {}, a.name), h('span', {}, `${a.place} · ${a.kind}`)), statusDot(a.status)),
+    (a.shared || a.owner) ? h('p', { class: 'ac-own' }, a.shared ? `You own ${a.ownership}% of ${money(a.fullValue)}` : 'Owner', a.owner ? ` · ${a.owner}` : '') : null,
     h('dl', { class: 'ac-grid' },
-      h('div', {}, h('dt', {}, 'Estimated value'), h('dd', {}, money(a.value))),
+      h('div', {}, h('dt', {}, a.shared ? 'Your share of value' : 'Estimated value'), h('dd', {}, money(a.value))),
       h('div', {}, h('dt', {}, 'Acquisition cost'), h('dd', {}, money(a.cost))),
       a.earning
         ? h('div', {}, h('dt', {}, 'NOI yield'), h('dd', {}, pct1(a.noiYield)))
@@ -103,17 +104,17 @@ export function trackHover(svg, { W, H, m, series, X, Y, guide, dot, tip, onPoin
   });
 }
 
-export function valuationChart(host, series, { label }) {
+export function valuationChart(host, series, { label, absDelta = false }) {
   clear(host);
   const W = 640, H = 270, m = { t: 16, r: 18, b: 28, l: 58 };
   const ys = series.map(p => p.v);
   let lo = Math.min(...ys), hi = Math.max(...ys);
-  const pad = (hi - lo) * 0.15 || hi * 0.05; lo -= pad; hi += pad;
+  const allPositive = lo >= 0, pad = (hi - lo) * 0.15 || hi * 0.05; lo -= pad; hi += pad; if (allPositive) lo = Math.max(0, lo);
   const X = i => m.l + (series.length === 1 ? 0 : (i / (series.length - 1)) * (W - m.l - m.r));
   const Y = v => H - m.b - ((v - lo) / (hi - lo)) * (H - m.t - m.b);
   const line = series.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(p.v).toFixed(1)}`).join('');
   const read = h('div', { class: 'fc-read' });
-  const setRead = p => read.replaceChildren(h('b', {}, money(p.v)), Delta(p.v - series[0].v, `${fmtPct((p.v - series[0].v) / series[0].v, { sign: true })} since ${series[0].label}`), h('span', { class: 'when' }, p.label));
+  const setRead = p => read.replaceChildren(h('b', {}, money(p.v)), Delta(p.v - series[0].v, `${series[0].v && !absDelta ? fmtPct((p.v - series[0].v) / series[0].v, { sign: true }) : fmtSigned(p.v - series[0].v, { compact: true })} since ${series[0].label}`), h('span', { class: 'when' }, p.label));
   const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'fc', role: 'img', tabindex: 0,
     'aria-label': `${label}: ${series[0].label} ${money(series[0].v)} to ${series.at(-1).label} ${money(series.at(-1).v)}. Use arrow keys to inspect points.` },
     s('defs', {}, s('linearGradient', { id: 'fcg-p', x1: 0, y1: 0, x2: 0, y2: 1 }, s('stop', { offset: '0', 'stop-color': '#2563EB', 'stop-opacity': '.26' }), s('stop', { offset: '1', 'stop-color': '#2563EB', 'stop-opacity': '0' }))));

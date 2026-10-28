@@ -39,6 +39,10 @@ const ALIASES = {
   cost: ['cost', 'acquisition cost', 'purchase price', 'purchase cost', 'price paid'],
   gross: ['income', 'annual income', 'gross income', 'yearly income', 'rent', 'revenue'],
   expenses: ['expenses', 'annual expenses', 'yearly expenses', 'costs per year'],
+  grossM: ['monthly income', 'income per month', 'monthly rent', 'rent per month', 'monthly revenue'],
+  expensesM: ['monthly expenses', 'expenses per month', 'monthly costs'],
+  ownership: ['ownership', 'ownership percent', 'share', 'my share', 'owned', 'percent owned', 'ownership share'],
+  owner: ['owner', 'legal owner', 'held by', 'title holder', 'titleholder', 'owned by'],
   debt: ['debt', 'loan', 'mortgage', 'outstanding debt', 'loan balance', 'mortgage balance', 'amount owed'],
   debtPayment: ['monthly payment', 'debt payment', 'loan payment', 'mortgage payment'],
   status: ['status'], acquiredOn: ['acquired', 'acquired on', 'purchase date', 'date acquired', 'bought'], notes: ['notes', 'note', 'comments'],
@@ -70,10 +74,10 @@ function toIsoDate(v) {
   return m ? `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` : s;
 }
 
-export const TEMPLATE_HEADERS = ['name', 'type', 'location', 'value', 'cost', 'annual income', 'annual expenses', 'debt', 'monthly payment', 'status', 'acquired on', 'notes'];
+export const TEMPLATE_HEADERS = ['name', 'type', 'location', 'value', 'cost', 'annual income', 'annual expenses', 'debt', 'monthly payment', 'ownership', 'owner', 'status', 'acquired on', 'notes'];
 export const TEMPLATE_CSV = [TEMPLATE_HEADERS.join(','),
-  'Lake House,house,"Austin, TX",685000,520000,61200,17360,310000,2150,Occupied,2022-03-01,Rented since 2023',
-  'Porsche 911,car,"Scottsdale, AZ",142000,126000,0,4100,0,0,Garaged,2024-06-15,'].join('\n') + '\n';
+  'Lake House,house,"Austin, TX",685000,520000,61200,17360,310000,2150,50,Lake House LLC,Occupied,2022-03-01,Rented since 2023',
+  'Porsche 911,car,"Scottsdale, AZ",142000,126000,0,4100,0,0,100,Me,Garaged,2024-06-15,'].join('\n') + '\n';
 
 /**
  * @returns {{ ok: boolean, error?: string, rows: Array<{ line: number, name: string, ok: boolean, errors: string[], value?: object, dupe?: boolean }>, delimiter?: string }}
@@ -98,7 +102,8 @@ export function previewImport(text, { today = new Date().toISOString().slice(0, 
     let status = r.status ? (STATUS_LOOKUP.get(norm(r.status)) || r.status) : (t ? t.statuses[0] : '');
     const countryCode = r.country ? (COUNTRY_LOOKUP.get(norm(r.country)) || '') : '';
     const hasCoords = r.lat !== undefined && r.lat !== '' && r.lon !== undefined && r.lon !== '';
-    const input = { type: typeKey, name: r.name, value: r.value, cost: r.cost, gross: r.gross, expenses: r.expenses, debt: r.debt, debtPayment: r.debtPayment, status, acquiredOn: toIsoDate(r.acquiredOn), notes: r.notes, place: r.place };
+    const yearly = (y, m) => (y !== undefined && y !== '' ? y : (m !== undefined && m !== '' && Number.isFinite(Number(String(m).replace(/[$,\s]/g, ''))) ? String(Number(String(m).replace(/[$,\s]/g, '')) * 12) : y));
+    const input = { type: typeKey, name: r.name, value: r.value, cost: r.cost, gross: yearly(r.gross, r.grossM), expenses: yearly(r.expenses, r.expensesM), ownership: r.ownership, owner: r.owner, debt: r.debt, debtPayment: r.debtPayment, status, acquiredOn: toIsoDate(r.acquiredOn), notes: r.notes, place: r.place };
     let v = validateAsset(input, { today });
     if (!v.ok && v.errors.place && hasCoords) { // not a listed city: use the coordinates from the file
       v = validateAsset({ ...input, customPlace: true, placeName: r.place, country: countryCode || r.country, lat: r.lat, lon: r.lon }, { today });

@@ -28,6 +28,14 @@ export function validateAsset(input, { today = isoDay() } = {}) {
   };
   const value = num('value'), cost = num('cost', { gt: true }), gross = num('gross', { required: false }), expenses = num('expenses', { required: false });
   const debt = num('debt', { required: false }), debtPayment = num('debtPayment', { required: false });
+  // Share of the asset that is yours (default all of it) and who holds it legally (you, a company, a partner...).
+  let ownership = 100;
+  if (input.ownership !== '' && input.ownership != null) {
+    ownership = Number(String(input.ownership).replace(/[%\s]/g, ''));
+    if (!Number.isFinite(ownership) || ownership <= 0 || ownership > 100) { errors.ownership = 'Enter a share above 0 and up to 100.'; ownership = NaN; }
+  }
+  const owner = String(input.owner || '').trim();
+  if (owner.length > 60) errors.owner = 'Keep the owner name under 60 characters.';
 
   // Location: a city from the built-in list, or a custom place with country and coordinates.
   let place = '', country = '', lat = null, lon = null;
@@ -53,23 +61,39 @@ export function validateAsset(input, { today = isoDay() } = {}) {
   if (notes.length > 500) errors.notes = 'Keep notes under 500 characters.';
 
   if (Object.keys(errors).length) return { ok: false, errors };
-  return { ok: true, errors, value: { name, type: type.key, place, country, lat, lon, value, cost, gross, expenses, debt, debtPayment, status, acquiredOn: acquiredOn || null, notes: notes || null } };
+  return { ok: true, errors, value: { name, type: type.key, place, country, lat, lon, value, cost, gross, expenses, debt, debtPayment, ownership, owner, status, acquiredOn: acquiredOn || null, notes: notes || null } };
 }
 
 /** History after saving: starts at acquisition, then one point each time the estimated value changes. */
-export function nextHistory(prev, { value, cost, acquiredOn }, { today = isoDay(), isNew = false } = {}) {
+export function nextHistory(prev, { value, cost, acquiredOn, debt = 0 }, { today = isoDay(), isNew = false } = {}) {
   let h = Array.isArray(prev) ? prev.filter(p => p && p.d && Number.isFinite(p.v)) : [];
+  // Each point is { d: date, v: estimated value, b: debt balance }. The balance is recorded from the moment it is known,
+  // so net worth over time can be drawn honestly. The acquisition point has no balance (it is not known).
   if (isNew || !h.length) {
     h = [];
     if (acquiredOn && acquiredOn < today) h.push({ d: acquiredOn, v: cost });
-    h.push({ d: today, v: value });
+    h.push({ d: today, v: value, b: debt });
     return h;
   }
   const last = h[h.length - 1];
-  if (last.v !== value) {
-    if (last.d === today) h[h.length - 1] = { d: today, v: value }; else h.push({ d: today, v: value });
+  if (last.v !== value || (last.b ?? 0) !== debt) {
+    if (last.d === today) h[h.length - 1] = { d: today, v: value, b: debt }; else h.push({ d: today, v: value, b: debt });
   }
   return h;
+}
+
+/** Quick "update value": new estimated value (and debt balance) on top of the stored asset, validated like the form. */
+export function quickValues(row, { value, debt }, { today = isoDay() } = {}) {
+  const errors = {}, n = (raw, k, required) => {
+    if (raw === '' || raw == null) { if (required) errors[k] = 'Enter an amount.'; return required ? NaN : 0; }
+    const x = Number(String(raw).replace(/[$,\s]/g, ''));
+    if (!Number.isFinite(x) || x < 0 || x > 1e12) { errors[k] = 'Enter a number from 0 up.'; return NaN; }
+    return x;
+  };
+  const v = n(value, 'value', true), d = n(debt, 'debt', false);
+  if (Object.keys(errors).length) return { ok: false, errors };
+  const keep = ['name', 'type', 'place', 'country', 'lat', 'lon', 'cost', 'gross', 'expenses', 'debtPayment', 'ownership', 'owner', 'status', 'acquiredOn', 'notes'];
+  return { ok: true, errors, value: { ...Object.fromEntries(keep.map(k => [k, row[k] ?? (k === 'ownership' ? 100 : k === 'owner' ? '' : k === 'debtPayment' ? 0 : null)])), value: v, debt: d } };
 }
 
 /** Stored row -> the object the dashboard renders (derived metrics + chart series). */
@@ -80,15 +104,27 @@ export function toView(row) {
     ...enrich({ ...row, gross: row.gross, expenses: row.expenses }),
     category: t.category, kind: t.label,
     status: row.status || 'Held',
-    series: hist.length >= 2 ? hist.map(p => ({ label: label(p.d), v: Number(p.v) })) : null,
+    // the chart follows the owner's share, like every other figure
+    series: hist.length >= 2 ? hist.map(p => ({ label: label(p.d), v: Number(p.v) * ((Number(row.ownership) > 0 ? Math.min(100, Number(row.ownership)) : 100) / 100) })) : null,
   };
 }
 
-// Zero debt is the column default, so it is left out: accounts keep working even before the debt columns exist in the database.
-const toRow = v => ({ ...v, acquired_on: v.acquiredOn, acquiredOn: undefined, debt: v.debt > 0 ? v.debt : undefined, debt_payment: v.debtPayment > 0 ? v.debtPayment : undefined, debtPayment: undefined });
-const fromDb = r => ({
+// Optional columns that were added later. A value equal to its default is left out, so accounts keep working even before
+// those columns exist in the database; updates send the default explicitly when the stored value has to be reset (see zeroing).
+const OPTIONAL = [['debt', 'debt', 0], ['debtPayment', 'debt_payment', 0], ['ownership', 'ownership', 100], ['owner', 'owner', '']];
+const toRow = v => {
+  const row = { ...v, acquired_on: v.acquiredOn, acquiredOn: undefined };
+  for (const [camel, db, def] of OPTIONAL) { const x = v[camel]; delete row[camel]; if (x !== undefined && x !== def && !(def === '' && !x)) row[db] = x; }
+  return row;
+};
+const zeroing = (prev, v) => {
+  const out = {};
+  if (prev) for (const [camel, db, def] of OPTIONAL) { const had = prev[camel]; const now = v[camel]; if (had !== undefined && had !== def && !(def === '' && !had) && (now === def || (def === '' && !now))) out[db] = def === '' ? null : def; }
+  return out;
+};
+export const fromDb = r => ({
   id: r.id, name: r.name, type: r.type, place: r.place, country: r.country, lat: r.lat, lon: r.lon,
-  value: Number(r.value), cost: Number(r.cost), gross: Number(r.gross), expenses: Number(r.expenses), debt: Number(r.debt || 0), debtPayment: Number(r.debt_payment || 0),
+  value: Number(r.value), cost: Number(r.cost), gross: Number(r.gross), expenses: Number(r.expenses), debt: Number(r.debt || 0), debtPayment: Number(r.debt_payment || 0), ownership: Number(r.ownership || 100), owner: r.owner || '',
   status: r.status, acquiredOn: r.acquired_on, notes: r.notes, history: r.history || [], isSample: !!r.is_sample, createdAt: r.created_at,
 });
 
@@ -128,12 +164,10 @@ export function createCloudStore(cloud) {
       const body = rows.map(r => { const { isSample, createdAt, id, ...rest } = r; return { ...toRow(rest), history: r.history || nextHistory([], r, { isNew: true }), is_sample: !!isSample }; });
       return (await cloud.rest('POST', '/assets', body, { prefer: 'return=representation' })).map(fromDb);
     },
-    async update(id, v, { hadDebt = false } = {}) {
+    async update(id, v, { prev = null } = {}) {
       const cur = (await cloud.rest('GET', `/assets?id=eq.${encodeURIComponent(id)}&select=history`))[0];
       if (!cur) throw new Error('That asset no longer exists.');
-      // paying a debt off must overwrite the stored value with 0 (zero is normally omitted, see toRow)
-      const zero = hadDebt ? { ...(v.debt > 0 ? {} : { debt: 0 }), ...(v.debtPayment > 0 ? {} : { debt_payment: 0 }) } : {};
-      const body = { ...toRow(v), ...zero, history: nextHistory(cur.history, v, {}), is_sample: false, updated_at: new Date().toISOString() };
+      const body = { ...toRow(v), ...zeroing(prev, v), history: nextHistory(cur.history, v, {}), is_sample: false, updated_at: new Date().toISOString() };
       const [r] = await cloud.rest('PATCH', `/assets?id=eq.${encodeURIComponent(id)}`, body, { prefer: 'return=representation' });
       if (!r) throw new Error('That asset no longer exists.');
       return fromDb(r);
