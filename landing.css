@@ -938,3 +938,9 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
   .px-card .px-btn { grid-column: 1 / -1; justify-self: center; width: min(100%, 420px); }
   .px-card .px-note { grid-column: 1 / -1; }
 }
+
+.foot-links { display: flex; gap: 18px; flex-wrap: wrap; }
+.foot-links a { color: inherit; text-decoration: none; transition: color .3s; }
+.foot-links a:hover { color: var(--blue); }
+.form-note { margin: 4px 0 0; font-size: 12.5px; color: var(--text-3); text-align: center; }
+.form-note a { color: var(--blue-d, #1D4ED8); text-underline-offset: 3px; }

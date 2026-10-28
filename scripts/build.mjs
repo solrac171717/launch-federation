@@ -15,7 +15,7 @@ check('landing.js');
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
-for (const p of ['index.html', 'app.html', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
+for (const p of ['index.html', 'app.html', 'privacy.html', 'terms.html', 'legal.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
   await cp(p, `dist/${p}`, { recursive: true });
 }
 
@@ -40,7 +40,7 @@ export const CONFIG = ${JSON.stringify({ supabaseUrl: sbUrl, supabaseAnonKey: sb
   console.log('App configured for Supabase (' + new URL(sbUrl).host + ').');
 } else console.warn('SUPABASE_URL / SUPABASE_ANON_KEY not set: the app will save assets on the visitor device only.');
 
-for (const page of ['index.html', 'app.html']) {
+for (const page of ['index.html', 'app.html', 'privacy.html', 'terms.html']) {
   const src = await readFile(`dist/${page}`, 'utf8');
   const missing = [...src.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:)([^"?#]+)/g)].map(m => m[1]).filter(p => !existsSync(`dist/${p}`));
   if (missing.length) { console.error(`Missing files referenced by ${page}:`, missing); process.exit(1); }

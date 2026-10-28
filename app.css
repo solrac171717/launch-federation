@@ -110,3 +110,6 @@ body.app-page { margin: 0; background: var(--alt, #F5F8FD); min-height: 100dvh; 
 .app-shell .app-top { min-width: 0; }
 .app-shell .add-btn { margin-left: 0; }
 @container (max-width: 980px) { .app-shell .add-btn { order: 2; } .app-shell #app-filter { order: 3; } }
+
+.auth-legal { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-3); text-align: center; }
+.auth-legal a { color: var(--blue-d, #1D4ED8); text-underline-offset: 3px; }
