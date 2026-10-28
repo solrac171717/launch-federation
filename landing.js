@@ -1,5 +1,5 @@
 import { h, s, clear } from './src/dom.js';
-import { fmtPct, fmtSigned, tone } from './src/calc.js';
+import { fmtPct, fmtSigned, tone, toCsv } from './src/calc.js';
 import {
   ASSETS, CATEGORIES, VALUATION_DATE, WESTLAKE_MONTHS, WESTLAKE_INCOME, WESTLAKE_EXPENSES,
   WESTLAKE_VALUATIONS, portfolio, byId,
@@ -88,20 +88,147 @@ function sparkline(host, series) {
     s('circle', { cx: X(series.length - 1), cy: Y(ys.at(-1)), r: 4, class: 'pt' })));
 }
 
-/* ------------------------------------------------------------------ hero */
+/* ------------------------------------------------------------------ hero dashboard (fully interactive) */
 {
-  const host = document.getElementById('hero-map'), sel = document.getElementById('hero-sel');
-  let cur = 'austin';
-  const globe = createGlobe(host, { assets: ASSETS, icons: ICON, selectedId: cur, label: 'Rotating 3D globe of sample assets', startLon: -88, tilt: 24,
-    onSelect: id => { cur = id; globe.setSelected(id); globe.focus(id); clear(sel).append(assetCard(byId(id))); } });
-  clear(sel).append(assetCard(byId(cur)));
-  const ch = FEATURED.value - WESTLAKE_VALUATIONS[0].v;
-  clear(document.getElementById('hero-value')).append(h('span', {}, 'Portfolio value'), h('b', {}, money(P.value)), Delta(P.appreciation, `${fmtSigned(P.appreciation, { compact: true })} · ${fmtPct(P.appreciationPct, { sign: true })} vs. cost`));
-  const k = (l, v, sub) => h('div', { class: 'kpi' }, h('span', {}, l), h('b', {}, v), h('em', {}, sub));
-  clear(document.getElementById('hero-pair')).append(k('Net operating income', compact(P.noi), 'Annual'), k('NOI yield', pct1(P.noiYield), `${P.earningCount} income assets`));
-  const mc = document.getElementById('hero-chart');
-  mc.append(h('div', { class: 'mc-h' }, h('span', {}, 'Westlake Residence'), Delta(ch, `${fmtPct(ch / WESTLAKE_VALUATIONS[0].v, { sign: true })} since ${WESTLAKE_VALUATIONS[0].label}`)), h('div', {}));
-  sparkline(mc.lastChild, WESTLAKE_VALUATIONS);
+  const GROUPS = {
+    all: { label: 'All', cats: null },
+    re: { label: 'Real estate', cats: ['residential', 'commercial', 'land'] },
+    veh: { label: 'Vehicles', cats: ['vehicle', 'equipment'] },
+    ves: { label: 'Vessels', cats: ['vessel'] },
+    air: { label: 'Aircraft', cats: ['aircraft'] },
+  };
+  const NAV = [
+    ['map', 'Map', 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM2 8h12M8 2c2.5 2 2.5 10 0 12M8 2c-2.5 2-2.5 10 0 12'],
+    ['assets', 'Assets', 'M2 13V6l6-4 6 4v7zM6 13V9h4v4'],
+    ['perf', 'Performance', 'M2 13l4-5 3 3 5-7'],
+    ['reports', 'Reports', 'M4 2h6l3 3v9H4zM10 2v3h3'],
+  ];
+  const state = { view: 'map', group: 'all', sel: 'austin', sort: { key: 'value', dir: -1 } };
+  const $ = id => document.getElementById(id);
+  const scope = () => ASSETS.filter(a => !GROUPS[state.group].cats || GROUPS[state.group].cats.includes(a.category));
+  const historyFor = a => (a.id === 'austin' ? WESTLAKE_VALUATIONS : null);
+  const views = { map: $('view-map'), assets: $('view-assets'), perf: $('view-perf'), reports: $('view-reports') };
+
+  const globe = createGlobe($('hero-map'), { assets: ASSETS, icons: ICON, selectedId: state.sel, startLon: -88, tilt: 24,
+    label: 'Rotating 3D globe of sample assets', onSelect: id => select(id, true) });
+
+  function select(id, focus) {
+    state.sel = id; globe.setSelected(id); if (focus) globe.focus(id);
+    renderMap(); if (state.view === 'assets') renderAssets(); if (state.view === 'perf') renderPerf();
+  }
+
+  /* navigation + filters */
+  function renderNav() {
+    const mk = (cls) => NAV.map(([k, label, d]) => h('button', { type: 'button', class: cls + (state.view === k ? ' on' : ''), 'aria-current': state.view === k ? 'page' : null, onclick: () => setView(k) },
+      s('svg', { viewBox: '0 0 16 16', width: 16, height: 16, 'aria-hidden': 'true', class: 'ni' }, s('path', { d })), label));
+    clear($('app-nav')).append(...mk('nav-btn').map(b => h('li', {}, b)));
+    clear($('view-tabs')).append(...mk('tab-btn'));
+  }
+  function renderFilter() {
+    clear($('app-filter')).append(...Object.entries(GROUPS).map(([k, g]) => h('button', { type: 'button', class: state.group === k ? 'on' : '', 'aria-pressed': String(state.group === k), onclick: () => setGroup(k) }, g.label)));
+  }
+  function setView(v) {
+    state.view = v;
+    for (const [k, el] of Object.entries(views)) el.hidden = k !== v;
+    $('app-url').textContent = `atlas.app / portfolio / ${v}`;
+    $('view-title').textContent = NAV.find(n => n[0] === v)[1];
+    renderNav();
+    ({ map: renderMap, assets: renderAssets, perf: renderPerf, reports: renderReports })[v]();
+    analytics.track('dashboard_view', { view: v });
+  }
+  function setGroup(g) {
+    state.group = g; globe.setFilter(GROUPS[g].cats);
+    if (!scope().some(a => a.id === state.sel)) { state.sel = scope()[0].id; globe.setSelected(state.sel); }
+    if (GROUPS[g].cats) globe.focus(state.sel);
+    renderFilter(); setView(state.view);
+  }
+
+  /* shared bits */
+  const costVsValue = a => {
+    const mx = Math.max(a.cost, a.value);
+    const bar = (label, v, cls) => h('div', { class: 'cv-row' }, h('span', {}, label), h('i', { class: cls, style: `width:${(v / mx) * 100}%` }), h('b', {}, compact(v)));
+    return h('div', { class: 'cv' }, bar('Acquisition cost', a.cost, 'c'), bar('Estimated value', a.value, 'v'));
+  };
+  const empty = (t, d) => h('div', { class: 'app-empty' }, h('b', {}, t), h('span', {}, d));
+
+  /* MAP view */
+  function renderMap() {
+    const a = byId(state.sel), sc = scope(), p = portfolio(sc);
+    clear($('hero-sel')).append(assetCard(a));
+    clear($('hero-value')).append(h('span', {}, `Portfolio value${state.group === 'all' ? '' : ' · ' + GROUPS[state.group].label}`), h('b', {}, money(p.value)),
+      Delta(p.appreciation, `${fmtSigned(p.appreciation, { compact: true })} · ${fmtPct(p.appreciationPct, { sign: true })} vs. cost`));
+    const k = (l, v, sub) => h('div', { class: 'kpi' }, h('span', {}, l), h('b', {}, v), h('em', {}, sub));
+    clear($('hero-pair')).append(k('Net operating income', p.earningCount ? compact(p.noi) : '—', p.earningCount ? 'Annual' : 'No income assets'),
+      k('NOI yield', pct1(p.noiYield), p.earningCount ? `${p.earningCount} income asset${p.earningCount > 1 ? 's' : ''}` : 'Income assets only'));
+    const mc = clear($('hero-chart')), hist = historyFor(a);
+    if (hist) {
+      const ch = a.value - hist[0].v;
+      mc.append(h('div', { class: 'mc-h' }, h('span', {}, a.name), Delta(ch, `${fmtPct(ch / hist[0].v, { sign: true })} since ${hist[0].label}`)), h('div', {}));
+      sparkline(mc.lastChild, hist);
+    } else {
+      mc.append(h('div', { class: 'mc-h' }, h('span', {}, a.name), Delta(a.appreciation, `${fmtPct(a.appreciationPct, { sign: true })} vs. cost`)), costVsValue(a));
+    }
+  }
+
+  /* ASSETS view */
+  function renderAssets() {
+    const host = clear(views.assets), sc = scope(), k = state.sort.key, d = state.sort.dir;
+    const val = { name: a => a.name, place: a => a.place, value: a => a.value, chg: a => a.appreciationPct, status: a => a.status };
+    const rows = [...sc].sort((x, y) => (val[k](x) > val[k](y) ? 1 : val[k](x) < val[k](y) ? -1 : 0) * d);
+    const th = (key, label, cls = '') => h('th', { class: cls, 'aria-sort': k === key ? (d > 0 ? 'ascending' : 'descending') : 'none' },
+      h('button', { type: 'button', onclick: () => { state.sort = { key, dir: k === key ? -d : (key === 'name' || key === 'place' ? 1 : -1) }; renderAssets(); } }, label, k === key ? (d > 0 ? ' ↑' : ' ↓') : ''));
+    const a = byId(state.sel);
+    host.append(h('div', { class: 'assets-grid' },
+      h('div', { class: 'tbl-card' }, h('table', { class: 'app-tbl' },
+        h('thead', {}, h('tr', {}, th('name', 'Asset'), th('place', 'Location'), th('value', 'Value', 'r'), th('chg', 'vs. cost', 'r'), th('status', 'Status'))),
+        h('tbody', {}, rows.map(r => h('tr', { class: r.id === state.sel ? 'on' : '' },
+          h('td', {}, h('button', { type: 'button', class: 'rowbtn', 'aria-pressed': String(r.id === state.sel), onclick: () => select(r.id, true) }, icon(r.category, 16), r.name)),
+          h('td', {}, r.place), h('td', { class: 'r' }, compact(r.value)), h('td', { class: 'r' }, Delta(r.appreciation, fmtPct(r.appreciationPct, { sign: true }))), h('td', {}, statusDot(r.status))))))),
+      h('div', { class: 'detail' }, assetCard(a), costVsValue(a),
+        h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => { setView('map'); globe.focus(state.sel); } }, 'Show on map'))));
+  }
+
+  /* PERFORMANCE view */
+  function renderPerf() {
+    const host = clear(views.perf), a = byId(state.sel), sc = scope(), hist = historyFor(a);
+    const chart = h('div', { class: 'chart-host' });
+    const rank = [...sc].sort((x, y) => y.appreciationPct - x.appreciationPct), mx = Math.max(...rank.map(r => Math.abs(r.appreciationPct)), 0.0001);
+    host.append(h('div', { class: 'perf-grid' },
+      h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, `${a.name} · estimated value`), hist ? h('span', {}, `${hist[0].label} – ${hist.at(-1).label}`) : h('span', {}, 'Sample data')),
+        hist ? chart : h('div', {}, empty('Valuation history not recorded', 'Only one valuation exists for this asset in the sample, so ATLAS shows cost vs. estimated value instead.'), costVsValue(a))),
+      h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, 'Value vs. acquisition cost'), h('span', {}, `${sc.length} asset${sc.length > 1 ? 's' : ''}`)),
+        h('ul', { class: 'rank' }, rank.map(r => { const t = tone(r.appreciationPct, 1e-6);
+          return h('li', { class: r.id === state.sel ? 'on' : '' }, h('button', { type: 'button', onclick: () => select(r.id, true) },
+            h('span', { class: 'rn' }, r.name), h('span', { class: 'rb', 'aria-hidden': 'true' }, h('i', { class: t, style: `width:${(Math.abs(r.appreciationPct) / mx) * 50}%;${r.appreciationPct < 0 ? 'right' : 'left'}:50%` })),
+            h('b', { class: t }, fmtPct(r.appreciationPct, { sign: true })))); })))));
+    if (hist) valuationChart(chart, hist, { label: `Estimated value of ${a.name}` });
+  }
+
+  /* REPORTS view */
+  function renderReports() {
+    const host = clear(views.reports), sc = scope(), p = portfolio(sc);
+    const alloc = Object.entries(sc.reduce((m, x) => ((m[x.category] = (m[x.category] || 0) + x.value), m), {})).sort((x, y) => y[1] - x[1]);
+    const csv = () => {
+      const text = toCsv(sc, [
+        { label: 'Asset', get: x => x.name }, { label: 'Category', get: x => CATEGORIES[x.category] }, { label: 'Location', get: x => x.place }, { label: 'Status', get: x => x.status },
+        { label: 'Acquisition cost (USD)', get: x => x.cost }, { label: 'Estimated value (USD)', get: x => x.value }, { label: 'Change vs. cost', get: x => x.appreciationPct.toFixed(4) }, { label: 'NOI (USD)', get: x => (x.earning ? x.noi : '') },
+      ]);
+      const a = h('a', { href: URL.createObjectURL(new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' })), download: 'atlas-sample-assets.csv' });
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      analytics.track('dashboard_csv_download');
+    };
+    host.append(h('div', { class: 'rep-grid' },
+      h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, `Portfolio summary${state.group === 'all' ? '' : ' · ' + GROUPS[state.group].label}`), h('span', {}, `As of ${VALUATION_DATE}`)),
+        h('div', { class: 'rep-kpis' },
+          h('div', {}, h('em', {}, 'Value'), h('b', {}, compact(p.value))), h('div', {}, h('em', {}, 'Cost'), h('b', {}, compact(p.cost))),
+          h('div', {}, h('em', {}, 'NOI'), h('b', {}, p.earningCount ? compact(p.noi) : '—')), h('div', {}, h('em', {}, 'NOI yield'), h('b', {}, pct1(p.noiYield)))),
+        h('ul', { class: 'rep-alloc' }, alloc.map(([c, v]) => h('li', {}, h('span', {}, CATEGORIES[c]), h('i', { style: `width:${(v / alloc[0][1]) * 100}%` }), h('b', {}, pct1(v / p.value)))))),
+      h('div', { class: 'tbl-card pad dl' }, h('b', {}, 'Export'), h('p', {}, `${sc.length} asset${sc.length > 1 ? 's' : ''} in the current view, with cost, value, change and NOI.`),
+        h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: csv }, 'Download CSV'),
+        h('small', {}, 'PDF and Excel exports are in development.'))));
+  }
+
+  renderFilter(); setView('map');
 }
 
 /* ---------------------------------------------------------- globe section */

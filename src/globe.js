@@ -127,7 +127,7 @@ export function createGlobe(host, opts) {
     st.hits = [];
     const ms = Math.max(0.8, R / 230);
     for (const m of items) {
-      const dim = st.filter && m.a.category !== st.filter, sel = m.a.id === st.selected;
+      const dim = st.filter && !st.filter.includes(m.a.category), sel = m.a.id === st.selected;
       const alpha = (dim ? 0.18 : 1) * Math.min(1, (m.z - 0.08) * 4);
       ctx.globalAlpha = alpha;
       if (sel) {
@@ -191,7 +191,7 @@ export function createGlobe(host, opts) {
       if (reduceMotion) { st.lon = st.tLon; st.lat = st.tLat; st.tLon = null; frame(performance.now()); }
     },
     setSelected(id) { st.selected = id; if (reduceMotion) frame(performance.now()); },
-    setFilter(cat) { st.filter = cat; if (reduceMotion) frame(performance.now()); },
+    setFilter(cat) { st.filter = cat ? [].concat(cat) : null; if (reduceMotion) frame(performance.now()); },
     destroy() { cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); canvas.remove(); },
   };
 }
