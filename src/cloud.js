@@ -17,6 +17,8 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
   const emit = () => listeners.forEach(f => { try { f(session); } catch { /* listener errors must not break auth */ } });
   const setSession = v => { session = v; writeStore(v); emit(); };
   session = readStore();
+  // another tab signed in or out: follow it, so a signed-out tab never keeps showing someone's assets
+  try { globalThis.addEventListener?.('storage', e => { if (e.key === SESSION_KEY) { session = readStore(); emit(); } }); } catch { /* no window */ }
 
   async function call(path, { method = 'GET', body, token, headers = {} } = {}) {
     let res;

@@ -66,3 +66,7 @@ npm start        # static server + /api routes on http://localhost:4173
 npm run make-map # regenerate assets/world-map.js (dot map + marker positions)
 npm run make-countries # regenerate assets/countries.js (outlines + dot grids for the Country view)
 ```
+
+## Testing the signed-in app without a Supabase project
+
+`npm run mock` serves the site and a local stand-in for Supabase (auth, per-user rows, token expiry) on http://localhost:4180/app.html; the magic link is available at `/__link?email=you@example.com`. `npm run e2e` drives that app in headless Chrome: sign-in, sample data, add, edit after token expiry, delete, row isolation between users, sign-out.
