@@ -70,3 +70,14 @@ npm run make-countries # regenerate assets/countries.js (outlines + dot grids fo
 ## Testing the signed-in app without a Supabase project
 
 `npm run mock` serves the site and a local stand-in for Supabase (auth, per-user rows, token expiry) on http://localhost:4180/app.html; the magic link is available at `/__link?email=you@example.com`. `npm run e2e` drives that app in headless Chrome: sign-in, sample data, add, edit after token expiry, delete, row isolation between users, sign-out.
+
+## Debt, import, exports, documents and reminders
+
+Run `supabase/migrations/20261029000000_debt_documents_reminders.sql` once in the Supabase SQL editor (after `assets.sql`). It adds the debt columns, the `asset_documents` and `asset_reminders` tables with Row Level Security, and a private `asset-docs` storage bucket whose policies keep every user inside their own folder. Until it is applied, assets without debt keep working; documents, reminders and debt need it.
+
+- **Net worth:** each asset can carry a mortgage or loan balance and monthly payment. Portfolio net worth is value minus debt.
+- **Import:** `Import CSV` in the app (template included) validates every row with the same rules as the form and shows what will be imported before anything is saved.
+- **Exports:** Reports tab: PDF (the browser print dialog, choose "Save as PDF"), Excel `.xlsx` (built in the browser, no library) and CSV.
+- **Documents:** up to 10 MB per file, stored in the private bucket (cloud) or in IndexedDB (device mode).
+- **Reminders:** always shown in the app. Email alerts need a daily job: set `RESEND_API_KEY`, `REMINDER_FROM` (a sender verified in Resend), `CRON_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel. `vercel.json` already schedules `/api/send-reminders` once a day; the build turns on the "email alerts" wording only when `RESEND_API_KEY` and `CRON_SECRET` exist.
+- **Local checks:** `npm test` and `npm run e2e` (mock Supabase incl. storage; covers import, documents, reminders, exports and cascading deletes).

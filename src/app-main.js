@@ -8,11 +8,15 @@ import { mountDashboard } from './dashboard.js';
 import { sampleRows } from './demo-data.js';
 import { ASSET_TYPES, TYPE_BY_KEY } from './types.js';
 import { COUNTRIES, CITIES_LIST, placeLabel, findCity } from './places.js';
+import { createCloudExtras, createLocalExtras, DOC_KINDS, validateFile, sizeText, completionPatch } from './extras-store.js';
+import { REMINDER_KINDS, REPEATS, validateReminder, statusOf, isoDay } from './reminders.js';
+import { previewImport, TEMPLATE_CSV } from './csv-import.js';
+import { download } from './report.js';
 
 document.documentElement.classList.add('js');
 const $ = id => document.getElementById(id);
 const cloud = createCloud({ url: CONFIG.supabaseUrl, anonKey: CONFIG.supabaseAnonKey });
-let store = null, raw = [], views = [], dash = null;
+let store = null, extras = null, raw = [], views = [], dash = null, docs = [], rems = [];
 
 /* ------------------------------------------------------------------ small helpers */
 let toastTimer = 0;
@@ -21,6 +25,8 @@ function toast(msg, kind = 'ok') {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = 'toast'; }, 4200);
 }
 const recompute = () => { views = raw.map(toView); };
+const metaOf = id => ({ docs: docs.filter(d => d.assetId === id).length, reminders: rems.filter(r => r.assetId === id && !r.done).length });
+const dueNow = () => rems.filter(r => ['overdue', 'soon'].includes(statusOf(r))).length;
 const show = id => { for (const k of ['boot', 'auth', 'shell']) $(k).hidden = k !== id; };
 const message = e => (e && e.message) || 'Something went wrong. Please try again.';
 
@@ -56,9 +62,10 @@ function renderFoot() {
   }
 }
 function renderBanner() {
-  const b = $('app-banner'), sample = raw.some(r => r.isSample);
-  b.hidden = !sample; clear(b);
-  if (sample) b.append(h('span', {}, 'You are looking at sample data. Add your own assets and remove the sample whenever you like.'), h('button', { type: 'button', class: 'mini-btn', onclick: removeSample }, 'Remove sample data'));
+  const b = $('app-banner'), sample = raw.some(r => r.isSample), due = dueNow();
+  b.hidden = !sample && !due; clear(b);
+  if (sample) b.append(h('div', { class: 'banner-row' }, h('span', {}, 'You are looking at sample data. Add your own assets and remove the sample whenever you like.'), h('button', { type: 'button', class: 'mini-btn', onclick: removeSample }, 'Remove sample data')));
+  if (due) b.append(h('div', { class: 'banner-row due' }, h('span', {}, `${due} reminder${due > 1 ? 's' : ''} need${due > 1 ? '' : 's'} your attention.`), h('button', { type: 'button', class: 'mini-btn', onclick: () => dash.show('reminders') }, 'Review')));
 }
 function sync(selectId) { recompute(); renderBanner(); dash.refresh(selectId ? { select: selectId } : {}); }
 
@@ -79,15 +86,16 @@ async function loadSample() {
   raw = await run('Could not refresh', () => store.list()) || raw; sync(); toast('Sample portfolio loaded.');
 }
 async function removeSample() {
-  if (!(await run('Could not remove sample data', async () => { await store.removeSample(); return true; }))) return;
-  raw = raw.filter(r => !r.isSample); sync(); toast('Sample data removed.');
+  const sampleIds = raw.filter(r => r.isSample).map(r => r.id);
+  if (!(await run('Could not remove sample data', async () => { for (const id of sampleIds) await extras.removeForAsset(id); await store.removeSample(); return true; }))) return;
+  raw = raw.filter(r => !r.isSample); docs = docs.filter(d => !sampleIds.includes(d.assetId)); rems = rems.filter(r => !sampleIds.includes(r.assetId)); sync(); toast('Sample data removed.');
 }
 async function removeAsset(id) {
   const a = raw.find(r => r.id === id); if (!a) return;
   const yes = await confirmDialog(`Delete “${a.name}”?`, 'This removes the asset and its value history. It cannot be undone.', 'Delete asset');
   if (!yes) return;
-  if (!(await run('Could not delete', async () => { await store.remove(id); return true; }))) return;
-  raw = raw.filter(r => r.id !== id); sync(); toast('Asset deleted.');
+  if (!(await run('Could not delete', async () => { await extras.removeForAsset(id); await store.remove(id); return true; }))) return;
+  raw = raw.filter(r => r.id !== id); docs = docs.filter(d => d.assetId !== id); rems = rems.filter(r => r.assetId !== id); sync(); toast('Asset deleted.');
 }
 
 /* ------------------------------------------------------------------ dialogs */
@@ -121,7 +129,7 @@ function openForm(existing) {
   const st = { type: init.type, custom: Boolean(existing && !known) };
   const errs = {};
   const err = k => h('p', { class: 'err', id: `er-${k}`, role: 'alert' });
-  const mkErr = {}; ['type', 'name', 'place', 'placeName', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'status', 'acquiredOn', 'notes'].forEach(k => { mkErr[k] = err(k); });
+  const mkErr = {}; ['type', 'name', 'place', 'placeName', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debtPayment', 'status', 'acquiredOn', 'notes'].forEach(k => { mkErr[k] = err(k); });
   const field = (label, control, k, hint) => h('div', { class: 'field' }, h('label', { for: control.id }, label), control, hint ? h('p', { class: 'hint' }, hint) : null, mkErr[k]);
   const input = (id, props = {}) => h('input', { id, ...props });
   const money_ = (id, v, ph) => input(id, { type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: ph, value: v === '' || v == null ? '' : String(v) });
@@ -161,6 +169,7 @@ function openForm(existing) {
 
   const value = money_('f-value', init.value, '685,000'), cost = money_('f-cost', init.cost, '520,000');
   const gross = money_('f-gross', init.gross || '', '0'), expenses = money_('f-expenses', init.expenses || '', '0');
+  const debt = money_('f-debt', init.debt || '', '0'), debtPayment = money_('f-debtpay', init.debtPayment || '', '0');
   const acquired = input('f-acq', { type: 'date', value: init.acquiredOn || '', max: new Date().toISOString().slice(0, 10) });
   const notes = h('textarea', { id: 'f-notes', rows: 3, maxlength: 500, placeholder: 'Anything worth remembering (optional)' }, init.notes || '');
   fillStatus(); if (init.status) status.value = init.status;
@@ -174,6 +183,7 @@ function openForm(existing) {
     h('div', { class: 'field' }, h('label', { for: 'f-place' }, 'Location'), place, cityList, customBox, custom, mkErr.place),
     h('div', { class: 'two' }, field('Estimated value (USD)', value, 'value'), field('Acquisition cost (USD)', cost, 'cost')),
     h('div', { class: 'two' }, field('Annual income (optional)', gross, 'gross', 'Rent or revenue per year.'), field('Annual expenses (optional)', expenses, 'expenses', 'Taxes, insurance, upkeep.')),
+    h('div', { class: 'two' }, field('Debt owed (optional)', debt, 'debt', 'Mortgage or loan balance still to pay.'), field('Monthly payment (optional)', debtPayment, 'debtPayment', 'What you pay each month on that debt.')),
     h('div', { class: 'two' }, field('Status', status, 'status'), field('Acquired on (optional)', acquired, 'acquiredOn', 'Starts the value history.')),
     field('Notes (optional)', notes, 'notes'),
     formErr,
@@ -185,15 +195,15 @@ function openForm(existing) {
     const r = validateAsset({
       type: st.type, name: name.value, place: place.value, customPlace: customOn,
       placeName: custom.querySelector('#f-placename').value, country: custom.querySelector('#f-country').value, lat: custom.querySelector('#f-lat').value, lon: custom.querySelector('#f-lon').value,
-      value: value.value, cost: cost.value, gross: gross.value, expenses: expenses.value, status: status.value, acquiredOn: acquired.value, notes: notes.value,
+      value: value.value, cost: cost.value, gross: gross.value, expenses: expenses.value, debt: debt.value, debtPayment: debtPayment.value, status: status.value, acquiredOn: acquired.value, notes: notes.value,
     });
     Object.entries(mkErr).forEach(([k, p]) => { p.textContent = r.errors[k] || ''; });
     form.querySelectorAll('[aria-invalid]').forEach(x => x.removeAttribute('aria-invalid'));
-    Object.keys(r.errors).forEach(k => { const el = { name, place, value, cost, gross, expenses, status, acquiredOn: acquired, notes, placeName: custom.querySelector('#f-placename'), country: custom.querySelector('#f-country'), lat: custom.querySelector('#f-lat'), lon: custom.querySelector('#f-lon') }[k]; el && el.setAttribute('aria-invalid', 'true'); });
+    Object.keys(r.errors).forEach(k => { const el = { name, place, value, cost, gross, expenses, debt, debtPayment, status, acquiredOn: acquired, notes, placeName: custom.querySelector('#f-placename'), country: custom.querySelector('#f-country'), lat: custom.querySelector('#f-lat'), lon: custom.querySelector('#f-lon') }[k]; el && el.setAttribute('aria-invalid', 'true'); });
     if (!r.ok) { formErr.textContent = ''; (form.querySelector('[aria-invalid="true"]') || typeHost.querySelector('button'))?.focus(); return; }
     formErr.textContent = ''; submit.disabled = true; submit.classList.add('busy'); submit.querySelector('.lbl').textContent = 'Saving…';
     try {
-      const saved = edit ? await store.update(existing.id, r.value) : await store.add(r.value);
+      const saved = edit ? await store.update(existing.id, r.value, { hadDebt: existing.debt > 0 || existing.debtPayment > 0 }) : await store.add(r.value);
       raw = edit ? raw.map(x => (x.id === saved.id ? saved : x)) : [...raw, saved];
       modal().close(); sync(saved.id); toast(edit ? 'Changes saved.' : 'Asset added.');
     } catch (x) {
@@ -207,24 +217,178 @@ function openForm(existing) {
   setTimeout(() => (edit ? name : typeHost.querySelector('button')).focus(), 30);
 }
 
+/* ------------------------------------------------------------------ reminders */
+const reminderApi = {
+  list: () => rems,
+  get note() { return cloud.configured && CONFIG.remindersEmail ? `We email you at ${cloud.user()?.email || 'your address'} when something is due.` : 'Reminders show here and in the badge on this tab. Email alerts are not switched on yet.'; },
+  onAdd: assetId => openReminderForm(assetId),
+  onDone: id => patchReminder(id, completionPatch(rems.find(r => r.id === id))),
+  onReopen: id => patchReminder(id, { done: false, lastNotifiedOn: null }),
+  onDelete: async id => { if (await run('Could not delete the reminder', async () => { await extras.removeReminder(id); return true; })) { rems = rems.filter(r => r.id !== id); sync(); refreshExtras(); toast('Reminder deleted.'); } },
+};
+async function patchReminder(id, patch) {
+  const saved = await run('Could not update the reminder', () => extras.updateReminder(id, patch));
+  if (!saved) return;
+  rems = rems.map(r => (r.id === id ? saved : r)); sync(); refreshExtras();
+  toast(patch.done === false && patch.dueOn ? `Renewed. Next due ${saved.dueOn}.` : patch.done ? 'Marked done.' : 'Updated.');
+}
+
+function openReminderForm(assetId, { back } = {}) {
+  if (!raw.length) { toast('Add an asset first, then set reminders for it.', 'err'); return; }
+  const today = isoDay(), er = {};
+  ['asset', 'kind', 'title', 'dueOn', 'repeat', 'notifyDays'].forEach(k => { er[k] = h('p', { class: 'err', role: 'alert' }); });
+  const fld = (label, control, k, hint) => h('div', { class: 'field' }, h('label', { for: control.id }, label), control, hint ? h('p', { class: 'hint' }, hint) : null, er[k]);
+  const asset = h('select', { id: 'r-asset' }, ...raw.map(a => h('option', { value: a.id }, a.name)));
+  asset.value = assetId && raw.some(a => a.id === assetId) ? assetId : raw[0].id;
+  const kind = h('select', { id: 'r-kind' }, ...Object.entries(REMINDER_KINDS).map(([k, v]) => h('option', { value: k }, v.label)));
+  const title = h('input', { id: 'r-title', type: 'text', maxlength: 120, autocomplete: 'off', placeholder: REMINDER_KINDS.insurance.title });
+  kind.value = 'insurance';
+  kind.addEventListener('change', () => { title.placeholder = REMINDER_KINDS[kind.value].title || 'What is due?'; });
+  const due = h('input', { id: 'r-due', type: 'date', min: '2000-01-01' });
+  const repeat = h('select', { id: 'r-repeat' }, ...Object.entries(REPEATS).map(([k, v]) => h('option', { value: k }, v)));
+  const notify = h('input', { id: 'r-notify', type: 'text', inputmode: 'numeric', value: '14' });
+  const formErr = h('p', { class: 'err form-err', role: 'alert' });
+  const submit = h('button', { type: 'submit', class: 'btn btn-primary btn-sm' }, h('span', { class: 'lbl' }, 'Add reminder'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
+  const form = h('form', { class: 'asset-form', novalidate: true },
+    fld('Asset', asset, 'asset'),
+    h('div', { class: 'two' }, fld('Type', kind, 'kind'), fld('Due date', due, 'dueOn')),
+    fld('Title (optional)', title, 'title', 'Leave blank to use the type, for example “Insurance renewal”.'),
+    h('div', { class: 'two' }, fld('Repeats', repeat, 'repeat'), fld('Remind me (days before)', notify, 'notifyDays', 'Between 0 and 90.')),
+    formErr,
+    h('div', { class: 'modal-actions' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => (back ? back() : modal().close()) }, back ? 'Back' : 'Cancel'), submit));
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const r = validateReminder({ kind: kind.value, title: title.value, dueOn: due.value, repeat: repeat.value, notifyDays: notify.value }, { today });
+    Object.entries(er).forEach(([k, p]) => { p.textContent = r.errors[k] || ''; });
+    if (!r.ok) return;
+    submit.disabled = true; submit.classList.add('busy'); formErr.textContent = '';
+    try {
+      const saved = await extras.addReminder(asset.value, r.value);
+      rems = [...rems, saved]; sync(); toast('Reminder added.');
+      if (back) back(); else modal().close();
+    } catch (x) { formErr.textContent = `Could not save: ${message(x)}`; }
+    finally { submit.disabled = false; submit.classList.remove('busy'); }
+  });
+  openModal(h('div', { class: 'modal-card' }, h('div', { class: 'modal-head' }, h('h2', { id: 'modal-title' }, 'Add a reminder'),
+    h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')), form));
+  setTimeout(() => due.focus(), 30);
+}
+
+/* ------------------------------------------------------------------ documents and reminders of one asset */
+let extrasFor = null;
+function refreshExtras() { if (extrasFor && modal().open && modal().querySelector('.extras')) openExtras(extrasFor, { keepScroll: true }); }
+
+function openExtras(assetId, { keepScroll = false } = {}) {
+  const a = raw.find(r => r.id === assetId); if (!a) return;
+  extrasFor = assetId;
+  const prev = keepScroll ? modal().querySelector('.modal-card')?.scrollTop || 0 : 0;
+  const mine = docs.filter(d => d.assetId === assetId), myRems = rems.filter(r => r.assetId === assetId).sort((x, y) => (x.dueOn < y.dueOn ? -1 : 1));
+  const kindSel = h('select', { id: 'd-kind', 'aria-label': 'Document type' }, ...Object.entries(DOC_KINDS).map(([k, v]) => h('option', { value: k }, v)));
+  const file = h('input', { id: 'd-file', type: 'file', accept: '.pdf,.png,.jpg,.jpeg,.webp,.heic,.gif,.doc,.docx,.xls,.xlsx,.csv,.txt', 'aria-label': 'Choose a file' });
+  const dErr = h('p', { class: 'err', role: 'alert' });
+  const up = h('button', { type: 'button', class: 'btn btn-primary btn-sm' }, h('span', { class: 'lbl' }, 'Upload'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
+  up.addEventListener('click', async () => {
+    const f = file.files[0], bad = validateFile(f); dErr.textContent = bad || '';
+    if (bad) return;
+    up.disabled = true; up.classList.add('busy'); up.querySelector('.lbl').textContent = 'Uploading…';
+    try { const d = await extras.addDoc(assetId, f, kindSel.value); docs = [d, ...docs]; sync(); toast('Document saved.'); openExtras(assetId, { keepScroll: true }); }
+    catch (x) { dErr.textContent = `Could not upload: ${message(x)}`; up.disabled = false; up.classList.remove('busy'); up.querySelector('.lbl').textContent = 'Upload'; }
+  });
+  const openDoc = async d => { try { const u = await extras.docUrl(d); const w = window.open(u, '_blank', 'noopener'); if (!w) location.href = u; } catch (x) { toast(message(x), 'err'); } };
+  const delDoc = async d => {
+    if (!window.confirm(`Delete “${d.name}”? This cannot be undone.`)) return;
+    if (await run('Could not delete the document', async () => { await extras.removeDoc(d); return true; })) { docs = docs.filter(x => x.id !== d.id); sync(); toast('Document deleted.'); openExtras(assetId, { keepScroll: true }); }
+  };
+  const thumbFor = d => {
+    const box = h('span', { class: 'doc-ico', 'aria-hidden': 'true' }, (d.name.split('.').pop() || 'file').slice(0, 4).toUpperCase());
+    if (/^image\//.test(d.mime || '') || /\.(png|jpe?g|webp|gif)$/i.test(d.name)) extras.docUrl(d).then(u => { const im = h('img', { src: u, alt: '', loading: 'lazy' }); box.replaceChildren(im); box.classList.add('img'); }).catch(() => {});
+    return box;
+  };
+  const docRow = d => h('li', { class: 'doc-row' }, thumbFor(d),
+    h('div', { class: 'doc-main' }, h('b', {}, d.name), h('span', {}, `${DOC_KINDS[d.kind] || 'Other'} · ${sizeText(d.size)} · ${String(d.createdAt || '').slice(0, 10)}`)),
+    h('div', { class: 'rem-act' }, h('button', { type: 'button', class: 'mini-btn', onclick: () => openDoc(d) }, 'Open'), h('button', { type: 'button', class: 'mini-btn danger', onclick: () => delDoc(d) }, 'Delete')));
+  const today = isoDay();
+  const remRow = r => h('li', { class: `rem-row ${statusOf(r, today)}` },
+    h('span', { class: 'rem-kind' }, REMINDER_KINDS[r.kind] ? REMINDER_KINDS[r.kind].label : 'Other'),
+    h('div', { class: 'rem-main' }, h('b', {}, r.title), h('span', {}, r.repeat !== 'none' ? REPEATS[r.repeat] : 'One time')),
+    h('div', { class: 'rem-when' }, h('b', {}, r.done ? 'Done' : whenWord(r)), h('span', {}, r.dueOn)),
+    h('div', { class: 'rem-act' }, r.done ? null : h('button', { type: 'button', class: 'mini-btn', onclick: () => reminderApi.onDone(r.id) }, r.repeat !== 'none' ? 'Done, renew' : 'Mark done'), h('button', { type: 'button', class: 'mini-btn danger', onclick: () => reminderApi.onDelete(r.id) }, 'Delete')));
+  const whenWord = r => { const d = Math.round((Date.parse(`${r.dueOn}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000); return d < 0 ? `Overdue by ${-d}d` : d === 0 ? 'Due today' : `In ${d} days`; };
+  openModal(h('div', { class: 'modal-card wide extras' },
+    h('div', { class: 'modal-head' }, h('div', {}, h('h2', { id: 'modal-title' }, a.name), h('p', { class: 'hint' }, `${a.place}`)), h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')),
+    h('section', { class: 'xt-sec' }, h('h3', {}, 'Documents'),
+      h('p', { class: 'hint' }, extras.kind === 'cloud' ? 'Deeds, insurance, registration, invoices and your own photos. Stored privately in your account. Up to 10 MB each.' : 'Stored on this device only. Up to 10 MB each. Sign in to keep them across devices.'),
+      h('div', { class: 'upload-row' }, kindSel, file, up), dErr,
+      mine.length ? h('ul', { class: 'doc-list' }, mine.map(docRow)) : h('p', { class: 'xt-empty' }, 'No documents yet.')),
+    h('section', { class: 'xt-sec' }, h('div', { class: 'xt-h' }, h('h3', {}, 'Reminders'), h('button', { type: 'button', class: 'mini-btn', onclick: () => openReminderForm(assetId, { back: () => openExtras(assetId) }) }, '+ Add reminder')),
+      myRems.length ? h('ul', { class: 'rem-list' }, myRems.map(remRow)) : h('p', { class: 'xt-empty' }, 'No reminders yet. Add insurance, tax or inspection dates so they never slip.'))),
+  { onClose: () => { extrasFor = null; } });
+  if (prev) modal().querySelector('.modal-card').scrollTop = prev;
+}
+
+/* ------------------------------------------------------------------ import from CSV */
+function openImport() {
+  const file = h('input', { id: 'imp-file', type: 'file', accept: '.csv,.txt,text/csv', 'aria-label': 'Choose a CSV file' });
+  const out = h('div', { class: 'imp-out' }), err = h('p', { class: 'err', role: 'alert' });
+  const doImport = h('button', { type: 'button', class: 'btn btn-primary btn-sm', disabled: true }, h('span', { class: 'lbl' }, 'Import'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
+  let ready = [];
+  const show = (text) => {
+    const p = previewImport(text, { existing: raw });
+    clear(out); ready = []; doImport.disabled = true; err.textContent = '';
+    if (!p.ok) { err.textContent = p.error; return; }
+    const skipDupes = h('input', { type: 'checkbox', checked: true, id: 'imp-skip' });
+    const good = p.rows.filter(r => r.ok), bad = p.rows.filter(r => !r.ok), dupes = good.filter(r => r.dupe);
+    const recount = () => { ready = good.filter(r => !(skipDupes.checked && r.dupe)).map(r => r.value); doImport.querySelector('.lbl').textContent = ready.length ? `Import ${ready.length} asset${ready.length > 1 ? 's' : ''}` : 'Nothing to import'; doImport.disabled = !ready.length; };
+    out.append(...[h('p', { class: 'imp-sum' }, h('b', {}, `${good.length} ready`), bad.length ? h('span', { class: 'neg' }, ` · ${bad.length} need fixes`) : null, dupes.length ? ` · ${dupes.length} possible duplicate${dupes.length > 1 ? 's' : ''}` : null),
+      dupes.length ? h('label', { class: 'check' }, skipDupes, h('span', {}, 'Skip assets already in my portfolio (same name and place)')) : null,
+      h('div', { class: 'imp-tbl' }, h('table', { class: 'app-tbl' }, h('thead', {}, h('tr', {}, h('th', {}, 'Row'), h('th', {}, 'Asset'), h('th', { class: 'r' }, 'Value'), h('th', {}, 'Result'))),
+        h('tbody', {}, p.rows.slice(0, 100).map(r => h('tr', { class: r.ok ? '' : 'bad' }, h('td', {}, String(r.line)), h('td', {}, r.name), h('td', { class: 'r' }, r.ok ? money(r.value.value) : ''),
+          h('td', {}, r.ok ? (r.dupe ? 'Possible duplicate' : 'Ready') : r.errors.join(' ')))))),
+        p.rows.length > 100 ? h('p', { class: 'hint' }, `Showing the first 100 of ${p.rows.length} rows.`) : null)].filter(Boolean));
+    skipDupes.addEventListener('change', recount); recount();
+  };
+  file.addEventListener('change', async () => {
+    const f = file.files[0]; if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { err.textContent = 'That file is larger than 2 MB. Split it into smaller files.'; return; }
+    show(await f.text());
+  });
+  doImport.addEventListener('click', async () => {
+    doImport.disabled = true; doImport.classList.add('busy');
+    try {
+      const batch = ready.map(v => ({ ...v, isSample: false }));
+      for (let i = 0; i < batch.length; i += 100) await store.addMany(batch.slice(i, i + 100));
+      raw = await store.list(); sync(); modal().close(); toast(`${batch.length} asset${batch.length > 1 ? 's' : ''} imported.`);
+    } catch (x) { err.textContent = `Could not import: ${message(x)}`; doImport.disabled = false; }
+    finally { doImport.classList.remove('busy'); }
+  });
+  openModal(h('div', { class: 'modal-card wide' }, h('div', { class: 'modal-head' }, h('h2', { id: 'modal-title' }, 'Import assets from a CSV'),
+    h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')),
+    h('p', { class: 'modal-text' }, 'Export your spreadsheet as CSV (File, Download, CSV in Excel or Google Sheets) and choose it below. Required columns: name, type, location, value and cost. Debt, income, expenses, status, date and notes are optional.'),
+    h('div', { class: 'imp-pick' }, file, h('button', { type: 'button', class: 'mini-btn', onclick: () => download('atlas-import-template.csv', new Blob([TEMPLATE_CSV], { type: 'text/csv;charset=utf-8' })) }, 'Download template')),
+    err, out, h('div', { class: 'modal-actions' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => modal().close() }, 'Cancel'), doImport)));
+}
+
 /* ------------------------------------------------------------------ start */
 async function start() {
   try {
     if (cloud.configured) {
       const r = await cloud.consumeRedirect().catch(e => ({ error: e.message }));
       if (!cloud.session()) return showAuth(r && r.error);
-      store = createCloudStore(cloud);
-    } else store = createLocalStore();
+      store = createCloudStore(cloud); extras = createCloudExtras(cloud);
+    } else { store = createLocalStore(); extras = createLocalExtras(); }
     raw = await store.list();
   } catch (e) {
     if (e && e.status === 401) return showAuth('Your session has expired. Please sign in again.');
     $('boot').replaceChildren(h('b', {}, 'Could not load your workspace. '), message(e), ' ', h('button', { type: 'button', class: 'mini-btn', onclick: () => location.reload() }, 'Try again'));
     return;
   }
+  // documents and reminders are secondary: if they cannot load (e.g. the database update was not applied yet) the assets still work
+  try { [docs, rems] = await Promise.all([extras.listDocs(), extras.listReminders()]); } catch (e) { console.error('extras unavailable', e); docs = []; rems = []; toast('Documents and reminders could not be loaded.', 'err'); }
   recompute(); show('shell'); renderFoot();
   dash = mountDashboard({
-    getAssets: () => views, csvName: 'atlas-assets.csv', globeLabel: 'Rotating 3D globe of your assets',
-    actions: { onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset, onSample: loadSample },
+    getAssets: () => views, csvName: 'atlas-assets.csv', globeLabel: 'Rotating 3D globe of your assets', owner: cloud.user()?.email || '', meta: metaOf,
+    actions: { onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset, onSample: loadSample, onImport: openImport, onDocs: id => openExtras(id) },
+    reminders: reminderApi,
   });
   renderBanner();
   // keep tabs in sync: signing out elsewhere, or the session ending

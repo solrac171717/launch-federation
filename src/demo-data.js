@@ -31,13 +31,13 @@ const sum = a => a.reduce((s, x) => s + x, 0);
 
 const RAW = [
   { id: 'austin', name: 'Westlake Residence', place: 'Austin, TX', category: 'residential', kind: 'Single-family rental',
-    value: 685000, cost: 520000, gross: sum(WESTLAKE_INCOME), expenses: sum(WESTLAKE_EXPENSES), status: 'Occupied' },
+    value: 685000, cost: 520000, gross: sum(WESTLAKE_INCOME), expenses: sum(WESTLAKE_EXPENSES), debt: 310000, debtPayment: 2150, status: 'Occupied' },
   { id: 'miami', name: 'Brickell Condo 14C', place: 'Miami, FL', category: 'residential', kind: 'Condominium',
-    value: 912000, cost: 760000, gross: 58800, expenses: 19440, status: 'Occupied' },
+    value: 912000, cost: 760000, gross: 58800, expenses: 19440, debt: 540000, debtPayment: 3480, status: 'Occupied' },
   { id: 'chicago', name: 'Lakeshore Loft', place: 'Chicago, IL', category: 'residential', kind: 'Apartment',
-    value: 428000, cost: 395000, gross: 33600, expenses: 9180, status: 'Vacant' },
+    value: 428000, cost: 395000, gross: 33600, expenses: 9180, debt: 230000, debtPayment: 1620, status: 'Vacant' },
   { id: 'london', name: 'Fitzroy Office Suite', place: 'London, UK', category: 'commercial', kind: 'Office',
-    value: 1480000, cost: 1210000, gross: 84000, expenses: 21500, status: 'Leased' },
+    value: 1480000, cost: 1210000, gross: 84000, expenses: 21500, debt: 700000, debtPayment: 4100, status: 'Leased' },
   { id: 'seattle', name: 'Cascade Land Parcel', place: 'Seattle, WA', category: 'land', kind: '3.2 acres',
     value: 540000, cost: 410000, gross: 0, expenses: 2400, status: 'Held' },
   { id: 'denver', name: 'CAT 320 Excavator', place: 'Denver, CO', category: 'equipment', kind: 'Heavy equipment',
@@ -47,11 +47,11 @@ const RAW = [
   { id: 'nashville', name: 'Freightliner Cascadia', place: 'Nashville, TN', category: 'vehicle', kind: 'Commercial truck',
     value: 98000, cost: 124000, gross: 0, expenses: 5200, status: 'In service' },
   { id: 'teterboro', name: 'Citation M2', place: 'Teterboro, NJ', category: 'aircraft', kind: 'Light jet',
-    value: 3150000, cost: 3400000, gross: 0, expenses: 148000, status: 'Hangared' },
+    value: 3150000, cost: 3400000, gross: 0, expenses: 148000, debt: 1500000, debtPayment: 9800, status: 'Hangared' },
   { id: 'boston', name: 'Back Bay Parking Space', place: 'Boston, MA', category: 'commercial', kind: 'Parking space',
     value: 74000, cost: 62000, gross: 7200, expenses: 1150, status: 'Leased' },
   { id: 'columbus', name: 'Eastside Warehouse', place: 'Columbus, OH', category: 'commercial', kind: 'Industrial warehouse',
-    value: 2350000, cost: 1980000, gross: 168000, expenses: 41000, status: 'Leased' },
+    value: 2350000, cost: 1980000, gross: 168000, expenses: 41000, debt: 1200000, debtPayment: 7300, status: 'Leased' },
   { id: 'moab', name: 'Roamer RV 24', place: 'Moab, UT', category: 'vehicle', kind: 'Motorhome',
     value: 64000, cost: 78000, gross: 0, expenses: 3200, status: 'Garaged' },
   { id: 'sturgis', name: 'Heritage Cruiser', place: 'Sturgis, SD', category: 'vehicle', kind: 'Motorcycle',
@@ -85,7 +85,7 @@ export const byId = id => ASSETS.find(a => a.id === id);
 const MONTH_NUM = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
 /** The sample portfolio as storable rows (used by the app's "Load sample data"). */
 export const sampleRows = (today = new Date().toISOString().slice(0, 10)) => ASSETS.map(a => ({
-  name: a.name, type: a.type, place: a.place, country: a.country, lat: a.lat, lon: a.lon, value: a.value, cost: a.cost, gross: a.gross, expenses: a.expenses,
+  name: a.name, type: a.type, place: a.place, country: a.country, lat: a.lat, lon: a.lon, value: a.value, cost: a.cost, gross: a.gross, expenses: a.expenses, debt: a.debt, debtPayment: a.debtPayment,
   status: a.status, acquiredOn: null, notes: null, isSample: true,
   history: a.series ? a.series.map(p => { const [m, y] = p.label.split(' '); return { d: `${y}-${MONTH_NUM[m]}-01`, v: p.v }; }) : [{ d: today, v: a.value }],
 }));

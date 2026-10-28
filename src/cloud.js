@@ -20,13 +20,13 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
   // another tab signed in or out: follow it, so a signed-out tab never keeps showing someone's assets
   try { globalThis.addEventListener?.('storage', e => { if (e.key === SESSION_KEY) { session = readStore(); emit(); } }); } catch { /* no window */ }
 
-  async function call(path, { method = 'GET', body, token, headers = {} } = {}) {
+  async function call(path, { method = 'GET', body, token, headers = {}, raw = false } = {}) {
     let res;
     try {
       res = await fetchImpl(`${base}${path}`, {
         method,
-        headers: { apikey: anonKey, authorization: `Bearer ${token || anonKey}`, ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...headers },
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        headers: { apikey: anonKey, authorization: `Bearer ${token || anonKey}`, ...(body !== undefined && !raw ? { 'content-type': 'application/json' } : {}), ...headers },
+        body: body !== undefined ? (raw ? body : JSON.stringify(body)) : undefined,
       });
     } catch { throw new CloudError('Could not reach the server. Check your connection and try again.', { code: 'network' }); }
     const text = await res.text().catch(() => '');
@@ -66,6 +66,13 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     return session.access_token;
   }
 
+  const encPath = p => String(p).split('/').map(encodeURIComponent).join('/');
+  /** Runs a call with the user token; if the server says it expired, refreshes once and retries. */
+  async function authed(fn) {
+    try { return await fn(await token()); }
+    catch (e) { if (e.status === 401 && session?.refresh_token) { await refresh(); return fn(await token()); } throw e; }
+  }
+
   return {
     configured: Boolean(base && anonKey),
     session: () => session,
@@ -103,13 +110,19 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     },
 
     /** Authenticated PostgREST request. Refreshes the token once if the server says it expired. */
-    async rest(method, path, body, headers = {}) {
-      const run = async () => call(`/rest/v1${path}`, { method, body, token: await token(), headers });
-      try { return await run(); }
-      catch (e) {
-        if (e.status === 401 && session?.refresh_token) { await refresh(); return run(); }
-        throw e;
-      }
+    async rest(method, path, body, headers = {}) { return authed(t => call(`/rest/v1${path}`, { method, body, token: t, headers })); },
+
+    /** Private file storage (bucket policies keep every user inside their own folder). */
+    async upload(bucket, path, blob, mime) {
+      return authed(t => call(`/storage/v1/object/${bucket}/${encPath(path)}`, { method: 'POST', body: blob, raw: true, token: t, headers: { 'content-type': mime || 'application/octet-stream', 'x-upsert': 'false' } }));
+    },
+    async removeObject(bucket, path) { return authed(t => call(`/storage/v1/object/${bucket}/${encPath(path)}`, { method: 'DELETE', token: t })); },
+    /** A temporary link to a private file. */
+    async signedUrl(bucket, path, seconds = 600) {
+      const d = await authed(t => call(`/storage/v1/object/sign/${bucket}/${encPath(path)}`, { method: 'POST', body: { expiresIn: seconds }, token: t }));
+      const u = String(d?.signedURL || d?.signedUrl || '');
+      if (!u) throw new CloudError('Could not open the file.');
+      return /^https?:/.test(u) ? u : `${base}/storage/v1${u.startsWith('/storage/v1') ? u.slice(11) : u}`;
     },
   };
 }

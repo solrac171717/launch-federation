@@ -76,7 +76,7 @@ await step('add an asset through the form (validation first, then save)', async 
 });
 await step('edit after the access token expired: client refreshes once and the value history grows', async () => {
   await fetch(`${mock.origin}/__expire`);
-  await ev(`document.querySelector('.ac-actions .mini-btn, .detail-actions .btn, [data-edit]')?.click()`);
+  await ev(`[...document.querySelectorAll('.ac-actions .mini-btn')].find(b=>b.textContent.trim()==='Edit')?.click()`);
   // open edit through the assets table row action if the card did not offer one
   if (!(await ev(`document.getElementById('modal').open`))) {
     await ev(`[...document.querySelectorAll('[role=tab],.view-tabs button')].find(b=>/Assets/.test(b.textContent)).click()`);
@@ -90,6 +90,76 @@ await step('edit after the access token expired: client refreshes once and the v
   const log = await (await fetch(`${mock.origin}/__log`)).json();
   if (!log.some(l => l[0] === 'refresh')) throw new Error('no token refresh happened');
   const r = (await rows()).find(x => x.name === name); if (r.value !== 900000) throw new Error('value not saved: ' + r.value);
+});
+const extrasState = async () => (await fetch(`${mock.origin}/__extras`)).json();
+const setFile = (sel, name, text, type = 'text/plain') => ev(`(()=>{const i=document.querySelector(${JSON.stringify(sel)}); const dt=new DataTransfer(); dt.items.add(new File([${JSON.stringify(text)}], ${JSON.stringify(name)}, {type:${JSON.stringify(type)}})); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+const tab = name => ev(`[...document.querySelectorAll('.view-tabs button')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(name)})).click()`);
+const btn = (txt, root = 'document') => ev(`(()=>{const b=[...${root}.querySelectorAll('button')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(txt)})); if(!b) throw new Error('no button ${txt}'); b.click(); return true;})()`);
+
+await step('debt: an asset with a mortgage shows net worth after debt on the map', async () => {
+  await tab('Map');
+  await click('#add-asset-btn'); await until(`document.getElementById('modal').open`, 'modal');
+  await ev(`(()=>{document.querySelector('.type-card').click(); const set=(id,v)=>{document.getElementById(id).value=v;};
+    set('f-name','Mortgaged Flat'); set('f-place','Austin, TX'); set('f-value','400000'); set('f-cost','300000'); set('f-debt','250000'); set('f-debtpay','1900'); document.querySelector('.asset-form').requestSubmit();})()`);
+  await until(`!document.getElementById('modal').open`, 'saved');
+  const r = (await rows()).find(x => x.name === 'Mortgaged Flat'); if (r.debt !== 250000 || r.debt_payment !== 1900) throw new Error(JSON.stringify(r));
+  await until(`/Net worth .* after .* of debt/.test(document.getElementById('hero-value').textContent)`, 'net worth line');
+});
+await step('import CSV: preview shows ready, fixable and duplicate rows, then imports only the good ones', async () => {
+  await click('#import-btn'); await until(`document.getElementById('modal').open`, 'import modal');
+  const csv = 'name,type,location,value,cost,debt\nImported Loft,house,"Chicago, IL",300000,250000,120000\nImported Truck,truck,"Nashville, TN",60000,80000,0\nBroken,spaceship,"Austin, TX",1,1,0\nMortgaged Flat,house,"Austin, TX",400000,300000,250000';
+  await setFile('#imp-file', 'assets.csv', csv, 'text/csv');
+  await until(`document.querySelector('.imp-sum')`, 'preview');
+  const sum = await ev(`document.querySelector('.imp-sum').textContent`);
+  if (!/3 ready/.test(sum) || !/1 need fixes/.test(sum) || !/1 possible duplicate/.test(sum)) throw new Error('summary: ' + sum);
+  await until(`/Import 2 assets/.test(document.querySelector('.modal-actions .btn-primary').textContent)`, 'import button counts only non-duplicates');
+  await btn('Import 2', 'document'); await until(`!document.getElementById('modal').open`, 'import done');
+  const r = await rows(); if (!r.some(x => x.name === 'Imported Loft' && x.debt === 120000 && x.history.length)) throw new Error('loft missing'); if (r.filter(x => x.name === 'Mortgaged Flat').length !== 1) throw new Error('duplicate was imported');
+});
+await step('documents: upload to the private bucket under the user folder, open via signed link, delete', async () => {
+  await tab('Assets'); await until(`[...document.querySelectorAll('.detail-actions button')].some(b=>/^Documents/.test(b.textContent))`, 'documents button');
+  await btn('Documents', 'document'); await until(`document.querySelector('.extras')`, 'extras modal');
+  await setFile('#d-file', 'insurance-2026.pdf', '%PDF-1.4 test', 'application/pdf'); await ev(`document.getElementById('d-kind').value='insurance'`);
+  await ev(`[...document.querySelectorAll('.extras .upload-row button')].find(b=>/Upload/.test(b.textContent)).click()`);
+  await until(`document.querySelector('.doc-row')`, 'document listed');
+  const x = await extrasState(); const doc = x.docs[0]; if (!doc || doc.kind !== 'insurance' || !x.files.includes(doc.path)) throw new Error(JSON.stringify(x));
+  const uid = (await rows())[0].user_id; if (!doc.path.startsWith(uid + '/' + doc.asset_id + '/')) throw new Error('wrong folder ' + doc.path);
+  const signed = await ev(`fetch('/storage/v1/object/sign/asset-docs/${doc.path.split('/').map(encodeURIComponent).join('/')}?token=signed-${doc.path}').then(r=>r.text())`);
+  if (!/%PDF/.test(signed)) throw new Error('signed link did not return the file');
+  const noToken = await ev(`fetch('/storage/v1/object/sign/asset-docs/${doc.path.split('/').map(encodeURIComponent).join('/')}').then(r=>r.status)`); if (noToken !== 401) throw new Error('unsigned link worked: ' + noToken);
+  await ev(`window.confirm = () => true`); await ev(`[...document.querySelectorAll('.doc-row .mini-btn.danger')][0].click()`);
+  await until(`!document.querySelector('.doc-row')`, 'document removed'); const y = await extrasState(); if (y.docs.length || y.files.length) throw new Error('file not deleted');
+});
+await step('reminders: add, show in the tab with a badge, mark done renews a repeating one', async () => {
+  await ev(`[...document.querySelectorAll('.extras .xt-h .mini-btn')][0].click()`); await until(`document.getElementById('r-due')`, 'reminder form');
+  const d = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+  await ev(`(()=>{document.getElementById('r-kind').value='insurance'; document.getElementById('r-due').value=${JSON.stringify(d)}; document.getElementById('r-repeat').value='yearly'; document.querySelector('.asset-form').requestSubmit();})()`);
+  await until(`document.querySelector('.rem-row')`, 'back on the asset with the reminder');
+  let x = await extrasState(); if (x.rems.length !== 1 || x.rems[0].title !== 'Insurance renewal' || x.rems[0].repeat !== 'yearly') throw new Error(JSON.stringify(x.rems));
+  await ev(`document.querySelector('.modal-x').click()`); await until(`!document.getElementById('modal').open`, 'closed');
+  await until(`document.querySelector('.nav-badge')`, 'badge on the Reminders tab'); await until(`/reminder.* need/.test(document.getElementById('app-banner').textContent)`, 'banner');
+  await tab('Reminders'); await until(`document.querySelector('.rem-chip.soon b')?.textContent === '1'`, 'one due soon');
+  await btn('Done, renew', 'document'); await until(`document.querySelector('.rem-chip.upcoming b')?.textContent === '1'`, 'renewed to next year');
+  x = await extrasState(); if (!x.rems[0].due_on.startsWith(String(new Date().getFullYear() + (new Date(x.rems[0].due_on).getTime() > Date.now() + 300 * 86400000 ? 0 : 1)).slice(0, 4)) && x.rems[0].done) throw new Error(JSON.stringify(x.rems));
+  if (x.rems[0].done) throw new Error('a repeating reminder must not stay done');
+});
+await step('reports: Excel is a real .xlsx download and the PDF report opens with the net worth', async () => {
+  await tab('Reports'); await until(`document.querySelector('.dl-btns')`, 'report buttons');
+  await ev(`window.__blobs = []; const o = URL.createObjectURL.bind(URL); URL.createObjectURL = b => { window.__blobs.push(b); return o(b); }`);
+  await btn('Excel', 'document'); await until(`window.__blobs.length === 1`, 'xlsx blob');
+  const info = await ev(`(async()=>{const b=window.__blobs[0]; const u=new Uint8Array(await b.arrayBuffer()); return {size:b.size, sig:String.fromCharCode(u[0],u[1]), type:b.type};})()`);
+  if (info.sig !== 'PK' || info.size < 2000 || !/spreadsheetml/.test(info.type)) throw new Error(JSON.stringify(info));
+  await btn('PDF report', 'document'); await until(`document.querySelector('iframe[title=Report]')`, 'pdf frame');
+  const html = await ev(`document.querySelector('iframe[title=Report]').srcdoc`); if (!/Portfolio report/.test(html) || !/Net worth/.test(html)) throw new Error('report html');
+});
+await step('deleting an asset also deletes its documents and reminders', async () => {
+  await tab('Assets'); await btn('Documents', 'document'); await until(`document.querySelector('.extras')`, 'modal');
+  await setFile('#d-file', 'deed.pdf', '%PDF-1.4 deed', 'application/pdf'); await ev(`[...document.querySelectorAll('.extras .upload-row button')].find(b=>/Upload/.test(b.textContent)).click()`);
+  await until(`document.querySelector('.doc-row')`, 'uploaded'); await ev(`document.querySelector('.modal-x').click()`); await until(`!document.getElementById('modal').open`, 'closed');
+  const before = await extrasState(); if (!before.files.length) throw new Error('no file to delete');
+  await ev(`[...document.querySelectorAll('.detail-actions button')].find(b=>/^Delete/.test(b.textContent)).click()`); await until(`document.getElementById('modal').open`, 'confirm');
+  await ev(`document.querySelector('.danger-fill').click()`); await until(`/Asset deleted/.test(document.getElementById('toast').textContent)`, 'deleted');
+  const after = await extrasState(); if (after.files.length || after.docs.length) throw new Error('files remain; toast says: ' + await ev(`document.getElementById('toast').textContent`));
 });
 await step('remove sample data keeps only the user\'s own asset', async () => {
   await click('#app-banner .mini-btn'); await until(`document.getElementById('app-banner').hidden`, 'banner hides');

@@ -27,6 +27,7 @@ export function validateAsset(input, { today = isoDay() } = {}) {
     return n;
   };
   const value = num('value'), cost = num('cost', { gt: true }), gross = num('gross', { required: false }), expenses = num('expenses', { required: false });
+  const debt = num('debt', { required: false }), debtPayment = num('debtPayment', { required: false });
 
   // Location: a city from the built-in list, or a custom place with country and coordinates.
   let place = '', country = '', lat = null, lon = null;
@@ -52,7 +53,7 @@ export function validateAsset(input, { today = isoDay() } = {}) {
   if (notes.length > 500) errors.notes = 'Keep notes under 500 characters.';
 
   if (Object.keys(errors).length) return { ok: false, errors };
-  return { ok: true, errors, value: { name, type: type.key, place, country, lat, lon, value, cost, gross, expenses, status, acquiredOn: acquiredOn || null, notes: notes || null } };
+  return { ok: true, errors, value: { name, type: type.key, place, country, lat, lon, value, cost, gross, expenses, debt, debtPayment, status, acquiredOn: acquiredOn || null, notes: notes || null } };
 }
 
 /** History after saving: starts at acquisition, then one point each time the estimated value changes. */
@@ -83,10 +84,11 @@ export function toView(row) {
   };
 }
 
-const toRow = v => ({ ...v, acquired_on: v.acquiredOn, acquiredOn: undefined });
+// Zero debt is the column default, so it is left out: accounts keep working even before the debt columns exist in the database.
+const toRow = v => ({ ...v, acquired_on: v.acquiredOn, acquiredOn: undefined, debt: v.debt > 0 ? v.debt : undefined, debt_payment: v.debtPayment > 0 ? v.debtPayment : undefined, debtPayment: undefined });
 const fromDb = r => ({
   id: r.id, name: r.name, type: r.type, place: r.place, country: r.country, lat: r.lat, lon: r.lon,
-  value: Number(r.value), cost: Number(r.cost), gross: Number(r.gross), expenses: Number(r.expenses),
+  value: Number(r.value), cost: Number(r.cost), gross: Number(r.gross), expenses: Number(r.expenses), debt: Number(r.debt || 0), debtPayment: Number(r.debt_payment || 0),
   status: r.status, acquiredOn: r.acquired_on, notes: r.notes, history: r.history || [], isSample: !!r.is_sample, createdAt: r.created_at,
 });
 
@@ -101,7 +103,7 @@ export function createLocalStore(storage = globalThis.localStorage, key = 'atlas
       const row = { id: newId(), ...v, history: nextHistory([], v, { isNew: true }), isSample: false, createdAt: new Date().toISOString(), ...extra };
       write([...read(), row]); return row;
     },
-    async addMany(rows) { const stamped = rows.map(r => ({ id: newId(), isSample: false, createdAt: new Date().toISOString(), ...r })); write([...read(), ...stamped]); return stamped; },
+    async addMany(rows) { const stamped = rows.map(r => ({ id: newId(), isSample: false, createdAt: new Date().toISOString(), ...r, history: r.history || nextHistory([], r, { isNew: true }) })); write([...read(), ...stamped]); return stamped; },
     async update(id, v) {
       const list = read(), i = list.findIndex(r => r.id === id);
       if (i < 0) throw new Error('That asset no longer exists.');
@@ -126,10 +128,12 @@ export function createCloudStore(cloud) {
       const body = rows.map(r => { const { isSample, createdAt, id, ...rest } = r; return { ...toRow(rest), history: r.history || nextHistory([], r, { isNew: true }), is_sample: !!isSample }; });
       return (await cloud.rest('POST', '/assets', body, { prefer: 'return=representation' })).map(fromDb);
     },
-    async update(id, v) {
+    async update(id, v, { hadDebt = false } = {}) {
       const cur = (await cloud.rest('GET', `/assets?id=eq.${encodeURIComponent(id)}&select=history`))[0];
       if (!cur) throw new Error('That asset no longer exists.');
-      const body = { ...toRow(v), history: nextHistory(cur.history, v, {}), is_sample: false, updated_at: new Date().toISOString() };
+      // paying a debt off must overwrite the stored value with 0 (zero is normally omitted, see toRow)
+      const zero = hadDebt ? { ...(v.debt > 0 ? {} : { debt: 0 }), ...(v.debtPayment > 0 ? {} : { debt_payment: 0 }) } : {};
+      const body = { ...toRow(v), ...zero, history: nextHistory(cur.history, v, {}), is_sample: false, updated_at: new Date().toISOString() };
       const [r] = await cloud.rest('PATCH', `/assets?id=eq.${encodeURIComponent(id)}`, body, { prefer: 'return=representation' });
       if (!r) throw new Error('That asset no longer exists.');
       return fromDb(r);

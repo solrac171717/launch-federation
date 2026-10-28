@@ -7,6 +7,8 @@ import { CATEGORIES } from './types.js';
 import { COUNTRIES } from './places.js';
 import { createGlobe } from './globe.js';
 import { attachGeo } from './geoui.js';
+import { buildExcel, reportHtml, download, printReport } from './report.js';
+import { isoDay, statusOf, whenText, REMINDER_KINDS, REPEATS } from './reminders.js';
 
 const GROUPS = {
   all: { label: 'All', cats: null },
@@ -21,6 +23,7 @@ const NAV = [
   ['perf', 'Performance', 'M2 13l4-5 3 3 5-7'],
   ['reports', 'Reports', 'M4 2h6l3 3v9H4zM10 2v3h3'],
 ];
+const REMINDERS_NAV = ['reminders', 'Reminders', 'M8 2a4 4 0 0 0-4 4c0 3-1.5 4-1.5 4h11S12 9 12 6a4 4 0 0 0-4-4zM6.5 13a1.5 1.5 0 0 0 3 0'];
 
 /**
  * @param {{
@@ -32,14 +35,16 @@ const NAV = [
  * }} opts
  */
 export function mountDashboard(opts) {
-  const { getAssets, sample = false, csvName = 'atlas-assets.csv', actions = {} } = opts;
+  const { getAssets, sample = false, csvName = 'atlas-assets.csv', actions = {}, reminders: R = null, meta = () => null } = opts;
+  const NAVS = R ? [...NAV, REMINDERS_NAV] : NAV;
   const all = () => getAssets();
   const find = id => all().find(a => a.id === id);
   const state = { view: 'map', group: 'all', sel: null, sort: { key: 'value', dir: -1 }, q: '' };
   const $ = id => document.getElementById(id);
   const scope = () => all().filter(a => !GROUPS[state.group].cats || GROUPS[state.group].cats.includes(a.category));
   const historyFor = a => (a && a.series && a.series.length >= 2 ? a.series : null);
-  const views = { map: $('view-map'), assets: $('view-assets'), perf: $('view-perf'), reports: $('view-reports') };
+  const views = { map: $('view-map'), assets: $('view-assets'), perf: $('view-perf'), reports: $('view-reports'), ...(R ? { reminders: $('view-reminders') } : {}) };
+  const dueCount = () => (R ? R.list().filter(r => ['overdue', 'soon'].includes(statusOf(r))).length : 0);
   const ensureSel = () => { const sc = scope(); if (!sc.some(a => a.id === state.sel)) state.sel = sc[0]?.id ?? null; };
   ensureSel();
 
@@ -56,8 +61,10 @@ export function mountDashboard(opts) {
 
   /* navigation + filters */
   function renderNav() {
-    const mk = cls => NAV.map(([k, label, d]) => h('button', { type: 'button', class: cls + (state.view === k ? ' on' : ''), 'aria-current': state.view === k ? 'page' : null, onclick: () => setView(k) },
-      s('svg', { viewBox: '0 0 16 16', width: 16, height: 16, 'aria-hidden': 'true', class: 'ni' }, s('path', { d })), label));
+    const due = dueCount();
+    const mk = cls => NAVS.map(([k, label, d]) => h('button', { type: 'button', class: cls + (state.view === k ? ' on' : ''), 'aria-current': state.view === k ? 'page' : null, onclick: () => setView(k) },
+      s('svg', { viewBox: '0 0 16 16', width: 16, height: 16, 'aria-hidden': 'true', class: 'ni' }, s('path', { d })), label,
+      k === 'reminders' && due ? h('span', { class: 'nav-badge', 'aria-label': `${due} due` }, String(due)) : null));
     clear($('app-nav')).append(...mk('nav-btn').map(b => h('li', {}, b)));
     clear($('view-tabs')).append(...mk('tab-btn'));
   }
@@ -67,14 +74,15 @@ export function mountDashboard(opts) {
       let b = $('add-asset-btn');
       if (!b) { b = h('button', { type: 'button', class: 'btn btn-primary btn-sm add-btn', id: 'add-asset-btn', onclick: () => actions.onAdd() }, '+ Add asset'); $('app-filter').before(b); }
     }
+    if (actions.onImport && !$('import-btn')) $('app-filter').before(h('button', { type: 'button', class: 'btn btn-dark btn-sm import-btn', id: 'import-btn', onclick: () => actions.onImport() }, 'Import CSV'));
   }
   function setView(v) {
     state.view = v; geo.toggle.hidden = v !== 'map';
-    for (const [k, el] of Object.entries(views)) el.hidden = k !== v;
+    for (const [k, el] of Object.entries(views)) if (el) el.hidden = k !== v;
     const url = $('app-url'); if (url) url.textContent = `atlas.app / portfolio / ${v}`;
-    $('view-title').textContent = NAV.find(n => n[0] === v)[1];
+    $('view-title').textContent = NAVS.find(n => n[0] === v)[1];
     renderNav();
-    ({ map: renderMap, assets: renderAssets, perf: renderPerf, reports: renderReports })[v]();
+    ({ map: renderMap, assets: renderAssets, perf: renderPerf, reports: renderReports, reminders: renderReminders })[v]();
     analytics.track('dashboard_view', { view: v });
   }
   function setGroup(g) {
@@ -99,7 +107,12 @@ export function mountDashboard(opts) {
       actions.onSample ? h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => actions.onSample() }, 'Load sample data') : null));
   const noneInFilter = () => h('div', { class: 'empty-panel slim' }, h('b', {}, 'No assets in this filter'), h('p', {}, 'Pick another group above to see the rest of your portfolio.'),
     h('div', { class: 'ep-actions' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => setGroup('all') }, 'Show all assets')));
-  const rowActions = a => (actions.onEdit || actions.onDelete) ? h('div', { class: 'ac-actions' },
+  const extrasLabel = a => { const m = meta(a.id); return m ? `Documents ${m.docs} · Reminders ${m.reminders}` : 'Documents & reminders'; };
+  const debtCard = a => (a.debt > 0 ? h('div', { class: 'debt-card' },
+    h('div', {}, h('span', {}, 'Debt'), h('b', {}, money(a.debt))), h('div', {}, h('span', {}, 'Equity'), h('b', { class: a.equity < 0 ? 'neg' : '' }, money(a.equity))),
+    h('div', {}, h('span', {}, 'Loan-to-value'), h('b', {}, pct1(a.ltv))), a.debtPayment ? h('div', {}, h('span', {}, 'Monthly payment'), h('b', {}, money(a.debtPayment))) : null) : null);
+  const rowActions = a => (actions.onEdit || actions.onDelete || actions.onDocs) ? h('div', { class: 'ac-actions' },
+    actions.onDocs ? h('button', { type: 'button', class: 'mini-btn', onclick: () => actions.onDocs(a.id) }, extrasLabel(a)) : null,
     actions.onEdit ? h('button', { type: 'button', class: 'mini-btn', onclick: () => actions.onEdit(a.id) }, 'Edit') : null,
     actions.onDelete ? h('button', { type: 'button', class: 'mini-btn danger', onclick: () => actions.onDelete(a.id) }, 'Delete') : null) : null;
 
@@ -117,7 +130,8 @@ export function mountDashboard(opts) {
     const p = portfolio(sc);
     if (a) clear($('hero-sel')).append(assetCard(a), ...[rowActions(a)].filter(Boolean));
     clear($('hero-value')).append(h('span', {}, `Portfolio value${where ? ' · ' + where : ''}`), h('b', {}, money(p.value)),
-      Delta(p.appreciation, `${fmtSigned(p.appreciation, { compact: true })} · ${fmtPct(p.appreciationPct, { sign: true })} vs. cost`));
+      Delta(p.appreciation, `${fmtSigned(p.appreciation, { compact: true })} · ${fmtPct(p.appreciationPct, { sign: true })} vs. cost`),
+      p.debt > 0 ? h('em', { class: 'muted nw' }, `Net worth ${compact(p.netWorth)} after ${compact(p.debt)} of debt`) : null);
     const k = (l, v, sub) => h('div', { class: 'kpi' }, h('span', {}, l), h('b', {}, v), h('em', {}, sub));
     clear($('hero-pair')).append(k('Net operating income', p.earningCount ? compact(p.noi) : '–', p.earningCount ? 'Annual' : 'No income assets'),
       k('NOI yield', pct1(p.noiYield), p.earningCount ? `${p.earningCount} income asset${p.earningCount > 1 ? 's' : ''}` : 'Income assets only'));
@@ -167,11 +181,12 @@ export function mountDashboard(opts) {
         h('div', { class: 'tbl-scroll' }, h('table', { class: 'app-tbl' },
           h('thead', {}, h('tr', {}, th('name', 'Asset'), th('value', 'Value', 'r'), th('share', 'Share'), th('chg', 'vs. cost', 'r'), th('status', 'Status'))), tbody)),
         foot),
-      h('div', { class: 'detail' }, assetCard(a), costVsValue(a),
+      h('div', { class: 'detail' }, assetCard(a), costVsValue(a), debtCard(a),
         h('div', { class: 'share-card' }, h('div', {}, h('span', {}, 'Share of ' + (state.group === 'all' ? 'portfolio' : GROUPS[state.group].label.toLowerCase())), h('b', {}, `${(share * 100).toFixed(1)}%`)),
           h('div', { class: 'share-bar' }, h('i', { style: `width:${Math.max(2, share * 100)}%` }))),
         h('div', { class: 'detail-actions' },
           h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => { setView('map'); globe.focus(state.sel); } }, 'Show on map'),
+          actions.onDocs ? h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => actions.onDocs(a.id) }, extrasLabel(a)) : null,
           actions.onEdit ? h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => actions.onEdit(a.id) }, 'Edit') : null,
           actions.onDelete ? h('button', { type: 'button', class: 'btn btn-dark btn-sm danger', onclick: () => actions.onDelete(a.id) }, 'Delete') : null))));
     draw();
@@ -214,34 +229,76 @@ export function mountDashboard(opts) {
   /* REPORTS view */
   function renderReports() {
     const host = clear(views.reports), sc = scope();
-    if (!all().length) { host.append(emptyPanel('No data to report yet', 'Once you add assets you can review the summary here and export it as CSV.')); return; }
+    if (!all().length) { host.append(emptyPanel('No data to report yet', 'Once you add assets you can review the summary here and export it as CSV, Excel or PDF.')); return; }
     if (!sc.length) { host.append(noneInFilter()); return; }
-    const p = portfolio(sc);
+    const p = portfolio(sc), today = isoDay();
     const alloc = Object.entries(sc.reduce((m, x) => ((m[x.category] = (m[x.category] || 0) + x.value), m), {})).sort((x, y) => y[1] - x[1]);
+    const scopeLabel = state.group === 'all' ? 'All assets' : GROUPS[state.group].label;
+    const stem = csvName.replace(/\.csv$/, '');
     const csv = () => {
       const text = toCsv(sc, [
         { label: 'Asset', get: x => x.name }, { label: 'Category', get: x => CATEGORIES[x.category] }, { label: 'Location', get: x => x.place }, { label: 'Status', get: x => x.status },
-        { label: 'Acquisition cost (USD)', get: x => x.cost }, { label: 'Estimated value (USD)', get: x => x.value }, { label: 'Change vs. cost', get: x => x.appreciationPct.toFixed(4) }, { label: 'NOI (USD)', get: x => (x.earning ? x.noi : '') },
+        { label: 'Acquisition cost (USD)', get: x => x.cost }, { label: 'Estimated value (USD)', get: x => x.value }, { label: 'Debt (USD)', get: x => x.debt }, { label: 'Equity (USD)', get: x => x.equity },
+        { label: 'Change vs. cost', get: x => x.appreciationPct.toFixed(4) }, { label: 'NOI (USD)', get: x => (x.earning ? x.noi : '') },
       ]);
-      const a = h('a', { href: URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' })), download: csvName });
-      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      download(csvName, new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
       analytics.track('dashboard_csv_download');
     };
+    const excel = () => { download(`${stem}.xlsx`, buildExcel(sc, { today, scope: scopeLabel, sample }), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); analytics.track('dashboard_xlsx_download'); };
+    const pdf = () => { printReport(reportHtml(sc, { today, scope: scopeLabel, sample, owner: opts.owner || '' })); analytics.track('dashboard_pdf_report'); };
     host.append(h('div', { class: 'rep-grid' },
       h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, `Portfolio summary${state.group === 'all' ? '' : ' · ' + GROUPS[state.group].label}`), h('span', {}, `As of ${TODAY}`)),
         h('div', { class: 'rep-kpis' },
-          h('div', {}, h('em', {}, 'Value'), h('b', {}, compact(p.value))), h('div', {}, h('em', {}, 'Cost'), h('b', {}, compact(p.cost))),
-          h('div', {}, h('em', {}, 'NOI'), h('b', {}, p.earningCount ? compact(p.noi) : '–')), h('div', {}, h('em', {}, 'NOI yield'), h('b', {}, pct1(p.noiYield)))),
+          h('div', {}, h('em', {}, 'Value'), h('b', {}, compact(p.value))), h('div', {}, h('em', {}, 'Debt'), h('b', {}, p.debt ? compact(p.debt) : '–')),
+          h('div', {}, h('em', {}, 'Net worth'), h('b', {}, compact(p.netWorth))), h('div', {}, h('em', {}, 'NOI'), h('b', {}, p.earningCount ? compact(p.noi) : '–'))),
+        h('div', { class: 'rep-kpis sub' },
+          h('div', {}, h('em', {}, 'Cost'), h('b', {}, compact(p.cost))), h('div', {}, h('em', {}, 'NOI yield'), h('b', {}, pct1(p.noiYield))),
+          h('div', {}, h('em', {}, 'Loan-to-value'), h('b', {}, p.ltv == null ? '–' : pct1(p.ltv))), h('div', {}, h('em', {}, 'Debt payments / mo'), h('b', {}, p.debtPayment ? compact(p.debtPayment) : '–'))),
         h('ul', { class: 'rep-alloc' }, alloc.map(([c, v]) => h('li', {}, h('span', {}, CATEGORIES[c]), h('i', { style: `width:${(v / alloc[0][1]) * 100}%` }), h('b', {}, pct1(v / p.value)))))),
-      h('div', { class: 'tbl-card pad dl' }, h('b', {}, 'Export'), h('p', {}, `${sc.length} asset${sc.length > 1 ? 's' : ''} in the current view, with cost, value, change and NOI.`),
-        h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: csv }, 'Download CSV'),
-        h('small', {}, 'PDF and Excel exports are in development.'))));
+      h('div', { class: 'tbl-card pad dl' }, h('b', {}, 'Export'), h('p', {}, `${sc.length} asset${sc.length > 1 ? 's' : ''} in the current view, with cost, value, debt, equity and NOI.`),
+        h('div', { class: 'dl-btns' },
+          h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: pdf }, 'PDF report'),
+          h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: excel }, 'Excel (.xlsx)'),
+          h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: csv }, 'CSV')),
+        h('small', {}, 'PDF opens your browser’s print dialog: choose “Save as PDF”.'))));
+  }
+
+  /* REMINDERS view (the app only) */
+  function renderReminders() {
+    const host = clear(views.reminders); if (!R) return;
+    const list = R.list(), today = isoDay();
+    const head = h('div', { class: 'rem-head' }, h('div', {}, h('b', {}, 'Reminders and due dates'), h('span', {}, R.note || 'Insurance, taxes, inspections and registrations in one place.')),
+      h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => R.onAdd(state.sel) }, '+ Add reminder'));
+    if (!list.length) {
+      host.append(head, h('div', { class: 'empty-panel' }, h('div', { class: 'ep-art', 'aria-hidden': 'true' }, icon('commercial', 26)), h('b', {}, 'Nothing due yet'),
+        h('p', {}, 'Add the dates you cannot afford to miss: insurance renewal, property tax, inspections, registration, boat or aircraft surveys.'),
+        h('div', { class: 'ep-actions' }, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => R.onAdd(state.sel) }, '+ Add your first reminder'))));
+      return;
+    }
+    const by = { overdue: [], soon: [], upcoming: [], done: [] };
+    for (const r of list) by[statusOf(r, today)].push(r);
+    for (const k of Object.keys(by)) by[k].sort((a, b) => (a.dueOn < b.dueOn ? -1 : 1));
+    const chip = (k, label) => h('div', { class: `rem-chip ${k}` }, h('b', {}, String(by[k].length)), h('span', {}, label));
+    const row = r => {
+      const asset = find(r.assetId), st = statusOf(r, today);
+      return h('li', { class: `rem-row ${st}` },
+        h('span', { class: 'rem-kind' }, REMINDER_KINDS[r.kind] ? REMINDER_KINDS[r.kind].label : 'Other'),
+        h('div', { class: 'rem-main' }, h('b', {}, r.title), h('span', {}, asset ? h('button', { type: 'button', class: 'linkish', onclick: () => select(asset.id, true) }, asset.name) : 'Removed asset', r.repeat !== 'none' ? ` · ${REPEATS[r.repeat].toLowerCase()}` : '')),
+        h('div', { class: 'rem-when' }, h('b', {}, st === 'done' ? 'Done' : whenText(r, today)), h('span', {}, r.dueOn)),
+        h('div', { class: 'rem-act' },
+          st !== 'done' ? h('button', { type: 'button', class: 'mini-btn', onclick: () => R.onDone(r.id) }, r.repeat !== 'none' ? 'Done, renew' : 'Mark done') : h('button', { type: 'button', class: 'mini-btn', onclick: () => R.onReopen && R.onReopen(r.id) }, 'Reopen'),
+          h('button', { type: 'button', class: 'mini-btn danger', onclick: () => R.onDelete(r.id) }, 'Delete')));
+    };
+    const section = (k, title) => (by[k].length ? h('section', { class: 'rem-sec' }, h('h3', {}, title), h('ul', { class: 'rem-list' }, by[k].map(row))) : null);
+    host.append(head, h('div', { class: 'rem-chips' }, chip('overdue', 'Overdue'), chip('soon', 'Due soon'), chip('upcoming', 'Upcoming'), chip('done', 'Done')),
+      ...[section('overdue', 'Overdue'), section('soon', 'Due soon'), section('upcoming', 'Upcoming'), section('done', 'Done')].filter(Boolean));
   }
 
   renderFilter(); setView('map');
 
   return {
     select: id => select(id, true),
+    show: v => setView(v),
     /** Re-render after the asset list changed (add, edit, delete, load). */
     refresh({ select: id } = {}) {
       globe.setAssets(all());
