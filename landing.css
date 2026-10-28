@@ -448,3 +448,9 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 .hero { padding-top: clamp(150px, 13vw, 190px); }
 .pill-nav a { padding: 9px 16px; }
 @media (max-width: 860px) { .site-header { padding-top: 18px; } .hero { padding-top: 120px; } }
+
+/* v5.2: slightly smaller H1, a touch higher; navbar exactly the H1 width */
+:root { --h1: clamp(2.6rem, 4.9vw + .4rem, 5rem); }
+.site-header .bar.wrap { width: min(calc(var(--h1) * 8.7), calc(100% - 32px)); }
+.hero { padding-top: clamp(128px, 11vw, 160px); }
+@media (max-width: 860px) { .hero { padding-top: 108px; } }
