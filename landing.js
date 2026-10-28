@@ -380,6 +380,35 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
 }
 
 /* ------------------------------------------------------------- charts */
+/* Hover that glides along a line chart (eased cursor), while the readout still snaps to real data points. */
+function trackHover(svg, { W, H, m, series, X, Y, guide, dot, tip, onPoint, onLeave }) {
+  const n = series.length - 1, reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let target = n, cur = n, shown = -1, raf = 0, active = false;
+  const draw = t => {
+    const i = Math.min(n - 1, Math.max(0, Math.floor(t))), f = t - i, v = series[i].v + (series[i + 1].v - series[i].v) * f, x = X(t), y = Y(v);
+    guide.setAttribute('x1', x); guide.setAttribute('x2', x); dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+    tip.style.left = `${Math.min(88, Math.max(12, (x / W) * 100))}%`; tip.style.top = `${(y / H) * 100 - 14}%`;
+    const k = Math.round(t);
+    if (k !== shown) { shown = k; tip.replaceChildren(h('b', {}, money(series[k].v)), h('span', {}, series[k].label)); onPoint(series[k]); }
+  };
+  const step = () => { cur += (target - cur) * 0.2; if (Math.abs(target - cur) < 0.002) cur = target; draw(cur); raf = cur === target ? 0 : requestAnimationFrame(step); };
+  const go = t => {
+    target = Math.max(0, Math.min(n, t));
+    if (!active) { active = true; cur = target; guide.removeAttribute('visibility'); dot.removeAttribute('visibility'); tip.hidden = false; draw(cur); return; }
+    if (reduce) { cur = target; draw(cur); } else if (!raf) raf = requestAnimationFrame(step);
+  };
+  const leave = () => {
+    active = false; cancelAnimationFrame(raf); raf = 0; shown = -1;
+    guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.hidden = true; onLeave();
+  };
+  svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; go(((px - m.l) / (W - m.l - m.r)) * n); });
+  svg.addEventListener('pointerleave', leave); svg.addEventListener('blur', leave);
+  svg.addEventListener('keydown', e => {
+    const cursor = Math.round(active ? target : n);
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(cursor - 1); } else if (e.key === 'ArrowRight') { e.preventDefault(); go(cursor + 1); } else if (e.key === 'Escape') leave();
+  });
+}
+
 function valuationChart(host, series, { label }) {
   clear(host);
   const W = 640, H = 270, m = { t: 16, r: 18, b: 28, l: 58 };
@@ -400,24 +429,11 @@ function valuationChart(host, series, { label }) {
   });
   [0, Math.floor((series.length - 1) / 2), series.length - 1].forEach(i => svg.append(s('text', { x: X(i), y: H - 8, class: 'ax', 'text-anchor': i === 0 ? 'start' : i === series.length - 1 ? 'end' : 'middle' }, series[i].label)));
   svg.append(s('path', { d: `${line}L${X(series.length - 1)} ${H - m.b}L${X(0)} ${H - m.b}Z`, class: 'ar', style: 'fill:url(#fcg-p)' }), s('path', { d: line, class: 'ln', pathLength: 1 }));
-  series.forEach((p, i) => svg.append(s('circle', { cx: X(i), cy: Y(p.v), r: 3.2, class: 'dt', style: `--d:${0.5 + i * 0.07}s` })));
   const ex = X(series.length - 1), ey = Y(series.at(-1).v);
   svg.append(s('circle', { cx: ex, cy: ey, r: 6, class: 'ring' }), s('circle', { cx: ex, cy: ey, r: 5.5, class: 'pt' }));
   const guide = s('line', { y1: m.t, y2: H - m.b, class: 'guide', visibility: 'hidden' }), dot = s('circle', { r: 6.5, class: 'pt hov', visibility: 'hidden' }), tip = h('div', { class: 'tip', hidden: true, role: 'status' });
   svg.append(guide, dot);
-  let idx = series.length - 1;
-  const show = i => {
-    idx = Math.max(0, Math.min(series.length - 1, i)); const p = series[idx];
-    guide.setAttribute('x1', X(idx)); guide.setAttribute('x2', X(idx)); guide.removeAttribute('visibility');
-    dot.setAttribute('cx', X(idx)); dot.setAttribute('cy', Y(p.v)); dot.removeAttribute('visibility');
-    tip.hidden = false; tip.replaceChildren(h('b', {}, money(p.v)), h('span', {}, p.label));
-    tip.style.left = `${Math.min(88, Math.max(12, (X(idx) / W) * 100))}%`; tip.style.top = `${(Y(p.v) / H) * 100 - 14}%`;
-    setRead(p);
-  };
-  const hide = () => { guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.hidden = true; setRead(series.at(-1)); };
-  svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; show(Math.round(((px - m.l) / (W - m.l - m.r)) * (series.length - 1))); });
-  svg.addEventListener('pointerleave', hide); svg.addEventListener('blur', hide);
-  svg.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { e.preventDefault(); show(idx - 1); } else if (e.key === 'ArrowRight') { e.preventDefault(); show(idx + 1); } else if (e.key === 'Escape') hide(); });
+  trackHover(svg, { W, H, m, series, X, Y, guide, dot, tip, onPoint: setRead, onLeave: () => setRead(series.at(-1)) });
   setRead(series.at(-1));
   host.append(read, svg, tip);
 }
@@ -459,7 +475,7 @@ function flowChart(host) {
   /* --- estimated value: ranges, crosshair, live readout */
   const vRead = h('div', { class: 'fc-read', 'aria-live': 'off' }), vHost = h('div', { class: 'chart-host' }), vSpan = h('span', {});
   const ALL = WESTLAKE_VALUATIONS, RANGES = [['1Y', 3], ['3Y', 7], ['All', ALL.length]];
-  let rng = 2, vIdx = ALL.length - 1;
+  let rng = 2;
   const pills = h('div', { class: 'fc-pills', role: 'group', 'aria-label': 'Time range' },
     ...RANGES.map(([l], i) => h('button', { type: 'button', 'aria-pressed': String(i === rng), onclick: () => { rng = i; [...pills.children].forEach((b, j) => b.setAttribute('aria-pressed', String(j === i))); drawValue(); } }, l)));
   const setRead = p => {
@@ -483,23 +499,11 @@ function flowChart(host) {
     svg.append(
       s('line', { x1: m.l, x2: W - m.r, y1: Y(a.cost), y2: Y(a.cost), class: 'cost' }), s('text', { x: W - m.r, y: Y(a.cost) - 6, class: 'ax cost-t', 'text-anchor': 'end' }, `Purchase cost ${compact(a.cost)}`),
       s('path', { d: `${d}L${X(series.length - 1)} ${H - m.b}L${X(0)} ${H - m.b}Z`, class: 'ar' }), s('path', { d, class: 'ln', pathLength: 1 }));
-    series.forEach((p, i) => svg.append(s('circle', { cx: X(i), cy: Y(p.v), r: 3.2, class: 'dt', style: `--d:${0.5 + i * 0.07}s` })));
     const ex = X(series.length - 1), ey = Y(series.at(-1).v);
     svg.append(s('circle', { cx: ex, cy: ey, r: 6, class: 'ring' }), s('circle', { cx: ex, cy: ey, r: 5.5, class: 'pt' }));
     const guide = s('line', { y1: m.t, y2: H - m.b, class: 'guide', visibility: 'hidden' }), dot = s('circle', { r: 6.5, class: 'pt hov', visibility: 'hidden' }), tip = h('div', { class: 'tip', hidden: true, role: 'status' });
     svg.append(guide, dot);
-    const show = i => {
-      vIdx = Math.max(0, Math.min(series.length - 1, i)); const p = series[vIdx];
-      guide.setAttribute('x1', X(vIdx)); guide.setAttribute('x2', X(vIdx)); guide.removeAttribute('visibility');
-      dot.setAttribute('cx', X(vIdx)); dot.setAttribute('cy', Y(p.v)); dot.removeAttribute('visibility');
-      tip.hidden = false; tip.replaceChildren(h('b', {}, money(p.v)), h('span', {}, p.label));
-      tip.style.left = `${Math.min(88, Math.max(12, (X(vIdx) / W) * 100))}%`; tip.style.top = `${(Y(p.v) / H) * 100 - 14}%`;
-      setRead(p);
-    };
-    const hide = () => { guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.hidden = true; setRead(series.at(-1)); };
-    svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; show(Math.round(((px - m.l) / (W - m.l - m.r)) * (series.length - 1))); });
-    svg.addEventListener('pointerleave', hide); svg.addEventListener('blur', hide);
-    svg.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { e.preventDefault(); show(vIdx - 1); } else if (e.key === 'ArrowRight') { e.preventDefault(); show(vIdx + 1); } else if (e.key === 'Escape') hide(); });
+    trackHover(svg, { W, H, m, series, X, Y, guide, dot, tip, onPoint: setRead, onLeave: () => setRead(series.at(-1)) });
     vHost.append(svg, tip); setRead(series.at(-1));
   }
 
