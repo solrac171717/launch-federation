@@ -923,3 +923,18 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .px-side { align-content: center; align-self: center; }
 .px-sum:has(> div[hidden]:only-child) { display: none; }
 .px-side { align-self: start; align-content: start; }
+
+/* Pricing: header + selector share the top row; included list and button run full width underneath */
+@media (min-width: 901px) {
+  .px-card { column-gap: clamp(20px, 3vw, 36px); row-gap: 0; align-items: start; }
+  .px-main { display: contents; }
+  .px-main > .px-tag, .px-main > .px-price, .px-main > .px-sub { grid-column: 1; justify-self: start; }
+  .px-main > .px-tag { grid-row: 1; margin-top: 6px; }
+  .px-main > .px-price { grid-row: 2; }
+  .px-main > .px-sub { grid-row: 3; }
+  .px-side { grid-column: 2; grid-row: 1 / span 3; align-self: start; }
+  .px-card .px-inc { grid-column: 1 / -1; margin-top: 28px; }
+  .px-card .px-feats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .px-card .px-btn { grid-column: 1 / -1; justify-self: center; width: min(100%, 420px); }
+  .px-card .px-note { grid-column: 1 / -1; }
+}
