@@ -741,3 +741,17 @@ function flowChart(host) {
     targets.forEach(t => { t.setAttribute('data-reveal', ''); io.observe(t); });
   }
 }
+
+/* ------------------------------------------------------------- FAQ accordion + final CTA */
+{
+  const items = [...document.querySelectorAll('[data-faq]')];
+  items.forEach(item => {
+    const btn = item.querySelector('.faq-q');
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') !== 'true';
+      items.forEach(o => { const b = o.querySelector('.faq-q'), on = o === item && open; b.setAttribute('aria-expanded', String(on)); o.classList.toggle('open', on); });
+      if (open) analytics.track('faq_open', { q: btn.textContent.trim() });
+    });
+  });
+  document.querySelector('[data-focus-email]')?.addEventListener('click', () => setTimeout(() => document.getElementById('f-email')?.focus({ preventScroll: true }), 700));
+}
