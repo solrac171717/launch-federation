@@ -534,6 +534,7 @@ function flowChart(host) {
   const IMG = {
     residential: ['house', 626, 501], car: ['porsche', 1000, 800], truck: ['truck', 1000, 800], vessel: ['yacht', 1000, 800], aircraft: ['jet', 1000, 800],
     land: ['land', 1000, 800], commercial: ['commercial', 1000, 800], parking: ['parking', 1000, 800],
+    industrial: ['industrial', 1000, 800], rv: ['rv', 1000, 800], moto: ['moto', 1000, 800], sail: ['sail', 1000, 800], jetski: ['jetski', 1000, 800],
   };
   const card = ([id, art, size], i) => {
     const a = byId(id), [file, w, hgt] = IMG[art];
@@ -542,7 +543,7 @@ function flowChart(host) {
       h('div', { class: 'col-meta' }, h('div', {}, h('b', {}, a.name), h('span', {}, a.place)), h('div', { class: 'col-val' }, h('b', {}, compact(a.value)), Delta(a.appreciation, fmtPct(a.appreciationPct, { sign: true })))));
   };
   clear(document.getElementById('collection')).append(...[['austin', 'residential', 'lg'], ['scottsdale', 'car', ''], ['nashville', 'truck', ''], ['lisbon', 'vessel', ''], ['teterboro', 'aircraft', '']].map(card));
-  const more = [['seattle', 'land', ''], ['london', 'commercial', ''], ['boston', 'parking', '']];
+  const more = [['seattle', 'land', ''], ['london', 'commercial', ''], ['boston', 'parking', ''], ['columbus', 'industrial', ''], ['moab', 'rv', ''], ['sturgis', 'moto', ''], ['newport', 'sail', ''], ['keywest', 'jetski', '']];
   clear(document.getElementById('collection-more')).append(...more.map(card));
   const btn = document.getElementById('more-btn'), wrap = document.getElementById('more-wrap'), label = btn.querySelector('span');
   const preload = () => more.forEach(([, art]) => { new Image().src = `assets/collection/${IMG[art][0]}.jpg`; });

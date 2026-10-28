@@ -6,6 +6,7 @@ export const CITIES = {
   austin: [30.27, -97.74], miami: [25.76, -80.19], chicago: [41.88, -87.63], seattle: [47.61, -122.33],
   denver: [39.74, -104.99], nashville: [36.16, -86.78], teterboro: [40.85, -74.06],
   lisbon: [38.72, -9.14], london: [51.51, -0.13], scottsdale: [33.49, -111.93], boston: [42.36, -71.06],
+  columbus: [39.96, -83.0], moab: [38.57, -109.55], sturgis: [44.41, -103.51], newport: [41.49, -71.31], keywest: [24.56, -81.78],
 };
 
 export const CATEGORIES = {
@@ -53,6 +54,16 @@ const RAW = [
     value: 3150000, cost: 3400000, gross: 0, expenses: 148000, status: 'Hangared' },
   { id: 'boston', name: 'Back Bay Parking Space', place: 'Boston, MA', category: 'commercial', kind: 'Parking space',
     value: 74000, cost: 62000, gross: 7200, expenses: 1150, status: 'Leased' },
+  { id: 'columbus', name: 'Eastside Warehouse', place: 'Columbus, OH', category: 'commercial', kind: 'Industrial warehouse',
+    value: 2350000, cost: 1980000, gross: 168000, expenses: 41000, status: 'Leased' },
+  { id: 'moab', name: 'Roamer RV 24', place: 'Moab, UT', category: 'vehicle', kind: 'Motorhome',
+    value: 64000, cost: 78000, gross: 0, expenses: 3200, status: 'Garaged' },
+  { id: 'sturgis', name: 'Heritage Cruiser', place: 'Sturgis, SD', category: 'vehicle', kind: 'Motorcycle',
+    value: 18500, cost: 21000, gross: 0, expenses: 900, status: 'Garaged' },
+  { id: 'newport', name: 'Marlin 34 Sloop', place: 'Newport, RI', category: 'vessel', kind: 'Sailboat',
+    value: 86000, cost: 79000, gross: 0, expenses: 5400, status: 'Moored' },
+  { id: 'keywest', name: 'Wave Runner 130', place: 'Key West, FL', category: 'vessel', kind: 'Jet ski',
+    value: 11200, cost: 12800, gross: 0, expenses: 600, status: 'Stored' },
   { id: 'lisbon', name: 'Sea Atlas 52', place: 'Lisbon, PT', category: 'vessel', kind: 'Motor yacht',
     value: 1120000, cost: 980000, gross: 0, expenses: 38500, status: 'Moored' },
 ];
