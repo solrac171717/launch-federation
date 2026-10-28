@@ -59,7 +59,7 @@ const ICON = {
 };
 const icon = (key, size = 22) => s('svg', { viewBox: '0 0 24 24', width: size, height: size, class: 'ico', 'aria-hidden': 'true' }, s('path', { d: ICON[key] }));
 const ASSET_IMG = { austin: 'house', miami: 'house', chicago: 'house', london: 'commercial', seattle: 'land', scottsdale: 'porsche', nashville: 'truck', teterboro: 'jet',
-  lisbon: 'yacht', boston: 'parking', columbus: 'industrial', moab: 'rv', sturgis: 'moto', newport: 'sail', keywest: 'jetski' };
+  lisbon: 'yacht', denver: 'excavator', boston: 'parking', columbus: 'industrial', moab: 'rv', sturgis: 'moto', newport: 'sail', keywest: 'jetski' };
 /** 3D illustration of the asset when we have one, otherwise the category icon. */
 const thumb = (a, size = 22) => ASSET_IMG[a.id]
   ? h('img', { class: 'thumb', src: `assets/collection/thumb/${ASSET_IMG[a.id]}.jpg`, width: size, height: size, alt: '', loading: 'lazy', decoding: 'async' })
@@ -588,7 +588,7 @@ function flowChart(host) {
   const IMG = {
     residential: ['house', 626, 501], car: ['porsche', 1000, 800], truck: ['truck', 1000, 800], vessel: ['yacht', 1000, 800], aircraft: ['jet', 1000, 800],
     land: ['land', 1000, 800], commercial: ['commercial', 1000, 800], parking: ['parking', 1000, 800],
-    industrial: ['industrial', 1000, 800], rv: ['rv', 1000, 800], moto: ['moto', 1000, 800], sail: ['sail', 1000, 800], jetski: ['jetski', 1000, 800],
+    industrial: ['industrial', 1000, 800], excavator: ['excavator', 1000, 800], rv: ['rv', 1000, 800], moto: ['moto', 1000, 800], sail: ['sail', 1000, 800], jetski: ['jetski', 1000, 800],
   };
   const card = ([id, art, size], i) => {
     const a = byId(id), [file, w, hgt] = IMG[art];
@@ -597,7 +597,7 @@ function flowChart(host) {
       h('div', { class: 'col-meta' }, h('div', {}, h('b', {}, a.name), h('span', {}, a.place)), h('div', { class: 'col-val' }, h('b', {}, compact(a.value)), Delta(a.appreciation, fmtPct(a.appreciationPct, { sign: true })))));
   };
   clear(document.getElementById('collection')).append(...[['austin', 'residential', 'lg'], ['scottsdale', 'car', ''], ['nashville', 'truck', ''], ['lisbon', 'vessel', ''], ['teterboro', 'aircraft', '']].map(card));
-  const more = [['seattle', 'land', ''], ['london', 'commercial', ''], ['boston', 'parking', ''], ['columbus', 'industrial', ''], ['moab', 'rv', ''], ['sturgis', 'moto', ''], ['newport', 'sail', ''], ['keywest', 'jetski', '']];
+  const more = [['seattle', 'land', ''], ['london', 'commercial', ''], ['boston', 'parking', ''], ['columbus', 'industrial', ''], ['denver', 'excavator', ''], ['moab', 'rv', ''], ['sturgis', 'moto', ''], ['newport', 'sail', ''], ['keywest', 'jetski', '']];
   clear(document.getElementById('collection-more')).append(...more.map(card));
   const btn = document.getElementById('more-btn'), wrap = document.getElementById('more-wrap'), label = btn.querySelector('span');
   const preload = () => more.forEach(([, art]) => { new Image().src = `assets/collection/${IMG[art][0]}.jpg`; });
@@ -754,4 +754,32 @@ function flowChart(host) {
     });
   });
   document.querySelector('[data-focus-email]')?.addEventListener('click', () => setTimeout(() => document.getElementById('f-email')?.focus({ preventScroll: true }), 700));
+}
+
+/* ------------------------------------------------------------- pricing */
+{
+  const BASE = 47, INCLUDED = 3, EXTRA = 15;
+  const range = document.getElementById('px-range');
+  if (range) {
+    const total = document.getElementById('px-total'), count = document.getElementById('px-count'), extra = document.getElementById('px-extra'), extraN = document.getElementById('px-extra-n'), extraV = document.getElementById('px-extra-v');
+    const mqr = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let shown = BASE, raf = 0;
+    const price = n => BASE + Math.max(0, n - INCLUDED) * EXTRA;
+    const paint = v => { total.textContent = USD0.format(Math.round(v)); };
+    const update = () => {
+      const n = +range.value, p = price(n), more = Math.max(0, n - INCLUDED);
+      range.style.setProperty('--p', `${((n - range.min) / (range.max - range.min)) * 100}%`);
+      range.setAttribute('aria-valuetext', `${n} assets, ${USD0.format(p)} per month`);
+      count.textContent = String(n); document.getElementById('px-feat-n').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
+      extra.hidden = more === 0; extraN.textContent = `${more} extra asset${more === 1 ? '' : 's'} × ${USD0.format(EXTRA)}`; extraV.textContent = `+${USD0.format(more * EXTRA)}`;
+      cancelAnimationFrame(raf);
+      if (mqr) { shown = p; paint(p); return; }
+      const from = shown, t0 = performance.now();
+      const step = now => { const k = Math.min(1, (now - t0) / 380), e = 1 - Math.pow(1 - k, 3); shown = from + (p - from) * e; paint(shown); if (k < 1) raf = requestAnimationFrame(step); };
+      raf = requestAnimationFrame(step);
+    };
+    range.addEventListener('input', update); update();
+    document.querySelectorAll('[data-px]').forEach(b => b.addEventListener('click', () => { range.value = b.dataset.px; update(); analytics.track('pricing_preset', { assets: +b.dataset.px }); }));
+    range.addEventListener('change', () => analytics.track('pricing_slider', { assets: +range.value, price: price(+range.value) }));
+  }
 }
