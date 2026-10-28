@@ -524,3 +524,10 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 /* collection photos: keep each image's own proportions on white */
 .col-card .art { aspect-ratio: 5 / 4; object-fit: contain; background: #fff; padding: 6px; box-sizing: border-box; }
 .col-card.lg .art { padding: 14px; }
+
+/* ===== Interactive preview cursor ===== */
+.device { --cur: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M6 4V26L11.8 20.6L15.6 29L19.8 27.1L16 18.9H23.8Z%22 fill=%22%23fff%22 stroke=%22%23fff%22 stroke-width=%225%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M6 4V26L11.8 20.6L15.6 29L19.8 27.1L16 18.9H23.8Z%22 fill=%22%23fff%22 stroke=%22%232563EB%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E") 6 4, default; --cur-hot: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M6 4V26L11.8 20.6L15.6 29L19.8 27.1L16 18.9H23.8Z%22 fill=%22%232563EB%22 stroke=%22%232563EB%22 stroke-width=%225%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M6 4V26L11.8 20.6L15.6 29L19.8 27.1L16 18.9H23.8Z%22 fill=%22%232563EB%22 stroke=%22%23fff%22 stroke-width=%222%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E") 6 4, pointer; }
+.device, .device * { cursor: var(--cur) !important; }
+.device :is(button, a, [role="button"], .mk, .nav-btn, .tab-btn, .rowbtn, summary, [style*="cursor: pointer"]),
+.device :is(button, a, [role="button"], .mk, .nav-btn, .tab-btn, .rowbtn, summary, [style*="cursor: pointer"]) * { cursor: var(--cur-hot) !important; }
+@media (pointer: coarse) { .device, .device * { cursor: auto !important; } }
