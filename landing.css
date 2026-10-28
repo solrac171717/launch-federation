@@ -531,3 +531,89 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 .device :is(button, a, [role="button"], .mk, .nav-btn, .tab-btn, .rowbtn, summary, [style*="cursor: pointer"]),
 .device :is(button, a, [role="button"], .mk, .nav-btn, .tab-btn, .rowbtn, summary, [style*="cursor: pointer"]) * { cursor: var(--cur-hot) !important; }
 @media (pointer: coarse) { .device, .device * { cursor: auto !important; } }
+
+/* ===== Financials: motion, readouts, live charts ===== */
+#financials { position: relative; overflow: hidden; }
+#financials::before, #financials::after { content: ''; position: absolute; width: 520px; height: 520px; border-radius: 50%; filter: blur(70px); opacity: .5; pointer-events: none; z-index: 0; animation: fin-drift 18s ease-in-out infinite alternate; }
+#financials::before { left: -140px; top: 8%; background: radial-gradient(circle, rgba(96,165,250,.35), transparent 70%); }
+#financials::after { right: -160px; bottom: 4%; background: radial-gradient(circle, rgba(37,99,235,.22), transparent 70%); animation-duration: 24s; animation-direction: alternate-reverse; }
+#financials .wrap { position: relative; z-index: 1; }
+@keyframes fin-drift { to { transform: translate(90px, 50px) scale(1.15); } }
+
+.tile { position: relative; overflow: hidden; transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s, border-color .35s; }
+.tile:hover { transform: translateY(-5px); box-shadow: 0 30px 50px -30px rgba(30,64,130,.55); border-color: #BFD3F7; }
+.tile b { font-variant-numeric: tabular-nums; }
+.tile.dark { box-shadow: 0 30px 60px -34px rgba(29,78,216,.7); }
+.tile.dark::after { content: ''; position: absolute; inset: -40% auto -40% -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.28), transparent); transform: skewX(-18deg); animation: sheen 6s ease-in-out 1.6s infinite; pointer-events: none; }
+@keyframes sheen { 0%, 55% { left: -60%; } 100% { left: 160%; } }
+.tile.blue::before { content: ''; position: absolute; right: -30px; top: -30px; width: 110px; height: 110px; border-radius: 50%; background: radial-gradient(circle, rgba(37,99,235,.18), transparent 70%); animation: breathe 4s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.3); opacity: .6; } }
+.tile-spark { position: absolute; right: 0; bottom: 0; width: 62%; height: 54px; pointer-events: none; }
+.ts-ar { fill: rgba(255,255,255,.14); } .ts-ln { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.ts-dot { fill: #fff; }
+
+.js .fin:not(.play) .tile { opacity: 0; transform: translateY(22px) scale(.97); }
+.fin.play .tile { animation: tile-in .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 90ms); }
+@keyframes tile-in { from { opacity: 0; transform: translateY(22px) scale(.97); } }
+.js .fin:not(.play) .ts-ln { stroke-dashoffset: 1; }
+.fin.play .ts-ln { animation: fc-draw 1.6s cubic-bezier(.5,0,.2,1) .5s both; }
+.fin.play .ts-dot { animation: pop .5s ease 1.9s both; }
+
+.chart-card { transition: transform .4s cubic-bezier(.2,.7,.2,1), box-shadow .4s; }
+.chart-card:hover { transform: translateY(-4px); box-shadow: 0 40px 60px -38px rgba(30,64,130,.5); }
+.js .fin:not(.play) .chart-card { opacity: 0; transform: translateY(26px); }
+.fin.play .chart-card { animation: tile-in .8s cubic-bezier(.2,.7,.2,1) .35s both; }
+.fin.play .chart-card + .chart-card { animation-delay: .5s; }
+.chart-t > div:first-child { display: grid; gap: 2px; }
+
+.fc-pills { display: inline-flex; gap: 2px; padding: 3px; background: #EEF3FC; border-radius: 999px; }
+.fc-pills button { font: 600 12.5px/1 var(--sans); padding: 7px 12px; border: 0; border-radius: 999px; background: transparent; color: var(--text-2); cursor: pointer; transition: background .25s, color .25s, box-shadow .25s; }
+.fc-pills button:hover { color: var(--navy); }
+.fc-pills button[aria-pressed="true"] { background: #fff; color: var(--blue-d); box-shadow: 0 2px 8px -2px rgba(30,64,130,.35); }
+.fc-pills button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.fc-read { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; min-height: 40px; margin: 2px 0 6px; }
+.fc-read b { font-size: 1.7rem; letter-spacing: -.03em; color: var(--navy); font-variant-numeric: tabular-nums; }
+.fc-read .delta { font-size: 13.5px; font-weight: 600; }
+.fc-read .when { font-size: 13px; color: var(--text-3); }
+
+.fc { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; outline: none; }
+.fc:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 8px; }
+.fc .gl { stroke: #E6ECF6; stroke-dasharray: 3 5; } .fc .ax { fill: var(--text-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.fc .cost { stroke: #94A3B8; stroke-width: 1.2; stroke-dasharray: 5 5; } .fc .cost-t { font-size: 11px; }
+.fc .ar { fill: url(#fcg); animation: fade-in 1.2s ease .5s both; }
+.fc .ln { fill: none; stroke: var(--blue); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; filter: drop-shadow(0 6px 8px rgba(37,99,235,.35)); animation: fc-draw 1.5s cubic-bezier(.5,0,.2,1) both; }
+.fc .dt { fill: #fff; stroke: var(--blue); stroke-width: 2; animation: pop .4s ease var(--d, .6s) both; transform-box: fill-box; transform-origin: center; }
+.fc .pt { fill: var(--blue); stroke: #fff; stroke-width: 3; } .fc .pt.hov { filter: drop-shadow(0 4px 8px rgba(37,99,235,.5)); }
+.fc .ring { fill: none; stroke: var(--blue); stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: ring 2.2s ease-out 1.6s infinite; }
+.fc .guide { stroke: var(--blue); stroke-width: 1.4; stroke-dasharray: 4 4; opacity: .55; }
+@keyframes fc-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes pop { from { transform: scale(0); opacity: 0; } }
+@keyframes ring { from { transform: scale(1); opacity: .7; } to { transform: scale(3.4); opacity: 0; } }
+.js .fin:not(.play) .fc .ln { stroke-dashoffset: 1; }
+.js .fin:not(.play) .fc .ar, .js .fin:not(.play) .fc .dt, .js .fin:not(.play) .fc .ring { opacity: 0; animation: none; }
+.fc .tip { z-index: 2; box-shadow: 0 12px 24px -10px rgba(11,23,54,.5); transform: translate(-50%, -100%); }
+
+.fc .col .hl { fill: rgba(37,99,235,.07); opacity: 0; transition: opacity .2s; }
+.fc .col.on .hl { opacity: 1; }
+.fc .col rect.b-inc, .fc .col rect.b-exp { transform-box: fill-box; transform-origin: 50% 100%; transition: opacity .25s, filter .25s; animation: bar-up .8s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 55ms + .5s); }
+.fc .b-inc { fill: var(--blue); } .fc .b-exp { fill: #B6C3D6; }
+.fc.hovering .col:not(.on) rect.b-inc, .fc.hovering .col:not(.on) rect.b-exp { opacity: .4; }
+.fc .col.on .b-inc { filter: drop-shadow(0 6px 8px rgba(37,99,235,.45)); }
+@keyframes bar-up { from { transform: scaleY(0); } }
+.js .fin:not(.play) .fc .col rect.b-inc, .js .fin:not(.play) .fc .col rect.b-exp { animation: none; transform: scaleY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .js .fin:not(.play) .tile, .js .fin:not(.play) .chart-card { opacity: 1; transform: none; }
+  .js .fin:not(.play) .fc .ln, .js .fin:not(.play) .ts-ln { stroke-dashoffset: 0; }
+  .js .fin:not(.play) .fc .ar, .js .fin:not(.play) .fc .dt { opacity: 1; }
+  .js .fin:not(.play) .fc .col rect.b-inc, .js .fin:not(.play) .fc .col rect.b-exp { transform: none; }
+}
+.chart-t > div:first-child > span { font-size: 13px; color: var(--text-3); }
+.fc-pills { flex: none; flex-wrap: nowrap; } .fc-pills button { width: auto; white-space: nowrap; display: inline-block; }
+.tile b .num, .tile b .delta, .tile b .delta > span:not(.sr) { font-size: inherit; font-weight: inherit; letter-spacing: inherit; }
+.tile b .num { color: inherit; }
+.tile b .delta.pos { color: var(--pos); } .tile b .delta.neg { color: var(--neg); }
+.tile b .delta [aria-hidden] { font-size: .5em; color: inherit; }
+.tile em .num { color: inherit; font-size: inherit; font-weight: inherit; }
+.tile em span { font-size: inherit; color: inherit; }

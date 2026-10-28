@@ -311,23 +311,128 @@ function flowChart(host) {
 
 /* ---------------------------------------------------------- financial */
 {
-  const a = FEATURED;
-  const tile = (label, value, sub, cls = '') => h('div', { class: 'tile ' + cls }, h('span', {}, label), h('b', {}, value), sub && h('em', {}, sub));
-  const vHost = h('div', { class: 'chart-host' }), fHost = h('div', { class: 'chart-host' });
-  clear(document.getElementById('fin')).append(
+  const a = FEATURED, mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const counters = [];
+  const num = (to, fmt) => { const el = h('span', { class: 'num' }, fmt(to)); counters.push({ el, to, fmt }); return el; };
+  const tile = (label, value, sub, cls = '', extra) => h('div', { class: 'tile ' + cls }, extra, h('span', {}, label), h('b', {}, value), sub && h('em', {}, sub));
+
+  const spark = (() => {
+    const W = 160, H = 54, ys = WESTLAKE_VALUATIONS.map(p => p.v), lo = Math.min(...ys), hi = Math.max(...ys);
+    const pts = ys.map((v, i) => [(i / (ys.length - 1)) * W, H - 6 - ((v - lo) / (hi - lo)) * (H - 14)]);
+    const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('');
+    return s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'tile-spark', 'aria-hidden': 'true' },
+      s('path', { d: `${d}L${W} ${H}L0 ${H}Z`, class: 'ts-ar' }), s('path', { d, class: 'ts-ln', pathLength: 1 }),
+      s('circle', { cx: pts.at(-1)[0] - 1, cy: pts.at(-1)[1], r: 3, class: 'ts-dot' }));
+  })();
+
+  const tiles = h('div', { class: 'tiles' },
+    tile('Estimated value', num(a.value, v => money(Math.round(v))), `Valued ${VALUATION_DATE}`, 'dark', spark),
+    tile('Appreciation', Delta(a.appreciation, num(a.appreciation, v => fmtSigned(v))), h('span', {}, num(a.appreciationPct, v => fmtPct(v, { sign: true })), ` vs. ${money(a.cost)} cost`)),
+    tile('Rental income', num(a.gross, v => money(Math.round(v))), 'Last 12 months'),
+    tile('Operating expenses', num(a.expenses, v => money(Math.round(v))), 'Last 12 months'),
+    tile('Net yield (NOI)', num(a.noiYield, v => pct1(v)), `${money(a.noi)} NOI ÷ est. value`, 'blue'));
+  [...tiles.children].forEach((t, i) => t.style.setProperty('--i', i));
+
+  /* --- estimated value: ranges, crosshair, live readout */
+  const vRead = h('div', { class: 'fc-read', 'aria-live': 'off' }), vHost = h('div', { class: 'chart-host' }), vSpan = h('span', {});
+  const ALL = WESTLAKE_VALUATIONS, RANGES = [['1Y', 3], ['3Y', 7], ['All', ALL.length]];
+  let rng = 2, vIdx = ALL.length - 1;
+  const pills = h('div', { class: 'fc-pills', role: 'group', 'aria-label': 'Time range' },
+    ...RANGES.map(([l], i) => h('button', { type: 'button', 'aria-pressed': String(i === rng), onclick: () => { rng = i; [...pills.children].forEach((b, j) => b.setAttribute('aria-pressed', String(j === i))); drawValue(); } }, l)));
+  const setRead = p => {
+    vRead.replaceChildren(h('b', {}, money(p.v)), Delta(p.v - a.cost, `${fmtPct((p.v - a.cost) / a.cost, { sign: true })} vs. cost`), h('span', { class: 'when' }, p.label));
+  };
+  function drawValue() {
+    const series = ALL.slice(ALL.length - RANGES[rng][1]);
+    clear(vHost);
+    vSpan.textContent = `${series[0].label} – ${series.at(-1).label}`;
+    const W = 640, H = 250, m = { t: 16, r: 18, b: 28, l: 58 };
+    const ys = series.map(p => p.v).concat(a.cost);
+    let lo = Math.min(...ys), hi = Math.max(...ys); const pad = (hi - lo) * 0.14; lo -= pad; hi += pad;
+    const X = i => m.l + (i / (series.length - 1)) * (W - m.l - m.r), Y = v => H - m.b - ((v - lo) / (hi - lo)) * (H - m.t - m.b);
+    const d = series.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(p.v).toFixed(1)}`).join('');
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'fc', role: 'img', tabindex: 0,
+      'aria-label': `Estimated value of ${a.name}: ${series[0].label} ${money(series[0].v)} to ${series.at(-1).label} ${money(series.at(-1).v)}. Use arrow keys to inspect points.` },
+      s('defs', {}, s('linearGradient', { id: 'fcg', x1: 0, y1: 0, x2: 0, y2: 1 }, s('stop', { offset: '0', 'stop-color': '#2563EB', 'stop-opacity': '.28' }), s('stop', { offset: '1', 'stop-color': '#2563EB', 'stop-opacity': '0' }))));
+    [0, 1, 2, 3].forEach(i => { const v = lo + ((hi - lo) * i) / 3; svg.append(s('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: 'gl' }), s('text', { x: m.l - 8, y: Y(v) + 4, class: 'ax', 'text-anchor': 'end' }, compact(v))); });
+    const ticks = series.length <= 4 ? series.map((_, i) => i) : [0, Math.floor((series.length - 1) / 2), series.length - 1];
+    ticks.forEach(i => svg.append(s('text', { x: X(i), y: H - 8, class: 'ax', 'text-anchor': i === 0 ? 'start' : i === series.length - 1 ? 'end' : 'middle' }, series[i].label)));
+    svg.append(
+      s('line', { x1: m.l, x2: W - m.r, y1: Y(a.cost), y2: Y(a.cost), class: 'cost' }), s('text', { x: W - m.r, y: Y(a.cost) - 6, class: 'ax cost-t', 'text-anchor': 'end' }, `Purchase cost ${compact(a.cost)}`),
+      s('path', { d: `${d}L${X(series.length - 1)} ${H - m.b}L${X(0)} ${H - m.b}Z`, class: 'ar' }), s('path', { d, class: 'ln', pathLength: 1 }));
+    series.forEach((p, i) => svg.append(s('circle', { cx: X(i), cy: Y(p.v), r: 3.2, class: 'dt', style: `--d:${0.5 + i * 0.07}s` })));
+    const ex = X(series.length - 1), ey = Y(series.at(-1).v);
+    svg.append(s('circle', { cx: ex, cy: ey, r: 6, class: 'ring' }), s('circle', { cx: ex, cy: ey, r: 5.5, class: 'pt' }));
+    const guide = s('line', { y1: m.t, y2: H - m.b, class: 'guide', visibility: 'hidden' }), dot = s('circle', { r: 6.5, class: 'pt hov', visibility: 'hidden' }), tip = h('div', { class: 'tip', hidden: true, role: 'status' });
+    svg.append(guide, dot);
+    const show = i => {
+      vIdx = Math.max(0, Math.min(series.length - 1, i)); const p = series[vIdx];
+      guide.setAttribute('x1', X(vIdx)); guide.setAttribute('x2', X(vIdx)); guide.removeAttribute('visibility');
+      dot.setAttribute('cx', X(vIdx)); dot.setAttribute('cy', Y(p.v)); dot.removeAttribute('visibility');
+      tip.hidden = false; tip.replaceChildren(h('b', {}, money(p.v)), h('span', {}, p.label));
+      tip.style.left = `${Math.min(88, Math.max(12, (X(vIdx) / W) * 100))}%`; tip.style.top = `${(Y(p.v) / H) * 100 - 14}%`;
+      setRead(p);
+    };
+    const hide = () => { guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.hidden = true; setRead(series.at(-1)); };
+    svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; show(Math.round(((px - m.l) / (W - m.l - m.r)) * (series.length - 1))); });
+    svg.addEventListener('pointerleave', hide); svg.addEventListener('blur', hide);
+    svg.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { e.preventDefault(); show(vIdx - 1); } else if (e.key === 'ArrowRight') { e.preventDefault(); show(vIdx + 1); } else if (e.key === 'Escape') hide(); });
+    vHost.append(svg, tip); setRead(series.at(-1));
+  }
+
+  /* --- income vs. expenses: staggered bars, hover a month */
+  const fRead = h('div', { class: 'fc-read', 'aria-live': 'off' }), fHost = h('div', { class: 'chart-host' });
+  const net = WESTLAKE_INCOME.map((v, i) => v - WESTLAKE_EXPENSES[i]);
+  const fDefault = () => fRead.replaceChildren(h('b', {}, money(a.noi)), h('span', { class: 'when' }, 'Net operating income · last 12 months'));
+  function drawFlow() {
+    clear(fHost);
+    const W = 640, H = 250, m = { t: 16, r: 12, b: 28, l: 50 };
+    const max = Math.max(...WESTLAKE_INCOME, ...WESTLAKE_EXPENSES) * 1.1, Y = v => H - m.b - (v / max) * (H - m.t - m.b);
+    const slot = (W - m.l - m.r) / 12, bw = slot * 0.3;
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'fc', role: 'img',
+      'aria-label': `Monthly rental income versus operating expenses. Income is ${money(WESTLAKE_INCOME[0])} each month; expenses range from ${money(Math.min(...WESTLAKE_EXPENSES))} to ${money(Math.max(...WESTLAKE_EXPENSES))}.` });
+    [0, 1, 2, 3].forEach(i => { const v = (max * i) / 3; svg.append(s('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: 'gl' }), s('text', { x: m.l - 8, y: Y(v) + 4, class: 'ax', 'text-anchor': 'end' }, compact(v))); });
+    const cols = WESTLAKE_MONTHS.map((mo, i) => {
+      const cx = m.l + slot * i + slot / 2;
+      const g = s('g', { class: 'col', style: `--i:${i}` },
+        s('rect', { x: cx - slot / 2, y: m.t, width: slot, height: H - m.t - m.b, rx: 8, class: 'hl' }),
+        s('rect', { x: cx - bw - 1, y: Y(WESTLAKE_INCOME[i]), width: bw, height: H - m.b - Y(WESTLAKE_INCOME[i]), rx: 3, class: 'b-inc' }),
+        s('rect', { x: cx + 1, y: Y(WESTLAKE_EXPENSES[i]), width: bw, height: H - m.b - Y(WESTLAKE_EXPENSES[i]), rx: 3, class: 'b-exp' }),
+        s('text', { x: cx, y: H - 8, class: 'ax', 'text-anchor': 'middle' }, mo));
+      const on = () => {
+        cols.forEach(c => c.classList.toggle('on', c === g)); svg.classList.add('hovering');
+        fRead.replaceChildren(h('b', {}, money(net[i])), h('span', { class: 'when' }, `${mo} · income ${money(WESTLAKE_INCOME[i])} · expenses ${money(WESTLAKE_EXPENSES[i])}`));
+      };
+      g.addEventListener('pointerenter', on);
+      return g;
+    });
+    svg.addEventListener('pointerleave', () => { cols.forEach(c => c.classList.remove('on')); svg.classList.remove('hovering'); fDefault(); });
+    svg.append(...cols); fHost.append(svg); fDefault();
+  }
+
+  const fin = clear(document.getElementById('fin'));
+  fin.append(
     h('div', { class: 'fin-title' }, h('b', {}, a.name), h('span', {}, `${a.place} · ${a.kind}`), h('span', { class: 'chip' }, 'Sample data')),
-    h('div', { class: 'tiles' },
-      tile('Estimated value', money(a.value), `Valued ${VALUATION_DATE}`, 'dark'),
-      tile('Appreciation', Delta(a.appreciation, fmtSigned(a.appreciation)), `${fmtPct(a.appreciationPct, { sign: true })} vs. ${money(a.cost)} cost`),
-      tile('Rental income', money(a.gross), 'Last 12 months'),
-      tile('Operating expenses', money(a.expenses), 'Last 12 months'),
-      tile('Net yield (NOI)', pct1(a.noiYield), `${money(a.noi)} NOI ÷ est. value`, 'blue')),
+    tiles,
     h('div', { class: 'charts' },
-      h('div', { class: 'chart-card' }, h('div', { class: 'chart-t' }, h('b', {}, 'Estimated value'), h('span', {}, 'Mar 2022 – Sep 2026')), vHost),
-      h('div', { class: 'chart-card' }, h('div', { class: 'chart-t' }, h('b', {}, 'Income vs. expenses'),
-        h('span', { class: 'legend' }, h('span', {}, h('i', { class: 'li-inc' }), 'Income'), h('span', {}, h('i', { class: 'li-exp' }), 'Expenses'))), fHost)));
-  valuationChart(vHost, WESTLAKE_VALUATIONS, { label: 'Estimated value of Westlake Residence' });
-  flowChart(fHost);
+      h('div', { class: 'chart-card' }, h('div', { class: 'chart-t' }, h('div', {}, h('b', {}, 'Estimated value'), vSpan), pills), vRead, vHost),
+      h('div', { class: 'chart-card' }, h('div', { class: 'chart-t' }, h('div', {}, h('b', {}, 'Income vs. expenses'), h('span', {}, 'Oct – Sep')),
+        h('span', { class: 'legend' }, h('span', {}, h('i', { class: 'li-inc' }), 'Income'), h('span', {}, h('i', { class: 'li-exp' }), 'Expenses'))), fRead, fHost)));
+  drawValue(); drawFlow();
+
+  const run = () => {
+    fin.classList.add('play');
+    counters.forEach(({ el, to, fmt }) => {
+      if (mq.matches) return;
+      const t0 = performance.now(), dur = 1400;
+      const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 4); el.textContent = fmt(to * e); if (k < 1) requestAnimationFrame(step); else el.textContent = fmt(to); };
+      el.textContent = fmt(0); requestAnimationFrame(step);
+    });
+  };
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); run(); } }, { threshold: 0.2 });
+    io.observe(fin);
+  } else run();
 }
 
 /* ---------------------------------------------------------- collection */
