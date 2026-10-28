@@ -768,7 +768,8 @@ function flowChart(host) {
     const paint = v => { total.textContent = USD0.format(Math.round(v)); };
     const update = () => {
       const n = +range.value, p = price(n), more = Math.max(0, n - INCLUDED);
-      range.style.setProperty('--p', `${((n - range.min) / (range.max - range.min)) * 100}%`);
+      const pct = ((n - range.min) / (range.max - range.min)) * 100; range.style.setProperty('--p', `${pct}%`);
+      const bub = document.getElementById('px-bubble'); bub.style.setProperty('--q', pct.toFixed(2)); bub.textContent = String(n);
       range.setAttribute('aria-valuetext', `${n} assets, ${USD0.format(p)} per month`);
       count.textContent = String(n); document.getElementById('px-feat-n').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
       extra.hidden = more === 0; extraN.textContent = `${more} extra asset${more === 1 ? '' : 's'} × ${USD0.format(EXTRA)}`; extraV.textContent = `+${USD0.format(more * EXTRA)}`;

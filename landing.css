@@ -881,3 +881,29 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .px-scale { position: relative; display: block; height: 16px; }
 .px-scale span { position: absolute; top: 0; left: calc(var(--q) * 1% + (15px - var(--q) * .3px)); transform: translateX(-50%); }
 .px-feats b { color: var(--navy); font-variant-numeric: tabular-nums; }
+
+/* ===== Pricing: single card ===== */
+.px-card { position: relative; isolation: isolate; overflow: hidden; max-width: 720px; margin: 0 auto; display: grid; justify-items: center; text-align: center; gap: 0; padding: clamp(30px, 5vw, 56px) clamp(22px, 5vw, 56px); background: #fff; border: 1px solid #E1E9F6; border-radius: 40px; box-shadow: 0 60px 100px -60px rgba(30,64,130,.6); grid-template-columns: 1fr; }
+.px-glow { position: absolute; z-index: -1; left: 50%; top: -180px; width: 620px; height: 420px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(96,165,250,.34), rgba(96,165,250,0)); animation: breathe 7s ease-in-out infinite; pointer-events: none; }
+.px-card .px-tag { margin: 0 0 6px; }
+.px-card .px-price { justify-content: center; margin-top: 10px; }
+.px-card .px-price b { font-size: clamp(3.6rem, 8vw, 5.6rem); background: linear-gradient(180deg, #0A0F1F 30%, #2A4BA8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.px-card .px-sub { margin: 6px 0 26px; font-size: 15.5px; }
+.px-ctl { width: 100%; text-align: left; display: grid; gap: 0; padding: 22px 22px 20px; border-radius: 24px; background: linear-gradient(180deg, #F7FAFF, #F1F6FF); border: 1px solid #E3ECFA; }
+.px-q { font-weight: 650; color: var(--navy); font-size: 16px; margin-bottom: 38px; text-align: center; }
+.px-track { position: relative; }
+.px-bubble { position: absolute; bottom: 30px; left: calc(var(--q, 0) * 1% + (15px - var(--q, 0) * .3px)); transform: translateX(-50%); min-width: 38px; padding: 6px 10px; border-radius: 10px; background: #0A0F1F; color: #fff; font: 700 13px/1 var(--sans); text-align: center; font-variant-numeric: tabular-nums; box-shadow: 0 10px 20px -8px rgba(10,15,31,.55); pointer-events: none; transition: left .12s ease-out; }
+.px-bubble::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 9px; height: 9px; margin-left: -4.5px; background: #0A0F1F; transform: rotate(45deg); border-radius: 2px; }
+.px-card .px-scale { margin-top: 12px; }
+.px-card .px-presets { justify-content: center; margin-top: 16px; }
+.px-card .px-sum { width: 100%; margin-top: 14px; text-align: left; }
+.px-card .px-btn { width: 100%; margin-top: 18px; padding-top: 19px; padding-bottom: 19px; }
+.px-card .px-note { margin: 12px 0 0; }
+.px-inc { width: 100%; margin-top: 30px; padding-top: 26px; border-top: 1px solid #E6ECF6; }
+.px-inc-h { margin: 0 0 18px; font-size: 12.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+.px-card .px-feats { padding: 0; border: 0; grid-template-columns: 1fr 1fr; gap: 16px 24px; text-align: left; }
+.px-card .px-feats li { align-items: flex-start; gap: 12px; }
+.px-feats li > div { display: grid; gap: 2px; } .px-feats li b { color: var(--navy); font-weight: 650; font-size: 14.5px; } .px-feats li span { font-size: 13px; color: var(--text-3); }
+@media (max-width: 620px) { .px-card .px-feats { grid-template-columns: 1fr; } .px-card { border-radius: 30px; } .px-ctl { padding: 18px 14px 16px; } }
+@media (prefers-reduced-motion: reduce) { .px-bubble { transition: none; } .px-glow { animation: none; } }
+.px-card .px-tag { justify-self: center; }
