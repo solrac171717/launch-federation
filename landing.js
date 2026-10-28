@@ -661,7 +661,7 @@ function flowChart(host) {
     if (c) analytics.track(c.dataset.cta === 'primary' ? 'primary_cta_click' : 'secondary_cta_click', { where: c.dataset.where || '' });
     if (c && c.getAttribute('href') === '#early-access') setTimeout(() => document.getElementById('f-email')?.focus({ preventScroll: true }), reduceMotion ? 0 : 600);
   });
-  const targets = document.querySelectorAll('.sec-head, .globe-stage, .fin, .collection, .reports');
+  const targets = document.querySelectorAll('.sec-head, .globe-stage, .fin, .collection, .reports, .quote-card');
   if (!reduceMotion && 'IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }), { rootMargin: '0px 0px -8% 0px' });
     targets.forEach(t => { t.setAttribute('data-reveal', ''); io.observe(t); });

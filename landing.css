@@ -664,3 +664,17 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 .app-top > .geo-toggle { margin-right: auto; } .app-top > .geo-toggle[hidden] { display: none; }
 .app-top > .geo-toggle button { padding: 6px 12px; font-size: 12px; }
 @container (max-width: 980px) { .app-top > .geo-toggle { margin-right: 0; } }
+
+/* ===== Quote (illustrative persona) ===== */
+.quote { padding: clamp(40px, 6vw, 84px) 0 clamp(20px, 3vw, 40px); }
+.quote-card { max-width: 920px; margin: 0 auto; padding: clamp(28px, 4.4vw, 56px); border-radius: 36px; background: #fff; border: 1px solid #E6ECF6; box-shadow: 0 50px 90px -60px rgba(30,64,130,.5); display: grid; gap: clamp(24px, 3vw, 36px); position: relative; overflow: hidden; }
+.quote-card::before { content: ''; position: absolute; right: -90px; top: -90px; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(96,165,250,.28), transparent 70%); animation: breathe 7s ease-in-out infinite; pointer-events: none; }
+.quote-text { position: relative; margin: 0; font-size: clamp(1.25rem, 2.3vw, 1.85rem); line-height: 1.38; letter-spacing: -.02em; color: var(--text-3); font-weight: 500; }
+.quote-lead { color: var(--navy); font-weight: 650; }
+.quote-foot { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; padding-top: 22px; border-top: 1px solid #EDF1F8; }
+.quote-who { display: flex; align-items: center; gap: 14px; }
+.quote-av { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font: 700 16px/1 var(--sans); letter-spacing: .04em; color: #fff; background: linear-gradient(145deg, #60A5FA, #1D4ED8); box-shadow: 0 10px 20px -8px rgba(37,99,235,.6), 0 0 0 3px #fff, 0 0 0 4px #DCE7FA; }
+.quote-name { font-weight: 650; color: var(--navy); font-size: 16px; } .quote-role { font-size: 13.5px; color: var(--text-3); margin-top: 2px; }
+.quote-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .16em; color: var(--navy); font-size: 17px; }
+.quote-brand img { width: 28px; height: 28px; display: block; }
+.quote-note { text-align: center; margin: 16px 0 0; font-size: 12.5px; color: var(--text-3); }
