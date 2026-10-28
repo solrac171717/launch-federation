@@ -14,7 +14,7 @@ const USD0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD'
 const USDc = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 const money = n => USD0.format(n);
 const compact = n => USDc.format(n);
-function pct1(n) { return n == null ? '—' : (n * 100).toFixed(1) + '%'; }
+function pct1(n) { return n == null ? '–' : (n * 100).toFixed(1) + '%'; }
 const FEATURED = byId('austin');
 // Sample data is stamped with the visitor's current date, so the "as of" labels are never stale.
 const TODAY = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -244,7 +244,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
     clear($('hero-value')).append(h('span', {}, `Portfolio value${where ? ' · ' + where : ''}`), h('b', {}, money(p.value)),
       Delta(p.appreciation, `${fmtSigned(p.appreciation, { compact: true })} · ${fmtPct(p.appreciationPct, { sign: true })} vs. cost`));
     const k = (l, v, sub) => h('div', { class: 'kpi' }, h('span', {}, l), h('b', {}, v), h('em', {}, sub));
-    clear($('hero-pair')).append(k('Net operating income', p.earningCount ? compact(p.noi) : '—', p.earningCount ? 'Annual' : 'No income assets'),
+    clear($('hero-pair')).append(k('Net operating income', p.earningCount ? compact(p.noi) : '–', p.earningCount ? 'Annual' : 'No income assets'),
       k('NOI yield', pct1(p.noiYield), p.earningCount ? `${p.earningCount} income asset${p.earningCount > 1 ? 's' : ''}` : 'Income assets only'));
     const mc = clear($('hero-chart')), hist = historyFor(a);
     if (hist) {
@@ -307,7 +307,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
       h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, `Portfolio summary${state.group === 'all' ? '' : ' · ' + GROUPS[state.group].label}`), h('span', {}, `As of ${TODAY}`)),
         h('div', { class: 'rep-kpis' },
           h('div', {}, h('em', {}, 'Value'), h('b', {}, compact(p.value))), h('div', {}, h('em', {}, 'Cost'), h('b', {}, compact(p.cost))),
-          h('div', {}, h('em', {}, 'NOI'), h('b', {}, p.earningCount ? compact(p.noi) : '—')), h('div', {}, h('em', {}, 'NOI yield'), h('b', {}, pct1(p.noiYield)))),
+          h('div', {}, h('em', {}, 'NOI'), h('b', {}, p.earningCount ? compact(p.noi) : '–')), h('div', {}, h('em', {}, 'NOI yield'), h('b', {}, pct1(p.noiYield)))),
         h('ul', { class: 'rep-alloc' }, alloc.map(([c, v]) => h('li', {}, h('span', {}, CATEGORIES[c]), h('i', { style: `width:${(v / alloc[0][1]) * 100}%` }), h('b', {}, pct1(v / p.value)))))),
       h('div', { class: 'tbl-card pad dl' }, h('b', {}, 'Export'), h('p', {}, `${sc.length} asset${sc.length > 1 ? 's' : ''} in the current view, with cost, value, change and NOI.`),
         h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: csv }, 'Download CSV'),
@@ -584,7 +584,7 @@ function flowChart(host) {
       h('tbody', {},
         h('tr', { class: 'hdr' }, h('th', {}, 1), hdr.map((t, i) => h('td', { class: i > 1 ? 'r' : '' }, t))),
         ASSETS.map((x, i) => h('tr', {}, h('th', {}, i + 2), h('td', {}, x.name), h('td', {}, CATEGORIES[x.category]), h('td', { class: 'r' }, x.cost.toLocaleString('en-US')), h('td', { class: 'r' }, x.value.toLocaleString('en-US')),
-          h('td', { class: 'r ' + tone(x.appreciation) }, fmtPct(x.appreciationPct, { sign: true })), h('td', { class: 'r' }, x.earning ? x.noi.toLocaleString('en-US') : '—'))),
+          h('td', { class: 'r ' + tone(x.appreciation) }, fmtPct(x.appreciationPct, { sign: true })), h('td', { class: 'r' }, x.earning ? x.noi.toLocaleString('en-US') : '–'))),
         h('tr', { class: 'tot' }, h('th', {}, ASSETS.length + 2), h('td', {}, 'Total'), h('td', {}, ''), h('td', { class: 'r' }, P.cost.toLocaleString('en-US')), h('td', { class: 'r sel' }, P.value.toLocaleString('en-US')),
           h('td', { class: 'r ' + tone(P.appreciation) }, fmtPct(P.appreciationPct, { sign: true })), h('td', { class: 'r' }, P.noi.toLocaleString('en-US')))))),
     h('div', { class: 'xl-tabs' }, ['Assets', 'Income', 'Valuations'].map((t, i) => h('span', { class: i === 0 ? 'on' : '' }, t))));
@@ -641,7 +641,7 @@ function flowChart(host) {
       }
       if (r.status === 422 && data.errors) { showErrors(data.errors); analytics.track('early_access_form_error', { reason: 'validation' }); return; }
       status.textContent = r.status === 503 ? 'Early-access sign-up isn’t available yet because the server isn’t configured. Nothing was saved. Please try again later.'
-        : 'We couldn’t save your request. Nothing was submitted—please try again in a moment.';
+        : 'We couldn’t save your request. Nothing was submitted. Please try again in a moment.';
       status.classList.add('bad');
       analytics.track('early_access_form_error', { reason: String(r.status) });
     } catch {
