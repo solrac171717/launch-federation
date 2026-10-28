@@ -708,3 +708,11 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 .fc.lines .ar { animation-delay: .7s; }
 .js .fin:not(.play) .fc.lines .ln { stroke-dashoffset: 1; }
 .chart-ctl .legend { font-size: 13px; color: var(--text-3); }
+
+/* Primary button: the gradient fill can't transition to a flat colour (it flashed white on hover),
+   so the hover shade is a stacked layer that cross-fades instead. */
+.btn-primary { position: relative; isolation: isolate; overflow: hidden; background: linear-gradient(180deg, #3B82F6, #2563EB); transition: box-shadow .35s ease, transform .35s cubic-bezier(.22,1,.36,1); }
+.btn-primary::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, #2F6FEB, #1D4ED8); opacity: 0; transition: opacity .35s ease; }
+.btn-primary:hover:not(:disabled) { background: linear-gradient(180deg, #3B82F6, #2563EB); box-shadow: 0 10px 22px -10px rgba(37,99,235,.7), inset 0 1px 0 rgba(255,255,255,.18); }
+.btn-primary:hover:not(:disabled)::before { opacity: 1; }
+.btn-dark { transition: background-color .3s ease, border-color .3s ease, box-shadow .3s ease, transform .3s cubic-bezier(.22,1,.36,1); }
