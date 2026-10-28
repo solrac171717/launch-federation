@@ -2,7 +2,7 @@ import { h, s, clear } from './src/dom.js';
 import { fmtPct, fmtSigned, tone, toCsv } from './src/calc.js';
 import {
   ASSETS, CATEGORIES, VALUATION_DATE, WESTLAKE_MONTHS, WESTLAKE_INCOME, WESTLAKE_EXPENSES,
-  WESTLAKE_VALUATIONS, portfolio, byId,
+  WESTLAKE_VALUATIONS, COUNTRIES, portfolio, byId,
 } from './src/demo-data.js';
 import { validateLead } from './src/lead.js';
 import { createGlobe } from './src/globe.js';
@@ -16,6 +16,8 @@ const money = n => USD0.format(n);
 const compact = n => USDc.format(n);
 function pct1(n) { return n == null ? '—' : (n * 100).toFixed(1) + '%'; }
 const FEATURED = byId('austin');
+// Sample data is stamped with the visitor's current date, so the "as of" labels are never stale.
+const TODAY = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 /* ------------------------------------------------------------------ analytics */
 // Provider-agnostic. Nothing is sent unless (a) a consent banner has set window.atlasConsent = true
@@ -88,6 +90,87 @@ function sparkline(host, series) {
     s('circle', { cx: X(series.length - 1), cy: Y(ys.at(-1)), r: 4, class: 'pt' })));
 }
 
+/* ------------------------------------------------------------------ globe / country mode (shared) */
+const FLAG_GEO = {
+  US: () => [
+    s('rect', { width: 22, height: 15, fill: '#fff' }),
+    ...[0, 1, 2, 3, 4, 5, 6].map(i => s('rect', { y: +(i * 2.3077).toFixed(2), width: 22, height: 1.1538, fill: '#B22234' })),
+    s('rect', { width: 9.2, height: 8.1, fill: '#3C3B6E' }),
+    ...[0, 1, 2].flatMap(i => [0, 1, 2].map(j => s('circle', { cx: 1.9 + i * 2.7, cy: 1.7 + j * 2.4, r: 0.5, fill: '#fff' })))],
+  GB: () => [
+    s('rect', { width: 22, height: 15, fill: '#012169' }),
+    s('path', { d: 'M0 0L22 15M22 0L0 15', stroke: '#fff', 'stroke-width': 3 }), s('path', { d: 'M0 0L22 15M22 0L0 15', stroke: '#C8102E', 'stroke-width': 1.1 }),
+    s('path', { d: 'M11 0v15M0 7.5h22', stroke: '#fff', 'stroke-width': 5 }), s('path', { d: 'M11 0v15M0 7.5h22', stroke: '#C8102E', 'stroke-width': 3 })],
+  PT: () => [
+    s('rect', { width: 22, height: 15, fill: '#DA291C' }), s('rect', { width: 8.6, height: 15, fill: '#046A38' }),
+    s('circle', { cx: 8.6, cy: 7.5, r: 3.1, fill: '#FFE000' }), s('circle', { cx: 8.6, cy: 7.5, r: 1.9, fill: '#fff', stroke: '#DA291C', 'stroke-width': 0.9 })],
+};
+const flag = code => s('svg', { viewBox: '0 0 22 15', width: 22, height: 15, class: 'flag', 'aria-hidden': 'true' },
+  s('defs', {}, s('clipPath', { id: 'fl-' + code }, s('rect', { width: 22, height: 15, rx: 2.5 }))), s('g', { 'clip-path': `url(#fl-${code})` }, ...(FLAG_GEO[code] || FLAG_GEO.US)()));
+const GLOBE_ICO = 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM2 8h12M8 2c2.5 2 2.5 10 0 12M8 2c-2.5 2-2.5 10 0 12';
+const PIN_ICO = 'M8 14.2s4.8-4 4.8-7.6a4.8 4.8 0 1 0-9.6 0C3.2 10.200 8 14.200 8 14.200zM8 7.600m-1.500 0a1.500 1.500 0 1 0 3 0 1.500 1.500 0 1 0-3 0';
+
+/** Globe ⇄ Country switcher: pill toggle, country chips with flags, and the selected country's assets. */
+function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {} }) {
+  const st = { mode: 'globe', cc: null, key: '' };
+  const ico = d => s('svg', { viewBox: '0 0 16 16', width: 15, height: 15, 'aria-hidden': 'true', class: 'gi' }, s('path', { d }));
+  const toggle = h('div', { class: 'geo-toggle', role: 'group', 'aria-label': 'Map view', 'data-mode': 'globe' }, h('i', { class: 'geo-thumb', 'aria-hidden': 'true' }),
+    h('button', { type: 'button', 'aria-pressed': 'true', onclick: () => setMode('globe') }, ico(GLOBE_ICO), 'Globe'),
+    h('button', { type: 'button', 'aria-pressed': 'false', onclick: () => setMode('country') }, ico(PIN_ICO), 'Country'));
+  const chips = h('ul', { class: 'geo-chips', 'aria-label': 'Countries' }), row = h('div', { class: 'geo-assets', role: 'group', 'aria-label': 'Assets in this country' });
+  host.append(h('div', { class: 'geo-ui' }, toggle, chips), row);
+
+  const countryOf = id => byId(id)?.country;
+  function build() {
+    const vis = visible(), key = [st.mode, st.cc, vis.map(a => a.id).join()].join('|');
+    if (key !== st.key) {
+      st.key = key;
+      chips.replaceChildren(...Object.entries(COUNTRIES).map(([c, info], i) => {
+        const n = vis.filter(a => a.country === c).length;
+        return h('li', { style: `--i:${i}` }, h('button', { type: 'button', disabled: n === 0, 'data-c': c, onclick: () => setCountry(c) }, flag(c), h('span', {}, info.name), h('em', {}, String(n))));
+      }));
+      const keep = row.scrollLeft;
+      row.replaceChildren(...vis.filter(a => a.country === st.cc).map((a, i) => h('button', { type: 'button', 'data-id': a.id, style: `--i:${i}`, onclick: () => onPick(a.id, false) },
+        icon(a.category, 16), h('span', {}, a.name), h('b', {}, compact(a.value)))));
+      row.scrollLeft = keep;
+    }
+    chips.querySelectorAll('button').forEach(b => { const on = b.dataset.c === st.cc; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    const sel = selected();
+    row.querySelectorAll('button').forEach(b => { const on = b.dataset.id === sel; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+    row.querySelector('button.on')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+  function setMode(m) {
+    if (m === st.mode) return;
+    st.mode = m; toggle.dataset.mode = m; host.classList.toggle('geo-country', m === 'country');
+    toggle.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String((i === 1) === (m === 'country'))));
+    if (m === 'country') {
+      const vis = visible(), a = byId(selected());
+      st.cc = (a && vis.includes(a) ? a.country : vis[0]?.country) || 'US';
+      globe.flyTo(st.cc);
+    } else { st.cc = null; globe.flyTo(null); }
+    build(); onChange(st.mode, st.cc);
+  }
+  function setCountry(c) {
+    if (c === st.cc) return;
+    st.cc = c; globe.flyTo(c);
+    const first = visible().find(a => a.country === c);
+    if (first) onPick(first.id, false);
+    build(); onChange(st.mode, st.cc);
+  }
+  return {
+    mode: () => st.mode, country: () => st.cc,
+    /** Call after the selection or the filter changed from outside. */
+    sync() {
+      if (st.mode === 'country') {
+        const vis = visible(), id = selected(), c = countryOf(id);
+        if (!vis.some(a => a.country === st.cc)) { const alt = vis[0]?.country; if (alt) { st.cc = alt; globe.flyTo(alt); onChange(st.mode, st.cc); } }
+        else if (c && c !== st.cc && vis.some(a => a.id === id)) { st.cc = c; globe.flyTo(c); onChange(st.mode, st.cc); }
+      }
+      build();
+    },
+  };
+}
+
 /* ------------------------------------------------------------------ hero dashboard (fully interactive) */
 {
   const GROUPS = {
@@ -109,12 +192,15 @@ function sparkline(host, series) {
   const historyFor = a => (a.id === 'austin' ? WESTLAKE_VALUATIONS : null);
   const views = { map: $('view-map'), assets: $('view-assets'), perf: $('view-perf'), reports: $('view-reports') };
 
-  const globe = createGlobe($('hero-map'), { assets: ASSETS, icons: ICON, selectedId: state.sel, startLon: -88, tilt: 24,
+  const globe = createGlobe($('hero-map'), { assets: ASSETS, icons: ICON, selectedId: state.sel, startLon: -88, tilt: 24, countryPadV: 70,
     label: 'Rotating 3D globe of sample assets', onSelect: id => select(id, true) });
+  const geo = attachGeo($('hero-map'), globe, { visible: scope, selected: () => state.sel, onPick: (id, f) => select(id, f), onChange: () => { renderMap(); } });
+  const mapScope = () => scope().filter(a => !geo.country() || a.country === geo.country());
 
   function select(id, focus) {
     state.sel = id; globe.setSelected(id); if (focus) globe.focus(id);
     renderMap(); if (state.view === 'assets') renderAssets(); if (state.view === 'perf') renderPerf();
+    geo.sync();
   }
 
   /* navigation + filters */
@@ -140,7 +226,7 @@ function sparkline(host, series) {
     state.group = g; globe.setFilter(GROUPS[g].cats);
     if (!scope().some(a => a.id === state.sel)) { state.sel = scope()[0].id; globe.setSelected(state.sel); }
     if (GROUPS[g].cats) globe.focus(state.sel);
-    renderFilter(); setView(state.view);
+    renderFilter(); geo.sync(); setView(state.view);
   }
 
   /* shared bits */
@@ -153,9 +239,9 @@ function sparkline(host, series) {
 
   /* MAP view */
   function renderMap() {
-    const a = byId(state.sel), sc = scope(), p = portfolio(sc);
+    const a = byId(state.sel), sc = mapScope(), p = portfolio(sc), where = geo.country() ? COUNTRIES[geo.country()].name : (state.group === 'all' ? '' : GROUPS[state.group].label);
     clear($('hero-sel')).append(assetCard(a));
-    clear($('hero-value')).append(h('span', {}, `Portfolio value${state.group === 'all' ? '' : ' · ' + GROUPS[state.group].label}`), h('b', {}, money(p.value)),
+    clear($('hero-value')).append(h('span', {}, `Portfolio value${where ? ' · ' + where : ''}`), h('b', {}, money(p.value)),
       Delta(p.appreciation, `${fmtSigned(p.appreciation, { compact: true })} · ${fmtPct(p.appreciationPct, { sign: true })} vs. cost`));
     const k = (l, v, sub) => h('div', { class: 'kpi' }, h('span', {}, l), h('b', {}, v), h('em', {}, sub));
     clear($('hero-pair')).append(k('Net operating income', p.earningCount ? compact(p.noi) : '—', p.earningCount ? 'Annual' : 'No income assets'),
@@ -218,7 +304,7 @@ function sparkline(host, series) {
       analytics.track('dashboard_csv_download');
     };
     host.append(h('div', { class: 'rep-grid' },
-      h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, `Portfolio summary${state.group === 'all' ? '' : ' · ' + GROUPS[state.group].label}`), h('span', {}, `As of ${VALUATION_DATE}`)),
+      h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, `Portfolio summary${state.group === 'all' ? '' : ' · ' + GROUPS[state.group].label}`), h('span', {}, `As of ${TODAY}`)),
         h('div', { class: 'rep-kpis' },
           h('div', {}, h('em', {}, 'Value'), h('b', {}, compact(p.value))), h('div', {}, h('em', {}, 'Cost'), h('b', {}, compact(p.cost))),
           h('div', {}, h('em', {}, 'NOI'), h('b', {}, p.earningCount ? compact(p.noi) : '—')), h('div', {}, h('em', {}, 'NOI yield'), h('b', {}, pct1(p.noiYield)))),
@@ -236,19 +322,21 @@ function sparkline(host, series) {
   const state = { sel: 'austin', filter: null };
   const card = document.getElementById('globe-card'), list = document.getElementById('globe-list'), filterHost = document.getElementById('map-filter');
   const visible = () => ASSETS.filter(a => !state.filter || a.category === state.filter);
-  const globe = createGlobe(document.getElementById('globe-main'), { assets: ASSETS, icons: ICON, selectedId: state.sel, startLon: -96, tilt: 22,
+  const globe = createGlobe(document.getElementById('globe-main'), { assets: ASSETS, icons: ICON, selectedId: state.sel, startLon: -96, tilt: 22, countryPadV: 70,
     label: 'Rotating 3D globe of sample asset locations', onSelect: id => select(id, true) });
+  const geo = attachGeo(document.getElementById('globe-main'), globe, { visible, selected: () => state.sel, onPick: (id, f) => select(id, f), onChange: () => render() });
+  const shown = () => visible().filter(a => !geo.country() || a.country === geo.country());
   const render = () => {
     clear(card).append(assetCard(byId(state.sel)));
-    clear(list).append(...visible().map(a => h('li', {}, h('button', {
+    clear(list).append(...shown().map(a => h('li', {}, h('button', {
       type: 'button', class: a.id === state.sel ? 'on' : '', 'aria-pressed': String(a.id === state.sel), onclick: () => select(a.id, true),
     }, icon(a.category, 18), h('span', {}, h('b', {}, a.name), h('em', {}, a.place)), h('strong', {}, compact(a.value))))));
     filterHost.querySelectorAll('button').forEach(b => { const on = (b.dataset.k || null) === state.filter; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   };
-  function select(id, focus) { state.sel = id; globe.setSelected(id); if (focus) globe.focus(id); render(); }
+  function select(id, focus) { state.sel = id; globe.setSelected(id); if (focus) globe.focus(id); render(); geo.sync(); }
   const setFilter = c => {
     state.filter = c; globe.setFilter(c);
-    if (!visible().some(a => a.id === state.sel)) select(visible()[0].id, true); else render();
+    if (!visible().some(a => a.id === state.sel)) select(visible()[0].id, true); else { render(); geo.sync(); }
   };
   const cats = [...new Set(ASSETS.map(a => a.category))];
   filterHost.append(h('button', { type: 'button', class: 'on', 'aria-pressed': 'true', onclick: () => setFilter(null) }, 'All'),
@@ -320,13 +408,13 @@ function flowChart(host) {
     const W = 160, H = 54, ys = WESTLAKE_VALUATIONS.map(p => p.v), lo = Math.min(...ys), hi = Math.max(...ys);
     const pts = ys.map((v, i) => [(i / (ys.length - 1)) * W, H - 6 - ((v - lo) / (hi - lo)) * (H - 14)]);
     const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('');
-    return s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'tile-spark', 'aria-hidden': 'true' },
-      s('path', { d: `${d}L${W} ${H}L0 ${H}Z`, class: 'ts-ar' }), s('path', { d, class: 'ts-ln', pathLength: 1 }),
-      s('circle', { cx: pts.at(-1)[0] - 1, cy: pts.at(-1)[1], r: 3, class: 'ts-dot' }));
+    return h('div', { class: 'tile-spark', 'aria-hidden': 'true' },
+      s('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' }, s('path', { d: `${d}L${W} ${H}L0 ${H}Z`, class: 'ts-ar' }), s('path', { d, class: 'ts-ln', pathLength: 1 })),
+      h('i', { class: 'ts-end', style: `top:${((pts.at(-1)[1] / H) * 100).toFixed(1)}%` }));
   })();
 
   const tiles = h('div', { class: 'tiles' },
-    tile('Estimated value', num(a.value, v => money(Math.round(v))), `Valued ${VALUATION_DATE}`, 'dark', spark),
+    tile('Estimated value', num(a.value, v => money(Math.round(v))), `Valued ${TODAY}`, 'dark', spark),
     tile('Appreciation', Delta(a.appreciation, num(a.appreciation, v => fmtSigned(v))), h('span', {}, num(a.appreciationPct, v => fmtPct(v, { sign: true })), ` vs. ${money(a.cost)} cost`)),
     tile('Rental income', num(a.gross, v => money(Math.round(v))), 'Last 12 months'),
     tile('Operating expenses', num(a.expenses, v => money(Math.round(v))), 'Last 12 months'),
@@ -470,7 +558,7 @@ function flowChart(host) {
 
   const pdf = h('div', { class: 'doc doc-pdf', role: 'img', 'aria-label': 'Preview of a portfolio summary report page with sample data' },
     h('div', { class: 'pp-top' }, h('div', { class: 'pp-brand' }, h('i', {}), 'ATLAS'), h('span', {}, 'Portfolio summary')),
-    h('div', { class: 'pp-title' }, h('b', {}, 'Monthly portfolio report'), h('span', {}, `As of ${VALUATION_DATE} · USD · sample data`)),
+    h('div', { class: 'pp-title' }, h('b', {}, 'Monthly portfolio report'), h('span', {}, `As of ${TODAY} · USD · sample data`)),
     h('div', { class: 'pp-kpis' },
       h('div', {}, h('em', {}, 'Portfolio value'), h('b', {}, compact(P.value)), Delta(P.appreciation, fmtPct(P.appreciationPct, { sign: true }))),
       h('div', {}, h('em', {}, 'Acquisition cost'), h('b', {}, compact(P.cost)), h('small', {}, `${P.count} assets`)),

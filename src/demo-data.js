@@ -57,11 +57,19 @@ const RAW = [
 
 export const VALUATION_DATE = 'Sep 30, 2026';
 
+export const COUNTRIES = {
+  US: { name: 'United States' },
+  GB: { name: 'United Kingdom' },
+  PT: { name: 'Portugal' },
+};
+const COUNTRY_OF = { london: 'GB', lisbon: 'PT' };
+
 export const ASSETS = RAW.map(a => {
   const noi = a.gross - a.expenses;
   const earning = a.gross > 0;
   return {
     ...a,
+    country: COUNTRY_OF[a.id] || 'US',
     noi,
     earning,
     appreciation: a.value - a.cost,
