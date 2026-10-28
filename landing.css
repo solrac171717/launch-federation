@@ -661,3 +661,6 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 .geo-assets button.on { background: var(--blue); border-color: var(--blue); color: #fff; } .geo-assets button.on .ico, .geo-assets button.on b { color: #fff; }
 @media (max-width: 620px) { .geo-toggle button { padding: 7px 10px; } .geo-chips button span { display: none; } }
 @media (prefers-reduced-motion: reduce) { .geo-thumb, .geo-chips li, .geo-assets { transition: none !important; } }
+.app-top > .geo-toggle { margin-right: auto; } .app-top > .geo-toggle[hidden] { display: none; }
+.app-top > .geo-toggle button { padding: 6px 12px; font-size: 12px; }
+@container (max-width: 980px) { .app-top > .geo-toggle { margin-right: 0; } }

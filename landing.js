@@ -111,14 +111,14 @@ const GLOBE_ICO = 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM2 8h12M8 2c2.5 2 2.5 10 0 
 const PIN_ICO = 'M8 14.2s4.8-4 4.8-7.6a4.8 4.8 0 1 0-9.6 0C3.2 10.200 8 14.200 8 14.200zM8 7.600m-1.500 0a1.500 1.500 0 1 0 3 0 1.500 1.500 0 1 0-3 0';
 
 /** Globe ⇄ Country switcher: pill toggle, country chips with flags, and the selected country's assets. */
-function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {} }) {
+function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}, toggleAfter = null }) {
   const st = { mode: 'globe', cc: null, key: '' };
   const ico = d => s('svg', { viewBox: '0 0 16 16', width: 15, height: 15, 'aria-hidden': 'true', class: 'gi' }, s('path', { d }));
   const toggle = h('div', { class: 'geo-toggle', role: 'group', 'aria-label': 'Map view', 'data-mode': 'globe' }, h('i', { class: 'geo-thumb', 'aria-hidden': 'true' }),
     h('button', { type: 'button', 'aria-pressed': 'true', onclick: () => setMode('globe') }, ico(GLOBE_ICO), 'Globe'),
     h('button', { type: 'button', 'aria-pressed': 'false', onclick: () => setMode('country') }, ico(PIN_ICO), 'Country'));
   const chips = h('ul', { class: 'geo-chips', 'aria-label': 'Countries' }), row = h('div', { class: 'geo-assets', role: 'group', 'aria-label': 'Assets in this country' });
-  host.append(h('div', { class: 'geo-ui' }, toggle, chips), row);
+  if (toggleAfter) { toggleAfter.after(toggle); host.append(h('div', { class: 'geo-ui' }, chips), row); } else host.append(h('div', { class: 'geo-ui' }, toggle, chips), row);
 
   const countryOf = id => byId(id)?.country;
   function build() {
@@ -158,7 +158,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
     build(); onChange(st.mode, st.cc);
   }
   return {
-    mode: () => st.mode, country: () => st.cc,
+    mode: () => st.mode, country: () => st.cc, toggle,
     /** Call after the selection or the filter changed from outside. */
     sync() {
       if (st.mode === 'country') {
@@ -194,7 +194,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
 
   const globe = createGlobe($('hero-map'), { assets: ASSETS, icons: ICON, selectedId: state.sel, startLon: -88, tilt: 24, countryPadV: 70,
     label: 'Rotating 3D globe of sample assets', onSelect: id => select(id, true) });
-  const geo = attachGeo($('hero-map'), globe, { visible: scope, selected: () => state.sel, onPick: (id, f) => select(id, f), onChange: () => { renderMap(); } });
+  const geo = attachGeo($('hero-map'), globe, { visible: scope, selected: () => state.sel, onPick: (id, f) => select(id, f), onChange: () => { renderMap(); }, toggleAfter: $('view-title') });
   const mapScope = () => scope().filter(a => !geo.country() || a.country === geo.country());
 
   function select(id, focus) {
@@ -214,7 +214,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
     clear($('app-filter')).append(...Object.entries(GROUPS).map(([k, g]) => h('button', { type: 'button', class: state.group === k ? 'on' : '', 'aria-pressed': String(state.group === k), onclick: () => setGroup(k) }, g.label)));
   }
   function setView(v) {
-    state.view = v;
+    state.view = v; geo.toggle.hidden = v !== 'map';
     for (const [k, el] of Object.entries(views)) el.hidden = k !== v;
     $('app-url').textContent = `atlas.app / portfolio / ${v}`;
     $('view-title').textContent = NAV.find(n => n[0] === v)[1];
