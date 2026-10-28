@@ -463,21 +463,36 @@ function flowChart(host) {
   const fRead = h('div', { class: 'fc-read', 'aria-live': 'off' }), fHost = h('div', { class: 'chart-host' });
   const net = WESTLAKE_INCOME.map((v, i) => v - WESTLAKE_EXPENSES[i]);
   const fDefault = () => fRead.replaceChildren(h('b', {}, money(a.noi)), h('span', { class: 'when' }, 'Net operating income · last 12 months'));
+  let fMode = 'columns';
+  const fPills = h('div', { class: 'fc-pills', role: 'group', 'aria-label': 'Chart type' },
+    ...[['columns', 'Columns'], ['lines', 'Lines']].map(([k, l]) => h('button', { type: 'button', 'data-k': k, 'aria-pressed': String(k === fMode), onclick: () => {
+      fMode = k; [...fPills.children].forEach(x => x.setAttribute('aria-pressed', String(x.dataset.k === k))); drawFlow();
+    } }, l)));
   function drawFlow() {
     clear(fHost);
     const W = 640, H = 250, m = { t: 16, r: 12, b: 28, l: 50 };
     const max = Math.max(...WESTLAKE_INCOME, ...WESTLAKE_EXPENSES) * 1.1, Y = v => H - m.b - (v / max) * (H - m.t - m.b);
-    const slot = (W - m.l - m.r) / 12, bw = slot * 0.3;
-    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'fc', role: 'img',
-      'aria-label': `Monthly rental income versus operating expenses. Income is ${money(WESTLAKE_INCOME[0])} each month; expenses range from ${money(Math.min(...WESTLAKE_EXPENSES))} to ${money(Math.max(...WESTLAKE_EXPENSES))}.` });
+    const slot = (W - m.l - m.r) / 12, bw = slot * 0.3, lines = fMode === 'lines';
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'fc' + (lines ? ' lines' : ''), role: 'img',
+      'aria-label': `Monthly rental income versus operating expenses. Income is ${money(WESTLAKE_INCOME[0])} each month; expenses range from ${money(Math.min(...WESTLAKE_EXPENSES))} to ${money(Math.max(...WESTLAKE_EXPENSES))}.` },
+      s('defs', {}, s('linearGradient', { id: 'fcg2', x1: 0, y1: 0, x2: 0, y2: 1 }, s('stop', { offset: '0', 'stop-color': '#2563EB', 'stop-opacity': '.22' }), s('stop', { offset: '1', 'stop-color': '#2563EB', 'stop-opacity': '0' }))));
     [0, 1, 2, 3].forEach(i => { const v = (max * i) / 3; svg.append(s('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: 'gl' }), s('text', { x: m.l - 8, y: Y(v) + 4, class: 'ax', 'text-anchor': 'end' }, compact(v))); });
+    const cx = i => m.l + slot * i + slot / 2;
+    if (lines) {
+      const path = arr => arr.map((v, i) => `${i ? 'L' : 'M'}${cx(i).toFixed(1)} ${Y(v).toFixed(1)}`).join('');
+      svg.append(
+        s('path', { d: `${path(WESTLAKE_INCOME)}L${cx(11)} ${H - m.b}L${cx(0)} ${H - m.b}Z`, class: 'ar', style: 'fill:url(#fcg2)' }),
+        s('path', { d: path(WESTLAKE_EXPENSES), class: 'ln exp', pathLength: 1 }), s('path', { d: path(WESTLAKE_INCOME), class: 'ln', pathLength: 1 }));
+    }
     const cols = WESTLAKE_MONTHS.map((mo, i) => {
-      const cx = m.l + slot * i + slot / 2;
+      const x = cx(i);
       const g = s('g', { class: 'col', style: `--i:${i}` },
-        s('rect', { x: cx - slot / 2, y: m.t, width: slot, height: H - m.t - m.b, rx: 8, class: 'hl' }),
-        s('rect', { x: cx - bw - 1, y: Y(WESTLAKE_INCOME[i]), width: bw, height: H - m.b - Y(WESTLAKE_INCOME[i]), rx: 3, class: 'b-inc' }),
-        s('rect', { x: cx + 1, y: Y(WESTLAKE_EXPENSES[i]), width: bw, height: H - m.b - Y(WESTLAKE_EXPENSES[i]), rx: 3, class: 'b-exp' }),
-        s('text', { x: cx, y: H - 8, class: 'ax', 'text-anchor': 'middle' }, mo));
+        s('rect', { x: x - slot / 2, y: m.t, width: slot, height: H - m.t - m.b, rx: 8, class: 'hl' }),
+        ...(lines
+          ? [s('circle', { cx: x, cy: Y(WESTLAKE_EXPENSES[i]), r: 3.4, class: 'dt g', style: `--d:${0.5 + i * 0.06}s` }), s('circle', { cx: x, cy: Y(WESTLAKE_INCOME[i]), r: 3.4, class: 'dt', style: `--d:${0.55 + i * 0.06}s` })]
+          : [s('rect', { x: x - bw - 1, y: Y(WESTLAKE_INCOME[i]), width: bw, height: H - m.b - Y(WESTLAKE_INCOME[i]), rx: 3, class: 'b-inc' }),
+             s('rect', { x: x + 1, y: Y(WESTLAKE_EXPENSES[i]), width: bw, height: H - m.b - Y(WESTLAKE_EXPENSES[i]), rx: 3, class: 'b-exp' })]),
+        s('text', { x, y: H - 8, class: 'ax', 'text-anchor': 'middle' }, mo));
       const on = () => {
         cols.forEach(c => c.classList.toggle('on', c === g)); svg.classList.add('hovering');
         fRead.replaceChildren(h('b', {}, money(net[i])), h('span', { class: 'when' }, `${mo} · income ${money(WESTLAKE_INCOME[i])} · expenses ${money(WESTLAKE_EXPENSES[i])}`));
@@ -496,7 +511,7 @@ function flowChart(host) {
     h('div', { class: 'charts' },
       h('div', { class: 'chart-card' }, h('div', { class: 'chart-t' }, h('div', {}, h('b', {}, 'Estimated value'), vSpan), pills), vRead, vHost),
       h('div', { class: 'chart-card' }, h('div', { class: 'chart-t' }, h('div', {}, h('b', {}, 'Income vs. expenses'), h('span', {}, 'Oct – Sep')),
-        h('span', { class: 'legend' }, h('span', {}, h('i', { class: 'li-inc' }), 'Income'), h('span', {}, h('i', { class: 'li-exp' }), 'Expenses'))), fRead, fHost)));
+        h('div', { class: 'chart-ctl' }, h('span', { class: 'legend' }, h('span', {}, h('i', { class: 'li-inc' }), 'Income'), h('span', {}, h('i', { class: 'li-exp' }), 'Expenses')), fPills)), fRead, fHost)));
   drawValue(); drawFlow();
 
   const run = () => {

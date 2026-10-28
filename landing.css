@@ -698,3 +698,13 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 @media (prefers-reduced-motion: reduce) { .more-wrap, .collection-more .col-card { transition: none !important; } }
 .tile b .delta > span[aria-hidden] { font-size: .5em; color: inherit; }
 #more-btn::after { content: none; }
+
+/* ===== Income vs. expenses: columns / lines ===== */
+.chart-ctl { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.fc .ln.exp { stroke: #94A3B8; filter: drop-shadow(0 5px 6px rgba(100,116,139,.28)); animation-delay: .15s; }
+.fc .dt.g { stroke: #94A3B8; }
+.fc.lines .dt { animation-fill-mode: backwards; transition: transform .35s cubic-bezier(.22,1,.36,1); }
+.fc.lines .col.on .dt { transform: scale(1.7); }
+.fc.lines .ar { animation-delay: .7s; }
+.js .fin:not(.play) .fc.lines .ln { stroke-dashoffset: 1; }
+.chart-ctl .legend { font-size: 13px; color: var(--text-3); }
