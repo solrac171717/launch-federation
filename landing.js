@@ -186,7 +186,7 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
     ['perf', 'Performance', 'M2 13l4-5 3 3 5-7'],
     ['reports', 'Reports', 'M4 2h6l3 3v9H4zM10 2v3h3'],
   ];
-  const state = { view: 'map', group: 'all', sel: 'austin', sort: { key: 'value', dir: -1 } };
+  const state = { view: 'map', group: 'all', sel: 'austin', sort: { key: 'value', dir: -1 }, q: '' };
   const $ = id => document.getElementById(id);
   const scope = () => ASSETS.filter(a => !GROUPS[state.group].cats || GROUPS[state.group].cats.includes(a.category));
   const historyFor = a => (a.id === 'austin' ? WESTLAKE_VALUATIONS : null);
@@ -259,34 +259,69 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
   /* ASSETS view */
   function renderAssets() {
     const host = clear(views.assets), sc = scope(), k = state.sort.key, d = state.sort.dir;
-    const val = { name: a => a.name, place: a => a.place, value: a => a.value, chg: a => a.appreciationPct, status: a => a.status };
-    const rows = [...sc].sort((x, y) => (val[k](x) > val[k](y) ? 1 : val[k](x) < val[k](y) ? -1 : 0) * d);
+    const total = sc.reduce((n, x) => n + x.value, 0) || 1, maxAbs = Math.max(...sc.map(x => Math.abs(x.appreciationPct)), 0.0001);
+    const val = { name: a => a.name, place: a => a.place, value: a => a.value, share: a => a.value, chg: a => a.appreciationPct, status: a => a.status };
     const th = (key, label, cls = '') => h('th', { class: cls, 'aria-sort': k === key ? (d > 0 ? 'ascending' : 'descending') : 'none' },
-      h('button', { type: 'button', onclick: () => { state.sort = { key, dir: k === key ? -d : (key === 'name' || key === 'place' ? 1 : -1) }; renderAssets(); } }, label, k === key ? (d > 0 ? ' ↑' : ' ↓') : ''));
-    const a = byId(state.sel);
+      h('button', { type: 'button', onclick: () => { state.sort = { key, dir: k === key ? -d : (key === 'name' || key === 'place' || key === 'status' ? 1 : -1) }; renderAssets(); } }, label, h('span', { class: 'sort', 'aria-hidden': 'true' }, k === key ? (d > 0 ? '↑' : '↓') : '')));
+    const tbody = h('tbody', {}), foot = h('div', { class: 'tbl-foot' }), count = h('span', { class: 'tbl-count' });
+    const draw = () => {
+      const q = state.q.trim().toLowerCase();
+      const rows = sc.filter(x => !q || `${x.name} ${x.place} ${x.kind} ${x.status}`.toLowerCase().includes(q)).sort((x, y) => (val[k](x) > val[k](y) ? 1 : val[k](x) < val[k](y) ? -1 : 0) * d);
+      count.textContent = `${rows.length} of ${sc.length} asset${sc.length === 1 ? '' : 's'}`;
+      tbody.replaceChildren(...(rows.length ? rows.map((r, i) => {
+        const t = tone(r.appreciationPct, 1e-6);
+        return h('tr', { class: r.id === state.sel ? 'on' : '', style: `--i:${Math.min(i, 14)}` },
+          h('td', {}, h('button', { type: 'button', class: 'rowbtn two', 'aria-pressed': String(r.id === state.sel), onclick: () => select(r.id, true) },
+            h('span', { class: 'rico' }, icon(r.category, 17)), h('span', { class: 'rtx' }, h('b', {}, r.name), h("em", {}, r.place)))),
+          h('td', { class: 'r' }, compact(r.value)),
+          h('td', {}, h('span', { class: 'share' }, h('i', { style: `width:${(r.value / total) * 100}%` }), h('b', {}, `${((r.value / total) * 100).toFixed(1)}%`))),
+          h('td', { class: 'r' }, Delta(r.appreciation, fmtPct(r.appreciationPct, { sign: true })), h('span', { class: 'mb', 'aria-hidden': 'true' }, h('i', { class: t, style: `width:${(Math.abs(r.appreciationPct) / maxAbs) * 100}%` }))),
+          h('td', {}, statusDot(r.status)));
+      }) : [h('tr', {}, h('td', { colspan: 5, class: 'none' }, `No assets match “${state.q}”.`))]));
+      const p = rows.length ? portfolio(rows) : null;
+      foot.replaceChildren(h('span', {}, 'Total value ', h('b', {}, p ? money(p.value) : '–')), h('span', {}, 'Gain vs. cost ', p ? Delta(p.appreciation, `${fmtSigned(p.appreciation, { compact: true })} · ${fmtPct(p.appreciationPct, { sign: true })}`) : h('b', {}, '–')));
+    };
+    const search = h('input', { type: 'search', class: 'tbl-search', placeholder: 'Search assets, places, status', 'aria-label': 'Search assets', value: state.q, oninput: e => { state.q = e.target.value; draw(); } });
+    const a = byId(state.sel), share = a.value / total;
     host.append(h('div', { class: 'assets-grid' },
-      h('div', { class: 'tbl-card' }, h('table', { class: 'app-tbl' },
-        h('thead', {}, h('tr', {}, th('name', 'Asset'), th('place', 'Location'), th('value', 'Value', 'r'), th('chg', 'vs. cost', 'r'), th('status', 'Status'))),
-        h('tbody', {}, rows.map(r => h('tr', { class: r.id === state.sel ? 'on' : '' },
-          h('td', {}, h('button', { type: 'button', class: 'rowbtn', 'aria-pressed': String(r.id === state.sel), onclick: () => select(r.id, true) }, icon(r.category, 16), r.name)),
-          h('td', {}, r.place), h('td', { class: 'r' }, compact(r.value)), h('td', { class: 'r' }, Delta(r.appreciation, fmtPct(r.appreciationPct, { sign: true }))), h('td', {}, statusDot(r.status))))))),
+      h('div', { class: 'tbl-card tbl-flex' },
+        h('div', { class: 'tbl-bar' }, h('label', { class: 'tbl-sw' }, s('svg', { viewBox: '0 0 16 16', width: 14, height: 14, 'aria-hidden': 'true' }, s('circle', { cx: 7, cy: 7, r: 4.5, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), s('path', { d: 'M10.5 10.5L14 14', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' })), search), count),
+        h('div', { class: 'tbl-scroll' }, h('table', { class: 'app-tbl' },
+          h('thead', {}, h('tr', {}, th('name', 'Asset'), th('value', 'Value', 'r'), th('share', 'Share'), th('chg', 'vs. cost', 'r'), th('status', 'Status'))), tbody)),
+        foot),
       h('div', { class: 'detail' }, assetCard(a), costVsValue(a),
+        h('div', { class: 'share-card' }, h('div', {}, h('span', {}, 'Share of ' + (state.group === 'all' ? 'portfolio' : GROUPS[state.group].label.toLowerCase())), h('b', {}, `${(share * 100).toFixed(1)}%`)),
+          h('div', { class: 'share-bar' }, h('i', { style: `width:${Math.max(2, share * 100)}%` }))),
         h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => { setView('map'); globe.focus(state.sel); } }, 'Show on map'))));
+    draw();
   }
 
   /* PERFORMANCE view */
   function renderPerf() {
-    const host = clear(views.perf), a = byId(state.sel), sc = scope(), hist = historyFor(a);
+    const host = clear(views.perf), a = byId(state.sel), sc = scope(), p = portfolio(sc), hist = historyFor(a);
     const chart = h('div', { class: 'chart-host' });
     const rank = [...sc].sort((x, y) => y.appreciationPct - x.appreciationPct), mx = Math.max(...rank.map(r => Math.abs(r.appreciationPct)), 0.0001);
-    host.append(h('div', { class: 'perf-grid' },
-      h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, `${a.name} · estimated value`), hist ? h('span', {}, `${hist[0].label} – ${hist.at(-1).label}`) : h('span', {}, 'Sample data')),
-        hist ? chart : h('div', {}, empty('Valuation history not recorded', 'Only one valuation exists for this asset in the sample, so ATLAS shows cost vs. estimated value instead.'), costVsValue(a))),
-      h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, 'Value vs. acquisition cost'), h('span', {}, `${sc.length} asset${sc.length > 1 ? 's' : ''}`)),
-        h('ul', { class: 'rank' }, rank.map(r => { const t = tone(r.appreciationPct, 1e-6);
-          return h('li', { class: r.id === state.sel ? 'on' : '' }, h('button', { type: 'button', onclick: () => select(r.id, true) },
-            h('span', { class: 'rn' }, r.name), h('span', { class: 'rb', 'aria-hidden': 'true' }, h('i', { class: t, style: `width:${(Math.abs(r.appreciationPct) / mx) * 50}%;${r.appreciationPct < 0 ? 'right' : 'left'}:50%` })),
-            h('b', { class: t }, fmtPct(r.appreciationPct, { sign: true })))); })))));
+    const best = rank[0], worst = rank.at(-1), up = rank.filter(r => r.appreciationPct > 0).length, down = rank.filter(r => r.appreciationPct < 0).length;
+    const kpi = (cls, l, v, sub, extra) => h('div', { class: 'pk ' + cls }, h('span', {}, l), h('b', {}, v), h('em', {}, sub), extra);
+    const pick = r => select(r.id, true);
+    host.append(
+      h('div', { class: 'perf-kpis' },
+        kpi('', 'Total return', Delta(p.appreciation, fmtSigned(p.appreciation, { compact: true })), `${fmtPct(p.appreciationPct, { sign: true })} on ${compact(p.cost)} invested`),
+        kpi('click', 'Best performer', h('span', { class: 'pos' }, fmtPct(best.appreciationPct, { sign: true })), best.name, null),
+        kpi('click', 'Weakest performer', h('span', { class: tone(worst.appreciationPct, 1e-6) }, fmtPct(worst.appreciationPct, { sign: true })), worst.name, null),
+        kpi('', 'Winners / losers', `${up} up · ${down} down`, `${sc.length} asset${sc.length === 1 ? '' : 's'} in view`, h('span', { class: 'split', 'aria-hidden': 'true' }, h('i', { class: 'pos', style: `flex:${up || 0.001}` }), h('i', { class: 'neg', style: `flex:${down || 0.001}` })))),
+      h('div', { class: 'perf-grid' },
+        h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('div', {}, h('b', {}, a.name), h('span', {}, 'Estimated value over time')), hist ? h('span', { class: 'rng' }, `${hist[0].label} – ${hist.at(-1).label}`) : h('span', { class: 'rng' }, 'Sample data')),
+          hist ? chart : h('div', {}, empty('Valuation history not recorded', 'Only one valuation exists for this asset in the sample, so ATLAS shows cost vs. estimated value instead.'), costVsValue(a)),
+          h('div', { class: 'pstats' }, h('div', {}, h('span', {}, 'Acquisition cost'), h('b', {}, money(a.cost))), h('div', {}, h('span', {}, 'Estimated value'), h('b', {}, money(a.value))),
+            h('div', {}, h('span', {}, 'Gain vs. cost'), h('b', { class: tone(a.appreciation, 0.5) }, `${fmtSigned(a.appreciation, { compact: true })}`)))),
+        h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('div', {}, h('b', {}, 'Ranking by return'), h('span', {}, `${sc.length} asset${sc.length > 1 ? 's' : ''} · value vs. acquisition cost`))),
+          h('ul', { class: 'rank' }, rank.map((r, i) => { const t = tone(r.appreciationPct, 1e-6), w = (Math.abs(r.appreciationPct) / mx) * 50;
+            return h('li', { class: r.id === state.sel ? 'on' : '', style: `--i:${Math.min(i, 14)}` }, h('button', { type: 'button', onclick: () => pick(r) },
+              h('span', { class: 'rn' }, h('em', { class: 'rk' }, String(i + 1)), r.name),
+              h('span', { class: 'rb', 'aria-hidden': 'true' }, h('i', { class: t, style: `width:${w}%;${r.appreciationPct < 0 ? 'right' : 'left'}:50%` })),
+              h('b', { class: t }, fmtPct(r.appreciationPct, { sign: true })))); })))));
+    host.querySelectorAll('.pk.click').forEach((el, i) => { el.tabIndex = 0; el.setAttribute('role', 'button'); const r = i ? worst : best; el.addEventListener('click', () => pick(r)); el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(r); } }); });
     if (hist) valuationChart(chart, hist, { label: `Estimated value of ${a.name}` });
   }
 
@@ -347,35 +382,44 @@ function attachGeo(host, globe, { visible, selected, onPick, onChange = () => {}
 /* ------------------------------------------------------------- charts */
 function valuationChart(host, series, { label }) {
   clear(host);
-  const W = 640, H = 240, m = { t: 14, r: 16, b: 28, l: 58 };
+  const W = 640, H = 270, m = { t: 16, r: 18, b: 28, l: 58 };
   const ys = series.map(p => p.v);
   let lo = Math.min(...ys), hi = Math.max(...ys);
   const pad = (hi - lo) * 0.15 || hi * 0.05; lo -= pad; hi += pad;
   const X = i => m.l + (series.length === 1 ? 0 : (i / (series.length - 1)) * (W - m.l - m.r));
   const Y = v => H - m.b - ((v - lo) / (hi - lo)) * (H - m.t - m.b);
   const line = series.map((p, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(p.v).toFixed(1)}`).join('');
-  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'lc', role: 'img', tabindex: 0,
-    'aria-label': `${label}: ${series[0].label} ${money(series[0].v)} to ${series.at(-1).label} ${money(series.at(-1).v)}. Use arrow keys to inspect points.` });
+  const read = h('div', { class: 'fc-read' });
+  const setRead = p => read.replaceChildren(h('b', {}, money(p.v)), Delta(p.v - series[0].v, `${fmtPct((p.v - series[0].v) / series[0].v, { sign: true })} since ${series[0].label}`), h('span', { class: 'when' }, p.label));
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'fc', role: 'img', tabindex: 0,
+    'aria-label': `${label}: ${series[0].label} ${money(series[0].v)} to ${series.at(-1).label} ${money(series.at(-1).v)}. Use arrow keys to inspect points.` },
+    s('defs', {}, s('linearGradient', { id: 'fcg-p', x1: 0, y1: 0, x2: 0, y2: 1 }, s('stop', { offset: '0', 'stop-color': '#2563EB', 'stop-opacity': '.26' }), s('stop', { offset: '1', 'stop-color': '#2563EB', 'stop-opacity': '0' }))));
   [0, 1, 2, 3].forEach(i => {
     const v = lo + ((hi - lo) * i) / 3;
     svg.append(s('line', { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: 'gl' }), s('text', { x: m.l - 8, y: Y(v) + 4, class: 'ax', 'text-anchor': 'end' }, compact(v)));
   });
   [0, Math.floor((series.length - 1) / 2), series.length - 1].forEach(i => svg.append(s('text', { x: X(i), y: H - 8, class: 'ax', 'text-anchor': i === 0 ? 'start' : i === series.length - 1 ? 'end' : 'middle' }, series[i].label)));
-  svg.append(s('path', { d: `${line}L${X(series.length - 1)} ${H - m.b}L${X(0)} ${H - m.b}Z`, class: 'ar' }), s('path', { d: line, class: 'ln' }));
-  const dot = s('circle', { r: 5, class: 'pt', visibility: 'hidden' }), tip = h('div', { class: 'tip', hidden: true, role: 'status' });
-  svg.append(dot);
+  svg.append(s('path', { d: `${line}L${X(series.length - 1)} ${H - m.b}L${X(0)} ${H - m.b}Z`, class: 'ar', style: 'fill:url(#fcg-p)' }), s('path', { d: line, class: 'ln', pathLength: 1 }));
+  series.forEach((p, i) => svg.append(s('circle', { cx: X(i), cy: Y(p.v), r: 3.2, class: 'dt', style: `--d:${0.5 + i * 0.07}s` })));
+  const ex = X(series.length - 1), ey = Y(series.at(-1).v);
+  svg.append(s('circle', { cx: ex, cy: ey, r: 6, class: 'ring' }), s('circle', { cx: ex, cy: ey, r: 5.5, class: 'pt' }));
+  const guide = s('line', { y1: m.t, y2: H - m.b, class: 'guide', visibility: 'hidden' }), dot = s('circle', { r: 6.5, class: 'pt hov', visibility: 'hidden' }), tip = h('div', { class: 'tip', hidden: true, role: 'status' });
+  svg.append(guide, dot);
   let idx = series.length - 1;
   const show = i => {
-    idx = Math.max(0, Math.min(series.length - 1, i));
-    dot.setAttribute('cx', X(idx)); dot.setAttribute('cy', Y(series[idx].v)); dot.removeAttribute('visibility');
-    tip.hidden = false; tip.replaceChildren(h('b', {}, money(series[idx].v)), h('span', {}, series[idx].label));
-    tip.style.left = `${Math.min(88, Math.max(12, (X(idx) / W) * 100))}%`;
+    idx = Math.max(0, Math.min(series.length - 1, i)); const p = series[idx];
+    guide.setAttribute('x1', X(idx)); guide.setAttribute('x2', X(idx)); guide.removeAttribute('visibility');
+    dot.setAttribute('cx', X(idx)); dot.setAttribute('cy', Y(p.v)); dot.removeAttribute('visibility');
+    tip.hidden = false; tip.replaceChildren(h('b', {}, money(p.v)), h('span', {}, p.label));
+    tip.style.left = `${Math.min(88, Math.max(12, (X(idx) / W) * 100))}%`; tip.style.top = `${(Y(p.v) / H) * 100 - 14}%`;
+    setRead(p);
   };
-  const hide = () => { dot.setAttribute('visibility', 'hidden'); tip.hidden = true; };
+  const hide = () => { guide.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); tip.hidden = true; setRead(series.at(-1)); };
   svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W; show(Math.round(((px - m.l) / (W - m.l - m.r)) * (series.length - 1))); });
   svg.addEventListener('pointerleave', hide); svg.addEventListener('blur', hide);
   svg.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { e.preventDefault(); show(idx - 1); } else if (e.key === 'ArrowRight') { e.preventDefault(); show(idx + 1); } else if (e.key === 'Escape') hide(); });
-  host.append(svg, tip);
+  setRead(series.at(-1));
+  host.append(read, svg, tip);
 }
 
 function flowChart(host) {
