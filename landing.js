@@ -102,10 +102,6 @@ function sparkline(host, series) {
   const mc = document.getElementById('hero-chart');
   mc.append(h('div', { class: 'mc-h' }, h('span', {}, 'Westlake Residence'), Delta(ch, `${fmtPct(ch / WESTLAKE_VALUATIONS[0].v, { sign: true })} since ${WESTLAKE_VALUATIONS[0].label}`)), h('div', {}));
   sparkline(mc.lastChild, WESTLAKE_VALUATIONS);
-  // floating highlights (computed from the same sample data)
-  const fa = byId('lisbon'), fb = byId('austin');
-  document.getElementById('float-a').append(h('span', { class: 'ac-ico' }, icon(fa.category, 18)), h('div', {}, h('b', {}, fa.name), h('span', {}, fa.place)), Delta(fa.appreciation, fmtPct(fa.appreciationPct, { sign: true })));
-  document.getElementById('float-b').append(h('div', {}, h('span', {}, 'NOI yield'), h('b', {}, pct1(fb.noiYield))), h('em', {}, fb.name));
 }
 
 /* ---------------------------------------------------------- globe section */
