@@ -907,3 +907,15 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 @media (max-width: 620px) { .px-card .px-feats { grid-template-columns: 1fr; } .px-card { border-radius: 30px; } .px-ctl { padding: 18px 14px 16px; } }
 @media (prefers-reduced-motion: reduce) { .px-bubble { transition: none; } .px-glow { animation: none; } }
 .px-card .px-tag { justify-self: center; }
+
+/* ===== Pricing: plan on the left, asset selector beside it ===== */
+.px-card { max-width: 1040px; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; justify-items: stretch; gap: clamp(24px, 4vw, 48px); text-align: left; padding: clamp(26px, 4vw, 48px); }
+.px-main { display: grid; justify-items: start; align-content: start; min-width: 0; }
+.px-side { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.px-card .px-tag, .px-card .px-price { justify-self: start; justify-content: flex-start; }
+.px-card .px-sub { margin-bottom: 0; }
+.px-card .px-sum { margin-top: 0; }
+.px-card .px-inc { margin-top: 24px; }
+.px-card .px-btn { margin-top: 24px; }
+.px-card .px-note { text-align: center; width: 100%; }
+@media (max-width: 900px) { .px-card { grid-template-columns: minmax(0, 1fr); max-width: 640px; } .px-side { position: static; order: -1; } .px-main { order: 0; } }
