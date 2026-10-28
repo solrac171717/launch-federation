@@ -24,7 +24,9 @@ const loadGeo = () => (geoPromise ||= import('../assets/countries.js').then(m =>
  *          label?: string, startLon?: number, tilt?: number, autoRotate?: boolean}} opts
  */
 export function createGlobe(host, opts) {
-  const { assets, icons, onSelect = () => {}, label = 'Rotating 3D globe of asset locations' } = opts;
+  let { assets } = opts;
+  const { icons, onSelect = () => {}, label = 'Rotating 3D globe of asset locations' } = opts;
+  const coords = a => (a.lat != null && a.lon != null ? [a.lat, a.lon] : CITIES[a.id]);
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const canvas = document.createElement('canvas');
   canvas.className = 'globe-canvas';
@@ -184,7 +186,7 @@ export function createGlobe(host, opts) {
     const pulse = (Math.sin((now - t0) / 500) + 1) / 2;
     const items = [];
     for (const a of assets) {
-      const c = CITIES[a.id]; if (!c) continue;
+      const c = coords(a); if (!c) continue;
       const la = c[0] * RAD, p = project(la, c[1] * RAD, Math.cos(la), Math.sin(la), lon0, cosT, sinT);
       if (p[2] > 0.08) items.push({ a, x: cx + R * p[0], y: cy - R * p[1], z: p[2] });
     }
@@ -261,7 +263,7 @@ export function createGlobe(host, opts) {
 
   return {
     focus(id) {
-      const c = CITIES[id]; if (!c || st.locked || st.cam) return;
+      const a = assets.find(x => x.id === id), c = a && coords(a); if (!c || st.locked || st.cam) return;
       st.tLon = c[1]; st.tLat = Math.max(8, Math.min(40, c[0] * 0.55)); st.idleUntil = performance.now() + 6000;
       if (reduceMotion) { st.lon = st.tLon; st.lat = st.tLat; st.tLon = null; frame(performance.now()); }
     },
@@ -274,12 +276,21 @@ export function createGlobe(host, opts) {
         st.cam = { t0: now, dur: 1300, from: { lon: st.lon, lat: st.lat, z: st.zoom }, to: { lon: st.lon, lat: opts.tilt ?? 22, z: 1 }, arc: 0, code: null };
         return;
       }
-      geo = await loadGeo(); const g = geo[code]; if (!g) return;
+      geo = await loadGeo();
+      let g = geo[code];
+      if (!g) { // no outline for this country: still fly to it, framed around its assets
+        const pts = assets.filter(x => x.country === code).map(coords).filter(Boolean);
+        if (!pts.length) return;
+        const la = pts.map(p => p[0]), lo = pts.map(p => p[1]), pad = 2.5;
+        const bb = [Math.min(...lo) - pad, Math.min(...la) - pad, Math.max(...lo) + pad, Math.max(...la) + pad];
+        g = geo[code] = { bbox: bb, center: [(bb[1] + bb[3]) / 2, (bb[0] + bb[2]) / 2], step: 1, rings: [], dots: [] };
+      }
       st.locked = true; st.zFit = fitZoom(g);
       if (reduceMotion) { st.cc = code; st.zoom = st.zFit; st.lon = g.center[1]; st.lat = g.center[0]; frame(now); return; }
       const jump = st.cc && st.cc !== code && st.zoom > 1.2;
       st.cam = { t0: now, dur: jump ? 1500 : 1300, from: { lon: st.lon, lat: st.lat, z: st.zoom }, to: { lon: g.center[1], lat: g.center[0], z: st.zFit }, arc: jump ? 0.7 : 0, code };
     },
+    setAssets(list) { assets = list; if (reduceMotion) frame(performance.now()); },
     setSelected(id) { st.selected = id; if (reduceMotion) frame(performance.now()); },
     setFilter(cat) { st.filter = cat ? [].concat(cat) : null; if (reduceMotion) frame(performance.now()); },
     destroy() { cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); canvas.remove(); },

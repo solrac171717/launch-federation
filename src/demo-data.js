@@ -1,6 +1,11 @@
-// Illustrative sample portfolio used by the marketing site's product previews.
+// Illustrative sample portfolio used by the marketing site's product previews and the app's "load sample data".
 // It is NOT customer data. Every derived figure (NOI, yield, totals) is computed here,
 // so related numbers on the page can never disagree with each other.
+
+import { enrich, portfolio as portfolioOf, allocation as allocationOf } from './portfolio.js';
+import { CATEGORIES } from './types.js';
+import { COUNTRIES } from './places.js';
+export { CATEGORIES, COUNTRIES };
 
 export const CITIES = {
   austin: [30.27, -97.74], miami: [25.76, -80.19], chicago: [41.88, -87.63], seattle: [47.61, -122.33],
@@ -9,15 +14,6 @@ export const CITIES = {
   columbus: [39.96, -83.0], moab: [38.57, -109.55], sturgis: [44.41, -103.51], newport: [41.49, -71.31], keywest: [24.56, -81.78],
 };
 
-export const CATEGORIES = {
-  residential: 'Residential',
-  commercial: 'Commercial',
-  land: 'Land',
-  vehicle: 'Vehicles',
-  vessel: 'Vessels',
-  aircraft: 'Aircraft',
-  equipment: 'Equipment',
-};
 
 // Monthly operating figures for the featured asset (Westlake Residence), Oct 2025 – Sep 2026.
 export const WESTLAKE_MONTHS = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'];
@@ -70,49 +66,26 @@ const RAW = [
 
 export const VALUATION_DATE = 'Sep 30, 2026';
 
-export const COUNTRIES = {
-  US: { name: 'United States' },
-  GB: { name: 'United Kingdom' },
-  PT: { name: 'Portugal' },
-};
+const TYPE_OF = { austin: 'house', miami: 'house', chicago: 'house', london: 'office', seattle: 'land', denver: 'equipment', scottsdale: 'car', nashville: 'truck',
+  teterboro: 'aircraft', lisbon: 'yacht', boston: 'parking', columbus: 'warehouse', moab: 'rv', sturgis: 'motorcycle', newport: 'sailboat', keywest: 'jetski' };
 const COUNTRY_OF = { london: 'GB', lisbon: 'PT' };
 
-export const ASSETS = RAW.map(a => {
-  const noi = a.gross - a.expenses;
-  const earning = a.gross > 0;
-  return {
-    ...a,
-    country: COUNTRY_OF[a.id] || 'US',
-    noi,
-    earning,
-    appreciation: a.value - a.cost,
-    appreciationPct: (a.value - a.cost) / a.cost,
-    grossYield: earning ? a.gross / a.value : null,
-    noiYield: earning ? noi / a.value : null,
-  };
-});
+export const ASSETS = RAW.map(a => ({
+  ...enrich(a),
+  country: COUNTRY_OF[a.id] || 'US',
+  type: TYPE_OF[a.id],
+  lat: CITIES[a.id][0], lon: CITIES[a.id][1],
+  series: a.id === 'austin' ? WESTLAKE_VALUATIONS : null,
+}));
 
-export function portfolio(assets = ASSETS) {
-  const value = sum(assets.map(a => a.value));
-  const cost = sum(assets.map(a => a.cost));
-  const earning = assets.filter(a => a.earning);
-  const noi = sum(earning.map(a => a.noi));
-  const earningValue = sum(earning.map(a => a.value));
-  return {
-    value, cost, noi, count: assets.length,
-    appreciation: value - cost,
-    appreciationPct: (value - cost) / cost,
-    // NOI divided by the estimated value of the income-producing assets only.
-    noiYield: earningValue > 0 ? noi / earningValue : null,
-    earningCount: earning.length,
-  };
-}
-
-export function allocation(assets = ASSETS) {
-  const total = sum(assets.map(a => a.value));
-  const m = new Map();
-  for (const a of assets) m.set(a.category, (m.get(a.category) || 0) + a.value);
-  return [...m].map(([key, value]) => ({ key, value, share: value / total })).sort((a, b) => b.value - a.value);
-}
-
+export const portfolio = (assets = ASSETS) => portfolioOf(assets);
+export const allocation = (assets = ASSETS) => allocationOf(assets);
 export const byId = id => ASSETS.find(a => a.id === id);
+
+const MONTH_NUM = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+/** The sample portfolio as storable rows (used by the app's "Load sample data"). */
+export const sampleRows = (today = new Date().toISOString().slice(0, 10)) => ASSETS.map(a => ({
+  name: a.name, type: a.type, place: a.place, country: a.country, lat: a.lat, lon: a.lon, value: a.value, cost: a.cost, gross: a.gross, expenses: a.expenses,
+  status: a.status, acquiredOn: null, notes: null, isSample: true,
+  history: a.series ? a.series.map(p => { const [m, y] = p.label.split(' '); return { d: `${y}-${MONTH_NUM[m]}-01`, v: p.v }; }) : [{ d: today, v: a.value }],
+}));

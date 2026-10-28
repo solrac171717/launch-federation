@@ -9,8 +9,22 @@ const all = feature(topo, topo.objects.countries).features;
 // numeric ISO 3166-1 -> window that keeps the mainland (drops far-flung islands)
 const WANT = {
   US: { id: '840', win: [-125.5, 24, -66, 49.8] },
+  CA: { id: '124', win: [-141, 41.5, -52, 70] },
+  MX: { id: '484', win: [-118.5, 14.4, -86.5, 32.8] },
+  BR: { id: '076', win: [-74, -34, -34, 5.5] },
   GB: { id: '826', win: [-8.8, 49.7, 2, 59] },
+  IE: { id: '372', win: [-10.7, 51.3, -5.9, 55.5] },
   PT: { id: '620', win: [-9.7, 36.8, -6.1, 42.2] },
+  ES: { id: '724', win: [-9.5, 35.9, 4.5, 43.9] },
+  FR: { id: '250', win: [-5.5, 41, 9.7, 51.2] },
+  DE: { id: '276', win: [5.8, 47.2, 15.1, 55.1] },
+  IT: { id: '380', win: [6.6, 36.6, 18.6, 47.1] },
+  NL: { id: '528', win: [3.2, 50.7, 7.3, 53.6] },
+  CH: { id: '756', win: [5.9, 45.8, 10.6, 47.9] },
+  AE: { id: '784', win: [51.5, 22.5, 56.5, 26.2] },
+  AU: { id: '036', win: [112, -44, 154, -10] },
+  NZ: { id: '554', win: [166, -47.5, 179, -34] },
+  JP: { id: '392', win: [129, 31, 146, 45.6] },
 };
 const RAD = Math.PI / 180;
 const out = {};
@@ -26,7 +40,7 @@ for (const [code, { id, win }] of Object.entries(WANT)) {
   const thin = (ring, min) => { const r = [ring[0]]; for (const c of ring) { const l = r.at(-1); if (Math.hypot(c[0] - l[0], c[1] - l[1]) >= min) r.push(c); } return r; };
   const rings = keep.flatMap(p => p.map(r => thin(r, 0.035).flat().map(v => +v.toFixed(2)))).filter(r => r.length >= 8);
   const area = (e - w) * (n - s);
-  const step = Math.sqrt(area / 4500) * 0.9;
+  const step = Math.sqrt(area / 3200) * 0.9;
   const dots = []; let row = 0;
   for (let la = s + step / 2; la <= n; la += step * 0.866, row++) {
     const dx = step / Math.max(0.2, Math.cos(la * RAD));
