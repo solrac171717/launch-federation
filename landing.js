@@ -332,42 +332,11 @@ function flowChart(host) {
 
 /* ---------------------------------------------------------- collection */
 {
-  const stroke = { stroke: '#0B1736', 'stroke-width': 2.5, 'stroke-linejoin': 'round' };
-  const wheel = (cx, cy, r) => s('g', {}, s('circle', { cx, cy, r, fill: '#0B1736' }), s('circle', { cx, cy, r: r * 0.42, fill: '#fff' }));
-  const ART = {
-    residential: () => [
-      s('path', { d: 'M70 196V106l90-52 90 52v90z', fill: '#fff', ...stroke }),
-      s('path', { d: 'M52 114L160 52l108 62', fill: 'none', stroke: '#2563EB', 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-      s('path', { d: 'M250 196v-66h80v66', fill: '#fff', ...stroke }), s('path', { d: 'M240 130l50-30 50 30', fill: 'none', stroke: '#2563EB', 'stroke-width': 4, 'stroke-linecap': 'round' }),
-      s('rect', { x: 128, y: 140, width: 34, height: 56, fill: '#BFDBFE', ...stroke }),
-      s('rect', { x: 90, y: 114, width: 26, height: 26, fill: '#DBEAFE', ...stroke }), s('rect', { x: 188, y: 114, width: 26, height: 26, fill: '#DBEAFE', ...stroke }),
-      s('rect', { x: 262, y: 148, width: 24, height: 24, fill: '#DBEAFE', ...stroke })],
-    car: () => [
-      s('path', { d: 'M44 186l14-30q8-16 30-20l56-8q26-24 62-24h48q32 4 48 30l34 12q16 6 16 22v18z', fill: '#fff', ...stroke }),
-      s('path', { d: 'M170 130q22-18 50-18h40q22 4 34 24z', fill: '#BFDBFE', ...stroke, 'stroke-width': 2 }),
-      s('path', { d: 'M60 160h282', stroke: '#2563EB', 'stroke-width': 4, 'stroke-linecap': 'round' }), wheel(110, 190, 25), wheel(296, 190, 25)],
-    truck: () => [
-      s('rect', { x: 170, y: 76, width: 200, height: 104, rx: 5, fill: '#fff', ...stroke }), s('rect', { x: 170, y: 122, width: 200, height: 14, fill: '#2563EB' }),
-      s('path', { d: 'M44 190V112q0-14 14-14h58l26 34h16v58z', fill: '#fff', ...stroke }), s('path', { d: 'M96 108h22l16 24H96z', fill: '#BFDBFE', ...stroke, 'stroke-width': 2 }),
-      wheel(84, 194, 20), wheel(214, 194, 20), wheel(306, 194, 20)],
-    vessel: () => [
-      s('path', { d: 'M110 170v-30h170l34 30z', fill: '#fff', ...stroke }), s('path', { d: 'M150 140v-28h96l24 28z', fill: '#fff', ...stroke }),
-      s('path', { d: 'M164 130v-12h74l10 12z', fill: '#BFDBFE' }), s('path', { d: 'M28 170h344l-34 38H70z', fill: '#0B1736' }), s('path', { d: 'M52 182h296', stroke: '#2563EB', 'stroke-width': 3 }),
-      s('path', { d: 'M20 218q20-10 40 0t40 0 40 0 40 0 40 0 40 0 40 0 40 0', fill: 'none', stroke: '#93C5FD', 'stroke-width': 3, 'stroke-linecap': 'round' })],
-    aircraft: () => [
-      s('path', { d: 'M30 150q30-24 100-24h170q54 2 72 24-18 24-72 26H130q-70 0-100-26z', fill: '#fff', ...stroke }),
-      s('path', { d: 'M62 138L44 84h46l34 50z', fill: '#2563EB', ...stroke }), s('path', { d: 'M196 156l56 46h24l-34-46z', fill: '#DBEAFE', ...stroke }),
-      s('ellipse', { cx: 112, cy: 122, rx: 28, ry: 9, fill: '#fff', ...stroke }), s('path', { d: 'M318 142q22 0 40 8-18 4-40 4z', fill: '#BFDBFE' }),
-      ...[170, 200, 230, 260].map(x => s('rect', { x, y: 138, width: 14, height: 10, rx: 3, fill: '#BFDBFE', stroke: '#0B1736', 'stroke-width': 1.5 }))],
-  };
+  const IMG = { residential: ['house', 626, 501], car: ['porsche', 1000, 800], truck: ['truck', 1000, 800], vessel: ['yacht', 1000, 800], aircraft: ['jet', 1000, 800] };
   const picks = [['austin', 'residential', 'lg'], ['scottsdale', 'car', ''], ['nashville', 'truck', ''], ['lisbon', 'vessel', ''], ['teterboro', 'aircraft', '']];
   clear(document.getElementById('collection')).append(...picks.map(([id, art, size]) => {
-    const a = byId(id), ground = art !== 'vessel' && art !== 'aircraft';
-    const svg = s('svg', { viewBox: '0 0 400 260', preserveAspectRatio: 'xMidYMid slice', class: 'art', role: 'img', 'aria-label': `Illustration of ${a.kind.toLowerCase()}` },
-      s('defs', {}, s('linearGradient', { id: 'bg-' + id, x1: 0, y1: 0, x2: 0, y2: 1 }, s('stop', { offset: '0', 'stop-color': '#F3F8FF' }), s('stop', { offset: '1', 'stop-color': '#DBEAFE' }))),
-      s('rect', { width: 400, height: 260, fill: `url(#bg-${id})` }),
-      ground && s('path', { d: 'M0 214h400v46H0z', fill: '#CFE0FA' }), ground && s('path', { d: 'M14 214h372', stroke: '#0B1736', 'stroke-width': 2 }),
-      ...ART[art]());
+    const a = byId(id), [file, w, hgt] = IMG[art];
+    const svg = h('img', { class: 'art', src: `assets/collection/${file}.jpg`, width: w, height: hgt, loading: 'lazy', decoding: 'async', alt: `${a.name}, ${a.kind.toLowerCase()} (illustrative image)` });
     return h('li', { class: 'col-card ' + size }, svg,
       h('div', { class: 'col-meta' }, h('div', {}, h('b', {}, a.name), h('span', {}, a.place)), h('div', { class: 'col-val' }, h('b', {}, compact(a.value)), Delta(a.appreciation, fmtPct(a.appreciationPct, { sign: true })))));
   }));
