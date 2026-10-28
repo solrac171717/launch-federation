@@ -404,17 +404,8 @@ function flowChart(host) {
   const num = (to, fmt) => { const el = h('span', { class: 'num' }, fmt(to)); counters.push({ el, to, fmt }); return el; };
   const tile = (label, value, sub, cls = '', extra) => h('div', { class: 'tile ' + cls }, extra, h('span', {}, label), h('b', {}, value), sub && h('em', {}, sub));
 
-  const spark = (() => {
-    const W = 160, H = 54, ys = WESTLAKE_VALUATIONS.map(p => p.v), lo = Math.min(...ys), hi = Math.max(...ys);
-    const pts = ys.map((v, i) => [(i / (ys.length - 1)) * W, H - 6 - ((v - lo) / (hi - lo)) * (H - 14)]);
-    const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('');
-    return h('div', { class: 'tile-spark', 'aria-hidden': 'true' },
-      s('svg', { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' }, s('path', { d: `${d}L${W} ${H}L0 ${H}Z`, class: 'ts-ar' }), s('path', { d, class: 'ts-ln', pathLength: 1 })),
-      h('i', { class: 'ts-end', style: `top:${((pts.at(-1)[1] / H) * 100).toFixed(1)}%` }));
-  })();
-
   const tiles = h('div', { class: 'tiles' },
-    tile('Estimated value', num(a.value, v => money(Math.round(v))), `Valued ${TODAY}`, 'dark', spark),
+    tile('Estimated value', num(a.value, v => money(Math.round(v))), `Valued ${TODAY}`, 'dark'),
     tile('Appreciation', Delta(a.appreciation, num(a.appreciation, v => fmtSigned(v))), h('span', {}, num(a.appreciationPct, v => fmtPct(v, { sign: true })), ` vs. ${money(a.cost)} cost`)),
     tile('Rental income', num(a.gross, v => money(Math.round(v))), 'Last 12 months'),
     tile('Operating expenses', num(a.expenses, v => money(Math.round(v))), 'Last 12 months'),
@@ -525,14 +516,27 @@ function flowChart(host) {
 
 /* ---------------------------------------------------------- collection */
 {
-  const IMG = { residential: ['house', 626, 501], car: ['porsche', 1000, 800], truck: ['truck', 1000, 800], vessel: ['yacht', 1000, 800], aircraft: ['jet', 1000, 800] };
-  const picks = [['austin', 'residential', 'lg'], ['scottsdale', 'car', ''], ['nashville', 'truck', ''], ['lisbon', 'vessel', ''], ['teterboro', 'aircraft', '']];
-  clear(document.getElementById('collection')).append(...picks.map(([id, art, size]) => {
+  const IMG = {
+    residential: ['house', 626, 501], car: ['porsche', 1000, 800], truck: ['truck', 1000, 800], vessel: ['yacht', 1000, 800], aircraft: ['jet', 1000, 800],
+    land: ['land', 1000, 800], commercial: ['commercial', 1000, 800], parking: ['parking', 1000, 800],
+  };
+  const card = ([id, art, size], i) => {
     const a = byId(id), [file, w, hgt] = IMG[art];
-    const svg = h('img', { class: 'art', src: `assets/collection/${file}.jpg`, width: w, height: hgt, loading: 'lazy', decoding: 'async', alt: `${a.name}, ${a.kind.toLowerCase()} (illustrative image)` });
-    return h('li', { class: 'col-card ' + size }, svg,
+    const img = h('img', { class: 'art', src: `assets/collection/${file}.jpg`, width: w, height: hgt, loading: 'lazy', decoding: 'async', alt: `${a.name}, ${a.kind.toLowerCase()} (illustrative image)` });
+    return h('li', { class: 'col-card ' + size, style: `--i:${i}` }, img,
       h('div', { class: 'col-meta' }, h('div', {}, h('b', {}, a.name), h('span', {}, a.place)), h('div', { class: 'col-val' }, h('b', {}, compact(a.value)), Delta(a.appreciation, fmtPct(a.appreciationPct, { sign: true })))));
-  }));
+  };
+  clear(document.getElementById('collection')).append(...[['austin', 'residential', 'lg'], ['scottsdale', 'car', ''], ['nashville', 'truck', ''], ['lisbon', 'vessel', ''], ['teterboro', 'aircraft', '']].map(card));
+  const more = [['seattle', 'land', ''], ['london', 'commercial', ''], ['boston', 'parking', '']];
+  clear(document.getElementById('collection-more')).append(...more.map(card));
+  const btn = document.getElementById('more-btn'), wrap = document.getElementById('more-wrap'), label = btn.querySelector('span');
+  const preload = () => more.forEach(([, art]) => { new Image().src = `assets/collection/${IMG[art][0]}.jpg`; });
+  btn.addEventListener('pointerenter', preload, { once: true }); btn.addEventListener('focus', preload, { once: true });
+  btn.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', String(open)); wrap.classList.toggle('open', open); label.textContent = open ? 'View less' : 'View more';
+    analytics.track('collection_view_more', { open });
+  });
 }
 
 /* ------------------------------------------------------------- reports */

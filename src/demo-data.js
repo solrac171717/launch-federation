@@ -5,7 +5,7 @@
 export const CITIES = {
   austin: [30.27, -97.74], miami: [25.76, -80.19], chicago: [41.88, -87.63], seattle: [47.61, -122.33],
   denver: [39.74, -104.99], nashville: [36.16, -86.78], teterboro: [40.85, -74.06],
-  lisbon: [38.72, -9.14], london: [51.51, -0.13], scottsdale: [33.49, -111.93],
+  lisbon: [38.72, -9.14], london: [51.51, -0.13], scottsdale: [33.49, -111.93], boston: [42.36, -71.06],
 };
 
 export const CATEGORIES = {
@@ -51,6 +51,8 @@ const RAW = [
     value: 98000, cost: 124000, gross: 0, expenses: 5200, status: 'In service' },
   { id: 'teterboro', name: 'Citation M2', place: 'Teterboro, NJ', category: 'aircraft', kind: 'Light jet',
     value: 3150000, cost: 3400000, gross: 0, expenses: 148000, status: 'Hangared' },
+  { id: 'boston', name: 'Back Bay Parking Space', place: 'Boston, MA', category: 'commercial', kind: 'Parking space',
+    value: 74000, cost: 62000, gross: 7200, expenses: 1150, status: 'Leased' },
   { id: 'lisbon', name: 'Sea Atlas 52', place: 'Lisbon, PT', category: 'vessel', kind: 'Motor yacht',
     value: 1120000, cost: 980000, gross: 0, expenses: 38500, status: 'Moored' },
 ];
