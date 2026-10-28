@@ -499,3 +499,18 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 .app { min-height: 560px; }
 .device figcaption { padding-top: 16px; }
 @container (max-width: 980px) { .seg-mini { display: flex; width: 100%; justify-content: flex-start; } }
+
+/* Reports: more compact documents */
+.doc { zoom: .76; }
+.rep-stage { width: min(960px, 100%); padding: 4px 0 18px; }
+.reports { gap: 20px; }
+.doc-xls { margin-top: 36px; margin-left: 20px; }
+@media (min-width: 1001px) and (max-width: 1230px) {
+  .rep-stage { flex-direction: row; align-items: flex-start; }
+  .doc-pdf { width: 480px; } .doc-xls { width: 660px; margin: 36px 0 0 20px; }
+  .rep-stage[data-front="pdf"] .doc-xls, .rep-stage[data-front="xlsx"] .doc-pdf { display: block; }
+  .rep-stage[data-front="pdf"] .doc-pdf { transform: rotate(0deg) translateY(-10px) scale(1.01) !important; }
+  .rep-stage[data-front="xlsx"] .doc-xls { transform: rotate(0deg) translateY(-16px) scale(1.02) !important; }
+}
+@media (max-width: 1000px) { .doc { zoom: .9; } .rep-stage { width: min(560px, 100%); } }
+@media (max-width: 620px) { .doc { zoom: 1; } }
