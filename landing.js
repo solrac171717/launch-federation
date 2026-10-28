@@ -470,7 +470,7 @@ function flowChart(host) {
 
   const pdf = h('div', { class: 'doc doc-pdf', role: 'img', 'aria-label': 'Preview of a portfolio summary report page with sample data' },
     h('div', { class: 'pp-top' }, h('div', { class: 'pp-brand' }, h('i', {}), 'ATLAS'), h('span', {}, 'Portfolio summary')),
-    h('div', { class: 'pp-title' }, h('b', {}, 'Quarterly portfolio report'), h('span', {}, `As of ${VALUATION_DATE} · USD · sample data`)),
+    h('div', { class: 'pp-title' }, h('b', {}, 'Monthly portfolio report'), h('span', {}, `As of ${VALUATION_DATE} · USD · sample data`)),
     h('div', { class: 'pp-kpis' },
       h('div', {}, h('em', {}, 'Portfolio value'), h('b', {}, compact(P.value)), Delta(P.appreciation, fmtPct(P.appreciationPct, { sign: true }))),
       h('div', {}, h('em', {}, 'Acquisition cost'), h('b', {}, compact(P.cost)), h('small', {}, `${P.count} assets`)),
