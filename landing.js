@@ -358,18 +358,17 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'atlas-sample-a
   const BASE = 47, INCLUDED = 3, EXTRA = 15;
   const range = document.getElementById('px-range');
   if (range) {
-    const total = document.getElementById('px-total'), count = document.getElementById('px-count'), extra = document.getElementById('px-extra'), extraN = document.getElementById('px-extra-n'), extraV = document.getElementById('px-extra-v');
+    const total = document.getElementById('px-total'), count = document.getElementById('px-count');
     const mqr = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let shown = BASE, raf = 0;
     const price = n => BASE + Math.max(0, n - INCLUDED) * EXTRA;
     const paint = v => { total.textContent = USD0.format(Math.round(v)); };
     const update = () => {
-      const n = +range.value, p = price(n), more = Math.max(0, n - INCLUDED);
+      const n = +range.value, p = price(n);
       const pct = ((n - range.min) / (range.max - range.min)) * 100; range.style.setProperty('--p', `${pct}%`);
       const bub = document.getElementById('px-bubble'); bub.style.setProperty('--q', pct.toFixed(2)); bub.textContent = String(n);
       range.setAttribute('aria-valuetext', `${n} assets, ${USD0.format(p)} per month`);
       count.textContent = String(n); document.getElementById('px-feat-n').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
-      extra.hidden = more === 0; extraN.textContent = `${more} extra asset${more === 1 ? '' : 's'} × ${USD0.format(EXTRA)}`; extraV.textContent = `+${USD0.format(more * EXTRA)}`;
       cancelAnimationFrame(raf);
       if (mqr) { shown = p; paint(p); return; }
       const from = shown, t0 = performance.now();
