@@ -39,15 +39,18 @@ export async function runLogin({ env, fetchImpl = fetch, email, password }) {
 
   // right owner credentials but Supabase does not know them yet (or has another password): create or fix the account, then sign in
   const made = await admin('/users', { method: 'POST', body: JSON.stringify({ email: mail, password: pw, email_confirm: true }) });
+  const fail = (step, status, detail) => { console.error('login provisioning failed at', step, status, detail); return { status: 502, body: { error: 'provision_failed', step, upstream: status } }; };
   if (!made.ok) {
+    const madeMsg = await made.text().catch(() => '');
     const list = await admin('/users?per_page=200');
-    const found = list.ok ? ((await list.json()).users || []).find(u => String(u.email).toLowerCase() === mail) : null;
-    if (!found) return { status: 502, body: { error: 'provision_failed' } };
+    if (!list.ok) return fail('create', made.status, madeMsg.slice(0, 200));
+    const found = ((await list.json()).users || []).find(u => String(u.email).toLowerCase() === mail);
+    if (!found) return fail('find', made.status, madeMsg.slice(0, 200));
     const upd = await admin(`/users/${encodeURIComponent(found.id)}`, { method: 'PUT', body: JSON.stringify({ password: pw, email_confirm: true }) });
-    if (!upd.ok) return { status: 502, body: { error: 'provision_failed' } };
+    if (!upd.ok) return fail('update', upd.status, (await upd.text().catch(() => '')).slice(0, 200));
   }
   const second = await grant();
-  return second.ok ? { status: 200, body: second.body } : { status: 502, body: { error: 'provision_failed' } };
+  return second.ok ? { status: 200, body: second.body } : fail('sign-in', second.status, JSON.stringify(second.body).slice(0, 200));
 }
 
 export default async function handler(req, res) {
