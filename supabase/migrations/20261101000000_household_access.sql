@@ -100,3 +100,8 @@ create policy "asset_docs_insert_own" on storage.objects for insert to authentic
 create policy "asset_docs_delete_own" on storage.objects for delete to authenticated using (bucket_id = 'asset-docs' and public.can_edit_folder((storage.foldername(name))[1]));
 
 -- Share links and personal settings stay with their owner on purpose: members cannot create links or see someone else's settings.
+
+-- 6) Postgres lets everyone run a new function by default. These only ever answer true for a signed-in user (they compare with auth.uid()),
+-- but they should not be callable without a session, so execution is limited to signed-in users (and the server).
+revoke execute on function public.can_read(uuid), public.can_edit(uuid), public.can_read_folder(text), public.can_edit_folder(text), public.account_members_before_insert() from public, anon;
+grant execute on function public.can_read(uuid), public.can_edit(uuid), public.can_read_folder(text), public.can_edit_folder(text) to authenticated, service_role;
