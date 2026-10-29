@@ -271,6 +271,28 @@ await step('sign out returns to the sign-in screen and clears the session', asyn
   await until(`!document.getElementById('auth').hidden`, 'auth after sign out');
   if (await ev(`localStorage.getItem('atlas.session.v1')`)) throw new Error('session still stored');
 });
+await step('document autofill: a deed fills the form, the pin and the numbers can be edited, and the file is kept with the asset', async () => {
+  await ev(`localStorage.clear()`); await signIn('dora@example.com');
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  await ev(`(()=>{const b=[...document.querySelectorAll('button')].find(x=>/^\s*Add asset\s*$|Add your first asset/.test(x.textContent)); if(!b) throw new Error('no add button'); b.click(); return true;})()`);
+  await until(`document.getElementById('af-file')`, 'autofill block');
+  await ev(`(()=>{const dt=new DataTransfer(); dt.items.add(new File(['%PDF-1.4 test deed'], 'deed.pdf', {type:'application/pdf'})); const i=document.getElementById('af-file'); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+  await until(`/Filled from deed.pdf/.test(document.querySelector('.af-status')?.textContent||'')`, 'filled message');
+  const got = await ev(`JSON.stringify({name:document.getElementById('f-name').value, cost:document.getElementById('f-cost').value, value:document.getElementById('f-value').value, debt:document.getElementById('f-debt').value, lat:document.getElementById('f-lat').value, lon:document.getElementById('f-lon').value, place:document.getElementById('f-placename').value, country:document.getElementById('f-country').value, type:document.querySelector('.type-card.on')?.textContent, acq:document.getElementById('f-acq').value, hi:document.querySelectorAll('.autofilled').length})`);
+  const g = JSON.parse(got);
+  if (g.name !== 'Lakeview Cottage' || g.cost !== '640000' || g.value !== '640000' || g.debt !== '250000' || g.lat !== '40.4168' || g.country !== 'ES' || g.type !== 'House or apartment' || g.acq !== '2020-06-01' || g.hi < 6) throw new Error('form not filled as expected: ' + got);
+  await ev(`(()=>{const e=document.getElementById('f-value'); e.value='700000'; e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  if (await ev(`document.getElementById('f-value').classList.contains('autofilled')`)) throw new Error('edited field still marked as autofilled');
+  await ev(`document.querySelector('.asset-form').requestSubmit()`);
+  await until(`document.body.textContent.includes('Lakeview Cottage')`, 'asset added');
+  const saved = (await rows()).find(r => r.name === 'Lakeview Cottage');
+  if (!saved || Number(saved.value) !== 700000 || Number(saved.cost) !== 640000) throw new Error('saved values wrong: ' + JSON.stringify(saved));
+  await until(`true`, 'tick'); await new Promise(r => setTimeout(r, 400));
+  const ex = await (await fetch(`${mock.origin}/__extras`)).json();
+  if (!ex.docs.some(d => d.name === 'deed.pdf' && d.asset_id === saved.id)) throw new Error('deed was not kept with the asset');
+  const log = await (await fetch(`${mock.origin}/__log`)).json();
+  if (!log.some(l => l[0] === 'model' && l[1] === 'claude-opus-5-5' && l[2] === 'document')) throw new Error('model was not asked with a document');
+});
 await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
   await makeUser('cara@example.com'); await fillLogin('cara@example.com', PW);

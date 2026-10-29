@@ -113,6 +113,9 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     /** Authenticated PostgREST request. Refreshes the token once if the server says it expired. */
     async rest(method, path, body, headers = {}) { return authed(t => call(`/rest/v1${path}`, { method, body, token: t, headers })); },
 
+    /** Reads a document with our /api/extract (signed-in users only). `payload` is { mime, data (base64) }. */
+    async extract(payload) { return authed(t => call('/api/extract', { method: 'POST', local: true, body: payload, token: t })); },
+
     /** Private file storage (bucket policies keep every user inside their own folder). */
     async upload(bucket, path, blob, mime) {
       return authed(t => call(`/storage/v1/object/${bucket}/${encPath(path)}`, { method: 'POST', body: blob, raw: true, token: t, headers: { 'content-type': mime || 'application/octet-stream', 'x-upsert': 'false' } }));

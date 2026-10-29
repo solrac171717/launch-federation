@@ -15,6 +15,7 @@ import { REMINDER_KINDS, REPEATS, validateReminder, statusOf, isoDay, nextDue, U
 import { previewImport, TEMPLATE_CSV } from './csv-import.js';
 import { download } from './report.js';
 import { planFor } from './plan.js';
+import { extractFromFile, checkExtractFile, EXTRACT_ACCEPT } from './extract-client.js';
 
 document.documentElement.classList.add('js');
 const $ = id => document.getElementById(id);
@@ -211,7 +212,50 @@ function openForm(existing, opts = {}) {
   const formErr = h('p', { class: 'err form-err', role: 'alert' });
   const submit = h('button', { type: 'submit', class: 'btn btn-primary btn-sm' }, h('span', { class: 'lbl' }, edit ? 'Save changes' : 'Add asset'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
 
+  // Autofill from a document (new assets, signed-in accounts, when the server has the reader switched on)
+  const DOC_KIND_OF = { purchase_deed: 'deed', invoice_or_receipt: 'invoice', insurance: 'insurance', registration_or_title: 'registration' };
+  let source = null;
+  const attach = h('input', { type: 'checkbox', id: 'af-attach', checked: true });
+  const afStatus = h('div', { class: 'af-status', role: 'status', 'aria-live': 'polite' });
+  const afFile = h('input', { type: 'file', id: 'af-file', accept: EXTRACT_ACCEPT, hidden: true });
+  const afDrop = h('label', { class: 'af-drop', for: 'af-file' }, h('span', { class: 'af-ico', 'aria-hidden': 'true' }, '⇪'), h('span', {}, h('b', {}, 'Upload an invoice, deed or contract'), h('small', {}, 'PDF or photo. We read it and fill in the form for you. You can change anything.')));
+  const setFill = (el, v) => { if (v === undefined || v === '' || (el.value || '').trim()) return false; el.value = String(v); el.classList.add('autofilled'); el.addEventListener('input', () => el.classList.remove('autofilled'), { once: true }); return true; };
+  function applyExtraction(res) {
+    const f = res.fields || {};
+    if (f.type && !st.type) { st.type = f.type; status.value = ''; drawTypes(); fillStatus(); }
+    setFill(name, f.name);
+    if (f.placeName && !place.value.trim()) {
+      const box = customBox.querySelector('input'); box.checked = true; syncCustom();
+      setFill(custom.querySelector('#f-placename'), f.placeName); setFill(custom.querySelector('#f-lat'), f.lat); setFill(custom.querySelector('#f-lon'), f.lon);
+      if (f.country && !custom.querySelector('#f-country').value) custom.querySelector('#f-country').value = f.country;
+    }
+    setFill(value, f.value); setFill(cost, f.cost); setFill(debt, f.debt); setFill(debtPayment, f.debtPayment);
+    if (f.gross != null) setFill(gross, period.value === 'month' ? f.gross : Math.round(f.gross * 12 * 100) / 100);
+    setFill(ownership, f.ownership); setFill(owner, f.owner); setFill(acquired, f.acquiredOn); setFill(notes, f.notes);
+  }
+  async function readDocument(file) {
+    const bad = checkExtractFile(file); if (bad) { afStatus.className = 'af-status err'; afStatus.textContent = bad; return; }
+    afStatus.className = 'af-status busy'; afStatus.replaceChildren(h('span', { class: 'spin on', 'aria-hidden': 'true' }), ` Reading ${file.name}…`);
+    afDrop.classList.add('disabled');
+    try {
+      const res = await extractFromFile(cloud, file);
+      source = { file, kind: DOC_KIND_OF[res.documentKind] || 'other' };
+      applyExtraction(res);
+      afStatus.className = 'af-status ok';
+      afStatus.replaceChildren(h('b', {}, res.found.length ? `Filled from ${file.name}. ` : `Read ${file.name}, but found little. `), 'Check every field before saving; the highlighted ones came from the document.',
+        ...(res.notes.length ? [h('ul', {}, ...res.notes.map(n => h('li', {}, n)))] : []),
+        h('label', { class: 'check' }, attach, h('span', {}, 'Also keep this file with the asset (under Documents)')));
+    } catch (x) { afStatus.className = 'af-status err'; afStatus.textContent = message(x); }
+    finally { afDrop.classList.remove('disabled'); afFile.value = ''; }
+  }
+  afFile.addEventListener('change', () => { if (afFile.files[0]) readDocument(afFile.files[0]); });
+  ['dragover', 'dragenter'].forEach(ev => afDrop.addEventListener(ev, e => { e.preventDefault(); afDrop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => afDrop.addEventListener(ev, () => afDrop.classList.remove('over')));
+  afDrop.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer?.files[0]) readDocument(e.dataTransfer.files[0]); });
+  const autofill = !edit && cloud.configured && CONFIG.extractor ? h('div', { class: 'autofill' }, afDrop, afFile, afStatus) : null;
+
   const form = h('form', { class: 'asset-form', novalidate: true },
+    autofill,
     h('div', { class: 'field' }, h('span', { class: 'lab' }, 'What are you adding?'), typeHost, mkErr.type),
     field('Name', name, 'name'),
     h('div', { class: 'field' }, h('label', { for: 'f-place' }, 'Location'), place, cityList, customBox, custom, mkErr.place),
@@ -242,6 +286,10 @@ function openForm(existing, opts = {}) {
       const saved = edit ? await store.update(existing.id, r.value, { prev: existing }) : await store.add(r.value);
       raw = edit ? raw.map(x => (x.id === saved.id ? saved : x)) : [...raw, saved];
       modal().close(); sync(saved.id); toast(edit ? 'Changes saved.' : 'Asset added.');
+      if (source && attach.checked) {
+        try { const d = await extras.addDoc(saved.id, source.file, source.kind); docs = [d, ...docs]; sync(saved.id); }
+        catch (x2) { toast(`Asset added, but the file could not be kept: ${message(x2)}`, 'err'); }
+      }
       if (opts.onSaved) opts.onSaved(saved);
     } catch (x) {
       if (x && x.status === 401) { modal().close(); toast('Your session expired. Please sign in again.', 'err'); setTimeout(() => location.reload(), 1200); return; }
