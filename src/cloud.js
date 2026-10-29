@@ -116,6 +116,11 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     /** Reads a document with our /api/extract (signed-in users only). `payload` is { mime, data (base64) }. */
     async extract(payload) { return authed(t => call('/api/extract', { method: 'POST', local: true, body: payload, token: t })); },
 
+    /** The household invitation endpoint. With `signedIn` the user's own session proves who is joining. */
+    async invite(body, { signedIn = false } = {}) {
+      return signedIn ? authed(t => call('/api/invite', { method: 'POST', local: true, body: { ...body, signedIn: true }, token: t })) : call('/api/invite', { method: 'POST', local: true, body });
+    },
+
     /** Private file storage (bucket policies keep every user inside their own folder). */
     async upload(bucket, path, blob, mime) {
       return authed(t => call(`/storage/v1/object/${bucket}/${encPath(path)}`, { method: 'POST', body: blob, raw: true, token: t, headers: { 'content-type': mime || 'application/octet-stream', 'x-upsert': 'false' } }));

@@ -326,7 +326,9 @@ export function mountDashboard(opts) {
           h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: csv }, 'CSV')),
         h('small', {}, 'PDF opens your browser’s print dialog: choose “Save as PDF”.'),
         actions.onEmergency ? h('div', { class: 'dl-emerg' }, h('b', {}, 'Emergency sheet'), h('p', {}, 'One page for someone you trust: every asset, where it is, who to call and where the papers are.'),
-          h('div', { class: 'dl-btns' }, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => actions.onEmergency() }, 'Print emergency sheet'), actions.onContacts ? h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => actions.onContacts() }, 'Emergency contacts') : null)) : null)));
+          h('div', { class: 'dl-btns' }, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => actions.onEmergency() }, 'Print emergency sheet'), actions.onContacts ? h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => actions.onContacts() }, 'Emergency contacts') : null)) : null,
+        actions.onMembers || actions.onHeir ? h('div', { class: 'dl-emerg' }, h('b', {}, 'People you trust'), h('p', {}, 'Let your partner or family open your portfolio, and choose who receives your emergency sheet if you cannot.'),
+          h('div', { class: 'dl-btns' }, actions.onMembers ? h('button', { type: 'button', class: 'btn btn-dark btn-sm', id: 'members-btn', onclick: () => actions.onMembers() }, 'Household access') : null, actions.onHeir ? h('button', { type: 'button', class: 'btn btn-dark btn-sm', id: 'heir-btn', onclick: () => actions.onHeir() }, 'Trusted person') : null)) : null)));
   }
 
   /* INSIGHTS view (the app only): goal, projections, concentration, returns */

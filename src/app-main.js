@@ -20,12 +20,16 @@ import { loadRates, currencies, currencyName, formatIn, hasRates } from './fx.js
 import { createLocalSettings, createCloudSettings, cleanSettings } from './settings-store.js';
 import { createTools } from './app-tools.js';
 import { isVin, cleanVin } from './vin.js';
+import { showInvite } from './app-invite.js';
+import { createMembersUi, loadShared, pickAccount, savedAccount, saveAccount, inviteTokenOf, accessFor, ROLES } from './app-members.js';
 
 document.documentElement.classList.add('js');
 const $ = id => document.getElementById(id);
 const cloud = createCloud({ url: CONFIG.supabaseUrl, anonKey: CONFIG.supabaseAnonKey });
 let store = null, extras = null, raw = [], views = [], dash = null, docs = [], rems = [];
 let settingsApi = null, settings = cleanSettings({}), settingsReady = true, fxInfo = { ok: false, stale: true, date: null };
+// whose portfolio is open: your own, or one shared with you (as 'view' or 'edit')
+let account = { ownerId: null, ownerEmail: '', role: 'owner', mine: true }, shared = [];
 
 /* ------------------------------------------------------------------ small helpers */
 let toastTimer = 0;
@@ -37,7 +41,7 @@ function toast(msg, kind = 'ok', { action = null, ms = 4200 } = {}) {
 const recompute = () => { views = raw.map(toView); };
 const metaOf = id => ({ docs: docs.filter(d => d.assetId === id).length, reminders: rems.filter(r => r.assetId === id && !r.done).length });
 const dueNow = () => rems.filter(r => ['overdue', 'soon'].includes(statusOf(r))).length;
-const show = id => { for (const k of ['boot', 'auth', 'shell']) $(k).hidden = k !== id; };
+const show = id => { for (const k of ['boot', 'auth', 'invite', 'shell']) $(k).hidden = k !== id; };
 const message = e => (e && e.message) || 'Something went wrong. Please try again.';
 
 /* ------------------------------------------------------------------ sign in */
@@ -69,6 +73,11 @@ function renderFoot() {
   const f = clear($('side-foot'));
   if (cloud.configured) {
     const plan = planFor(cloud.user()?.email);
+    if (shared.length) {
+      const sel = h('select', { class: 'mini-sel sf-account', 'aria-label': 'Which portfolio to open', onchange: e => switchAccount(e.target.value) },
+        h('option', { value: '' }, 'My portfolio'), ...shared.map(s => h('option', { value: s.ownerId }, `${s.ownerEmail} (${ROLES[s.role].toLowerCase()})`)));
+      sel.value = account.mine ? '' : account.ownerId; f.append(sel);
+    }
     f.append(h('span', { class: 'sf-user', title: cloud.user()?.email || '' }, cloud.user()?.email || 'Signed in'),
       ...(plan.key === 'superadmin' ? [h('span', { class: 'sf-plan', title: plan.note }, `${plan.label} · unlimited`)] : []),
       h('span', { class: 'sf-sync' }, 'Synced to your account'),
@@ -80,12 +89,15 @@ function renderFoot() {
 function renderBanner() {
   const b = $('app-banner'), sample = raw.some(r => r.isSample), due = dueNow();
   const foreign = raw.some(r => r.currency && r.currency !== 'USD'), fxMsg = !foreign ? '' : !fxInfo.ok ? 'Exchange rates could not be loaded, so assets in other currencies are shown as if 1 unit equaled 1 dollar. Reload to try again.' : fxInfo.stale ? `Exchange rates are from ${fxInfo.date}; they could not be refreshed today.` : '';
-  b.hidden = !sample && !due && !fxMsg; clear(b);
+  b.hidden = !sample && !due && !fxMsg && account.mine; clear(b);
+  if (!account.mine) b.append(h('div', { class: 'banner-row' }, h('span', {}, `You are looking at ${account.ownerEmail}’s portfolio. ${accessFor(account.role).edit ? 'You can make changes.' : 'It is read only.'}`), h('button', { type: 'button', class: 'mini-btn', onclick: () => switchAccount('') }, 'Back to my portfolio')));
   if (fxMsg) b.append(h('div', { class: 'banner-row due' }, h('span', {}, fxMsg)));
-  if (sample) b.append(h('div', { class: 'banner-row' }, h('span', {}, 'You are looking at sample data. Add your own assets and remove the sample whenever you like.'), h('button', { type: 'button', class: 'mini-btn', onclick: removeSample }, 'Remove sample data')));
-  if (due) b.append(h('div', { class: 'banner-row due' }, h('span', {}, `${due} reminder${due > 1 ? 's' : ''} need${due > 1 ? '' : 's'} your attention.`), h('button', { type: 'button', class: 'mini-btn', onclick: () => dash.show('reminders') }, 'Review')));
+  if (sample && accessFor(account.role).sample) b.append(h('div', { class: 'banner-row' }, h('span', {}, 'You are looking at sample data. Add your own assets and remove the sample whenever you like.'), h('button', { type: 'button', class: 'mini-btn', onclick: removeSample }, 'Remove sample data')));
+  if (due && accessFor(account.role).edit) b.append(h('div', { class: 'banner-row due' }, h('span', {}, `${due} reminder${due > 1 ? 's' : ''} need${due > 1 ? '' : 's'} your attention.`), h('button', { type: 'button', class: 'mini-btn', onclick: () => dash.show('reminders') }, 'Review')));
 }
 function sync(selectId) { recompute(); renderBanner(); dash.refresh(selectId ? { select: selectId } : {}); }
+
+function switchAccount(ownerId) { saveAccount(cloud.user().id, ownerId); location.reload(); }
 
 async function signOut() {
   await cloud.signOut(); raw = []; views = []; location.reload();
@@ -595,6 +607,7 @@ function openWelcome({ step = 1, picked = [], assetId = null } = {}) {
 }
 
 const shareUi = createShareUi({ cloud, openModal, modal, toast, run, message });
+const membersUi = createMembersUi({ cloud, openModal, modal, toast, run, message });
 const settingsFacade = {
   get: async () => settings,
   save: async patch => {
@@ -615,13 +628,30 @@ const tools = createTools({
   settings: settingsFacade, sync: id => sync(id), owner: () => cloud.user()?.email || '',
 });
 
+/* ------------------------------------------------------------------ what each kind of access can do */
+function actionsFor(acc) {
+  if (!acc.edit) return {}; // read only: the figures, the map and the reports, nothing that changes data
+  return {
+    onLoan: id => tools.openLoan(id), onSell: id => tools.openSale(id), onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset,
+    onImport: () => openImport(), onDocs: id => openExtras(id), onQuick: openQuick,
+    ...(acc.sample ? { onSample: loadSample } : {}), ...(acc.welcome ? { onWelcome: () => openWelcome() } : {}),
+    ...(acc.emergency ? { onEmergency: () => tools.printEmergency(), onContacts: () => tools.openContacts() } : {}),
+    ...(cloud.configured && acc.share ? { onShare: () => shareUi.open(), onMembers: () => membersUi.open() } : {}),
+  };
+}
+
 /* ------------------------------------------------------------------ start */
 async function start() {
   try {
     if (cloud.configured) {
+      const invite = inviteTokenOf(location.hash);
+      if (invite) return showInvite({ cloud, token: invite, show, done: () => location.replace('app.html') });
       const r = await cloud.consumeRedirect().catch(e => ({ error: e.message }));
       if (!cloud.session()) return showAuth(r && r.error);
-      store = createCloudStore(cloud); extras = createCloudExtras(cloud);
+      const me = cloud.user();
+      shared = await loadShared(cloud);
+      account = pickAccount(me.id, me.email, shared, savedAccount(me.id));
+      store = createCloudStore(cloud, { owner: account.ownerId }); extras = createCloudExtras(cloud, 'asset-docs', account.ownerId);
     } else { store = createLocalStore(); extras = createLocalExtras(); }
     fxInfo = await loadRates();
     raw = await store.list();
@@ -636,15 +666,14 @@ async function start() {
   try { settings = await settingsApi.get(); } catch (e) { console.error('settings unavailable', e); settingsReady = false; }
   recompute(); show('shell'); renderFoot();
   dash = mountDashboard({
-    getAssets: () => views, csvName: 'owned-map-assets.csv', globeLabel: 'Rotating 3D globe of your assets', owner: cloud.user()?.email || '', meta: metaOf,
+    getAssets: () => views, csvName: 'owned-map-assets.csv', globeLabel: 'Rotating 3D globe of your assets', owner: (account.mine ? cloud.user()?.email : account.ownerEmail) || '', meta: metaOf,
     cashflow: true,
     insights: insightsApi,
-    actions: { onLoan: id => tools.openLoan(id), onSell: id => tools.openSale(id), onEmergency: () => tools.printEmergency(), onContacts: () => tools.openContacts(), onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset, onSample: loadSample, onImport: () => openImport(), onDocs: id => openExtras(id), onQuick: openQuick, onWelcome: () => openWelcome(),
-      ...(cloud.configured ? { onShare: () => shareUi.open() } : {}) },
-    reminders: reminderApi,
+    actions: actionsFor(accessFor(account.role)),
+    reminders: accessFor(account.role).edit ? reminderApi : null,
   });
   renderBanner();
-  if (!raw.length && !seenWelcome()) openWelcome();
+  if (account.mine && !raw.length && !seenWelcome()) openWelcome();
   // keep tabs in sync: signing out elsewhere, or the session ending
   cloud.onAuthChange(s => { if (!s && cloud.configured) location.reload(); });
 }

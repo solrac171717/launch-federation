@@ -15,6 +15,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
   const access = new Map();      // access token -> { user, exp }
   const refresh = new Map();     // refresh token -> user
   const table = [];              // all rows, every user
+  const members = [];            // account_members: who may open whose account
   const docs = [], rems = [], shares = [], settingsRows = [], files = new Map(); // other tables + the private file bucket
   const log = [];
   const origin = `http://localhost:${port}`;
@@ -27,7 +28,11 @@ export function startMock({ port = 4180, root = '.' } = {}) {
   };
   const json = (res, status, body) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(body === undefined ? '' : JSON.stringify(body)); };
   const bearer = req => { const t = (req.headers.authorization || '').replace(/^Bearer /, ''); if (t === SERVICE) return { id: '*service*', service: true }; const a = access.get(t); return a && a.exp > Date.now() ? a.user : null; };
-  const owns = (r, user) => user.service || r.user_id === user.id;
+  // the same two questions as public.can_read / public.can_edit in the household migration
+  const canRead = (ownerId, user) => user.service || ownerId === user.id || members.some(m => m.owner_id === ownerId && m.member_id === user.id && m.status === 'active');
+  const canEdit = (ownerId, user) => user.service || ownerId === user.id || members.some(m => m.owner_id === ownerId && m.member_id === user.id && m.status === 'active' && m.role === 'edit');
+  const owns = (r, user) => canRead(r.user_id, user);
+  const ownsEdit = (r, user) => canEdit(r.user_id, user);
   const readRaw = async req => { const c = []; for await (const x of req) c.push(x); return Buffer.concat(c); };
   const readBody = async req => { const c = []; for await (const x of req) c.push(x); const t = Buffer.concat(c).toString(); try { return t ? JSON.parse(t) : undefined; } catch { return undefined; } };
 
@@ -65,6 +70,11 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/__log') return json(res, 200, log);
       if (path === '/__rows') return json(res, 200, table);
       if (path === '/__extras') return json(res, 200, { docs, rems, files: [...files.keys()], shares });
+      if (path === '/__members') return json(res, 200, members);
+      if (path === '/api/invite') {
+        process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE;
+        const mod = await import('../api/invite.js'); return mod.default(req, res);
+      }
       if (path === '/api/extract') { // the real handler, with a stand-in for the model and for the map lookup
         Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_ANON_KEY: 'mock-anon-key', ANTHROPIC_API_KEY: 'mock-key', ANTHROPIC_BASE_URL: origin, NOMINATIM_URL: `${origin}/__nominatim` });
         const mod = await import('../api/extract.js'); return mod.default(req, res);
@@ -133,23 +143,45 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         if (req.method === 'GET') return json(res, 200, settingsRows.filter(r => r.user_id === user.id).map(r => ({ data: r.data })));
         if (req.method === 'POST') { const b = await readBody(req); const cur = settingsRows.find(r => r.user_id === user.id); if (cur) cur.data = b.data; else settingsRows.push({ user_id: user.id, data: b.data }); return json(res, 201); }
       }
+      if (path === '/rest/v1/account_members') { // owner: everything about their invitations; member: see and leave
+        const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
+        const visible = members.filter(m => user.service || m.owner_id === user.id || m.member_id === user.id), want = /return=representation/.test(req.headers.prefer || '');
+        if (req.method === 'GET') return json(res, 200, visible.filter(r => matches(r, url.searchParams)));
+        if (req.method === 'POST') {
+          const b = await readBody(req); const email = String(b.email || '').trim().toLowerCase();
+          if (!email || email === String(user.email).toLowerCase()) return json(res, 400, { code: 'P0001', message: 'You cannot invite yourself' });
+          if (!['view', 'edit'].includes(b.role || 'view')) return json(res, 400, { code: '23514', message: 'check constraint' });
+          if (b.invite_hash && String(b.invite_hash).length !== 64) return json(res, 400, { code: '23514', message: 'check constraint' });
+          if (members.some(m => m.owner_id === user.id && m.email === email)) return json(res, 409, { code: '23505', message: 'duplicate key value violates unique constraint' });
+          const row = { role: 'view', invite_hash: null, invite_expires_at: null, ...Object.fromEntries(['role', 'invite_hash', 'invite_expires_at'].filter(k => b[k] !== undefined).map(k => [k, b[k]])), id: randomUUID(), owner_id: user.id, owner_email: String(user.email).toLowerCase(), email, status: 'invited', member_id: null, created_at: new Date().toISOString() };
+          members.push(row); return json(res, 201, want ? [row] : undefined);
+        }
+        if (req.method === 'PATCH') {
+          const b = await readBody(req) || {};
+          if (!user.service && Object.keys(b).some(k => k !== 'role')) return json(res, 403, { code: '42501', message: 'permission denied for table account_members' });
+          const rows = members.filter(m => (user.service || m.owner_id === user.id) && matches(m, url.searchParams)); rows.forEach(r => Object.assign(r, b)); return json(res, 200, want ? rows : undefined);
+        }
+        if (req.method === 'DELETE') { for (const m of visible.filter(r => matches(r, url.searchParams))) members.splice(members.indexOf(m), 1); return json(res, 204); }
+      }
       const sub = /^\/rest\/v1\/(asset_documents|asset_reminders|asset_shares)$/.exec(path);
       if (sub) {
         const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
-        const tbl = sub[1] === 'asset_documents' ? docs : sub[1] === 'asset_shares' ? shares : rems, mine = tbl.filter(r => owns(r, user)), want = /return=representation/.test(req.headers.prefer || '');
+        const tbl = sub[1] === 'asset_documents' ? docs : sub[1] === 'asset_shares' ? shares : rems, own = tbl === shares ? (r, u) => u.service || r.user_id === u.id : owns, ownE = tbl === shares ? own : ownsEdit;
+        const mine = tbl.filter(r => own(r, user)), mineE = tbl.filter(r => ownE(r, user)), want = /return=representation/.test(req.headers.prefer || '');
         if (req.method === 'GET') return json(res, 200, mine.filter(r => matches(r, url.searchParams)));
         if (req.method === 'POST') {
           const b = await readBody(req);
-          if (tbl !== shares && !table.some(a => a.id === b.asset_id && a.user_id === user.id)) return json(res, 403, { code: '42501', message: 'new row violates row-level security policy' });
+          const asset = table.find(a => a.id === b.asset_id);
+          if (tbl !== shares && !(asset && canEdit(asset.user_id, user) && (!b.user_id || b.user_id === asset.user_id))) return json(res, 403, { code: '42501', message: 'new row violates row-level security policy' });
           if (tbl === docs && !(b.size >= 0 && b.size <= 10485760 && b.path && b.name)) return json(res, 400, { code: '23514', message: 'check constraint' });
           if (tbl === rems && !(b.title && b.due_on)) return json(res, 400, { code: '23502', message: 'not-null constraint' });
           if (tbl === shares && !(b.label && b.token_hash && b.token_hash.length === 64)) return json(res, 400, { code: '23514', message: 'check constraint' });
           const row = tbl === rems ? { repeat: 'none', notify_days: 14, done: false, last_notified_on: null, kind: 'other', ...b } : tbl === shares ? { include_debt: true, expires_at: null, revoked: false, last_viewed_at: null, ...b } : { kind: 'other', ...b };
-          Object.assign(row, { id: randomUUID(), user_id: user.id, created_at: new Date().toISOString() }); tbl.push(row);
+          Object.assign(row, { id: randomUUID(), user_id: tbl === shares ? user.id : asset.user_id, created_at: new Date().toISOString() }); tbl.push(row);
           return json(res, 201, want ? [row] : undefined);
         }
-        if (req.method === 'PATCH') { const b = await readBody(req), rows = mine.filter(r => matches(r, url.searchParams)); rows.forEach(r => Object.assign(r, b)); return json(res, 200, want ? rows : undefined); }
-        if (req.method === 'DELETE') { for (const r of mine.filter(r => matches(r, url.searchParams))) tbl.splice(tbl.indexOf(r), 1); return json(res, 204); }
+        if (req.method === 'PATCH') { const b = await readBody(req), rows = mineE.filter(r => matches(r, url.searchParams)); rows.forEach(r => Object.assign(r, b)); return json(res, 200, want ? rows : undefined); }
+        if (req.method === 'DELETE') { for (const r of mineE.filter(r => matches(r, url.searchParams))) tbl.splice(tbl.indexOf(r), 1); return json(res, 204); }
       }
       const st = /^\/storage\/v1\/object\/(sign\/)?asset-docs\/(.+)$/.exec(path);
       if (st) {
@@ -160,7 +192,8 @@ export function startMock({ port = 4180, root = '.' } = {}) {
           res.writeHead(200, { 'content-type': f.type }); return res.end(f.data);
         }
         const user = bearer(req); if (!user) return json(res, 401, { message: 'JWT expired' });
-        if (key.split('/')[0] !== user.id) return json(res, 403, { message: 'new row violates row-level security policy' });
+        const folderOwner = key.split('/')[0], reading = (st[1] && req.method === 'POST');
+        if (!(reading ? canRead(folderOwner, user) : canEdit(folderOwner, user))) return json(res, 403, { message: 'new row violates row-level security policy' });
         if (st[1] && req.method === 'POST') return files.has(key) ? json(res, 200, { signedURL: `/object/sign/asset-docs/${st[2]}?token=signed-${key}` }) : json(res, 404, { message: 'not found' });
         if (req.method === 'POST') { const data = await readRaw(req); if (data.length > 10485760) return json(res, 413, { message: 'too large' }); files.set(key, { data, type: req.headers['content-type'] }); return json(res, 200, { Key: key }); }
         if (req.method === 'DELETE') { files.delete(key); return json(res, 200, {}); }
@@ -169,7 +202,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/rest/v1/assets') {
         const user = bearer(req);
         if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
-        const mine = table.filter(r => owns(r, user));
+        const mine = table.filter(r => owns(r, user)), mineE = table.filter(r => ownsEdit(r, user));
         const wantRows = /return=representation/.test(req.headers.prefer || '');
         if (req.method === 'GET') {
           let rows = mine.filter(r => matches(r, url.searchParams)).sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
@@ -180,18 +213,19 @@ export function startMock({ port = 4180, root = '.' } = {}) {
           const b = await readBody(req); const list = Array.isArray(b) ? b : [b]; const made = [];
           for (const x of list) {
             const e = check(x); if (e) return json(res, 400, e);
-            if (x.user_id && x.user_id !== user.id) return json(res, 403, { code: '42501', message: 'new row violates row-level security policy for table "assets"' });
-            made.push({ gross: 0, expenses: 0, status: 'Held', acquired_on: null, notes: null, history: [], is_sample: false, ...x, id: randomUUID(), user_id: user.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+            const target = x.user_id || user.id;
+            if (!canEdit(target, user)) return json(res, 403, { code: '42501', message: 'new row violates row-level security policy for table "assets"' });
+            made.push({ gross: 0, expenses: 0, status: 'Held', acquired_on: null, notes: null, history: [], is_sample: false, ...x, id: randomUUID(), user_id: target, created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
           }
           table.push(...made); return json(res, 201, wantRows ? made : undefined);
         }
         if (req.method === 'PATCH') {
-          const b = await readBody(req); const rows = mine.filter(r => matches(r, url.searchParams));
+          const b = await readBody(req); const rows = mineE.filter(r => matches(r, url.searchParams));
           for (const r of rows) { const e = check({ ...r, ...b }); if (e) return json(res, 400, e); Object.assign(r, b); }
           return json(res, 200, wantRows ? rows : undefined);
         }
         if (req.method === 'DELETE') {
-          for (const r of mine.filter(r => matches(r, url.searchParams))) { table.splice(table.indexOf(r), 1); for (const t of [docs, rems]) for (let i = t.length - 1; i >= 0; i--) if (t[i].asset_id === r.id) t.splice(i, 1); }
+          for (const r of mineE.filter(r => matches(r, url.searchParams))) { table.splice(table.indexOf(r), 1); for (const t of [docs, rems]) for (let i = t.length - 1; i >= 0; i--) if (t[i].asset_id === r.id) t.splice(i, 1); }
           return json(res, 204);
         }
       }

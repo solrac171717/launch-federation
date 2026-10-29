@@ -164,17 +164,20 @@ export function createLocalStore(storage = globalThis.localStorage, key = 'atlas
 }
 
 /* ------------------------------------------------------------------ Supabase */
-export function createCloudStore(cloud) {
-  const sel = 'select=*&order=created_at.asc';
+/** `owner`: the account whose assets are read and written (your own id, or the one of an account shared with you). */
+export function createCloudStore(cloud, { owner = null } = {}) {
+  const only = owner ? `user_id=eq.${encodeURIComponent(owner)}&` : '';
+  const sel = `${only}select=*&order=created_at.asc`;
+  const mine = owner ? { user_id: owner } : {};
   return {
     kind: 'cloud',
     async list() { return (await cloud.rest('GET', `/assets?${sel}`)).map(fromDb); },
     async add(v, extra = {}) {
-      const body = { ...toRow(v), history: nextHistory([], v, { isNew: true }), is_sample: false, ...extra };
+      const body = { ...toRow(v), ...mine, history: nextHistory([], v, { isNew: true }), is_sample: false, ...extra };
       const [r] = await cloud.rest('POST', '/assets', body, { prefer: 'return=representation' }); return fromDb(r);
     },
     async addMany(rows) {
-      const body = rows.map(r => { const { isSample, createdAt, id, ...rest } = r; return { ...toRow(rest), history: r.history || nextHistory([], r, { isNew: true }), is_sample: !!isSample }; });
+      const body = rows.map(r => { const { isSample, createdAt, id, ...rest } = r; return { ...toRow(rest), ...mine, history: r.history || nextHistory([], r, { isNew: true }), is_sample: !!isSample }; });
       return (await cloud.rest('POST', '/assets', body, { prefer: 'return=representation' })).map(fromDb);
     },
     async update(id, v, { prev = null } = {}) {
@@ -186,6 +189,6 @@ export function createCloudStore(cloud) {
       return fromDb(r);
     },
     async remove(id) { await cloud.rest('DELETE', `/assets?id=eq.${encodeURIComponent(id)}`); },
-    async removeSample() { await cloud.rest('DELETE', '/assets?is_sample=eq.true'); },
+    async removeSample() { await cloud.rest('DELETE', `/assets?${only}is_sample=eq.true`); },
   };
 }

@@ -391,6 +391,89 @@ await step('map drill-down: country -> region -> city -> assets, with counts, br
   await until(`document.querySelectorAll('.geo-card').length === 1 && !/Barcelona/.test(document.querySelector('.geo-card span')?.textContent || '')`, 'Escape goes one level up');
   await geoBtn('Globe'); await until(`!document.getElementById('hero-map').classList.contains('geo-country')`, 'back to the globe');
 });
+await step('household access: an editor and a viewer join by invitation link; the database keeps the viewer read only; removing access works', async () => {
+  const HOST = 'host.h@example.com', PARTNER = 'partner.h@example.com', VIEWER = 'viewer.h@example.com';
+  await ev(`localStorage.clear()`); await makeUser(VIEWER); // the viewer already has an account, the partner does not
+  await signIn(HOST);
+  const csv = ['name,type,location,value,cost', 'Shared Flat,house,"Madrid, ES",300000,250000', 'Shared Car,car,"Madrid, ES",20000,25000'].join('\n');
+  await tab('Map'); await click('#import-btn'); await until(`document.getElementById('modal').open`, 'import modal');
+  await setFile('#imp-file', 'shared.csv', csv, 'text/csv');
+  await until(`/Import 2 assets/.test(document.querySelector('.modal-actions .btn-primary')?.textContent || '')`, 'two ready');
+  await btn('Import 2', 'document'); await until(`!document.getElementById('modal').open`, 'imported');
+  await tab('Reports'); await until(`document.getElementById('members-btn')`, 'household access button'); await click('#members-btn');
+  await until(`document.getElementById('hm-email')`, 'invite form');
+  const invite = async (email, role) => {
+    await ev(`(()=>{document.getElementById('hm-email').value=${JSON.stringify(email)}; document.getElementById('hm-role').value=${JSON.stringify(role)}; document.querySelector('.share-form').requestSubmit();})()`);
+    await until(`document.querySelector('.share-new input')?.value.includes('#invite=') && /${email.split('@')[0]}/.test(document.querySelector('.share-new b').textContent)`, 'invitation link for ' + email);
+    return ev(`document.querySelector('.share-new input').value`);
+  };
+  const linkP = await invite(PARTNER, 'edit'), linkV = await invite(VIEWER, 'view');
+  if ((await ev(`document.getElementById('modal').textContent.includes('Waiting')`)) !== true) throw new Error('pending invitations not listed');
+  const stored = await (await fetch(`${mock.origin}/__members`)).json();
+  if (stored.length !== 2 || stored.some(m => m.invite_hash === linkP.split('=')[1] || m.invite_hash === linkV.split('=')[1])) throw new Error('only a hash of the secret may be stored');
+  await ev(`document.getElementById('hm-email').value='nope'; document.querySelector('.share-form').requestSubmit();`);
+  await until(`/valid email/i.test(document.querySelector('.share-form .form-err').textContent)`, 'email validation');
+  await ev(`document.getElementById('hm-email').value=${JSON.stringify(PARTNER)}; document.querySelector('.share-form').requestSubmit();`);
+  await until(`/already has an invitation/.test(document.querySelector('.share-form .form-err').textContent)`, 'duplicate invitation refused');
+
+  // a link that is not valid says so and does not reveal why
+  await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html#invite=${'A'.repeat(43)}`);
+  await until(`/not valid/.test(document.getElementById('invite').textContent)`, 'invalid invitation message');
+
+  // the partner has no account: chooses a password and lands in the host's portfolio, able to make changes
+  await goto(linkP); await until(`/You are invited/.test(document.getElementById('invite').textContent)`, 'invitation screen');
+  if (!(await ev(`document.getElementById('invite').textContent.includes('${HOST}')`))) throw new Error('inviter not named');
+  await ev(`(()=>{document.getElementById('inv-pw').value='short'; document.getElementById('inv-pw2').value='short'; document.querySelector('#invite-card form').requestSubmit();})()`);
+  await until(`/at least 10/.test(document.getElementById('invite-err').textContent)`, 'weak password refused');
+  await ev(`(()=>{document.getElementById('inv-pw').value='partner-pass-123'; document.getElementById('inv-pw2').value='partner-pass-123'; document.querySelector('#invite-card form').requestSubmit();})()`);
+  await until(`!document.getElementById('shell').hidden`, 'dashboard of the invited partner');
+  await until(`/looking at ${HOST}/.test(document.getElementById('app-banner').textContent) && /make changes/.test(document.getElementById('app-banner').textContent)`, 'banner names the shared portfolio');
+  await tab('Assets'); await until(`document.body.textContent.includes('Shared Flat') && document.body.textContent.includes('Shared Car')`, 'the host assets');
+  if (!(await ev(`!!document.getElementById('add-asset-btn')`))) throw new Error('an editor should be able to add');
+  if (await ev(`!!document.getElementById('share-btn') || !!document.getElementById('members-btn')`)) throw new Error('an editor must not manage sharing');
+  await tab('Map'); await click('#import-btn'); await until(`document.getElementById('modal').open`, 'import modal');
+  await setFile('#imp-file', 'boat.csv', 'name,type,location,value,cost\nPartner Boat,yacht,"Lisbon, PT",90000,80000', 'text/csv');
+  await until(`/Import 1 asset/.test(document.querySelector('.modal-actions .btn-primary')?.textContent || '')`, 'one ready');
+  await btn('Import 1', 'document'); await until(`!document.getElementById('modal').open`, 'partner imported');
+  const all = await rows(), flat = all.find(r => r.name === 'Shared Flat'), boat = all.find(r => r.name === 'Partner Boat');
+  if (!boat || boat.user_id !== flat.user_id) throw new Error('the partner asset must belong to the host account: ' + JSON.stringify(boat));
+
+  // the viewer already has an account: the password form falls through to signing in
+  await ev(`localStorage.clear()`); await goto(linkV); await until(`/You are invited/.test(document.getElementById('invite').textContent)`, 'viewer invitation');
+  await ev(`(()=>{document.getElementById('inv-pw').value='some-long-password'; document.getElementById('inv-pw2').value='some-long-password'; document.querySelector('#invite-card form').requestSubmit();})()`);
+  await until(`/already have an account/.test(document.getElementById('invite').textContent)`, 'asked to sign in instead');
+  await ev(`(()=>{document.getElementById('inv-pass').value=${JSON.stringify(PW)}; document.querySelector('#invite-card form').requestSubmit();})()`);
+  await until(`!document.getElementById('shell').hidden && /read only/.test(document.getElementById('app-banner').textContent)`, 'viewer dashboard, read only');
+  await tab('Assets'); await until(`document.body.textContent.includes('Partner Boat')`, 'viewer sees all three');
+  const noControls = await ev(`!document.getElementById('add-asset-btn') && !document.getElementById('import-btn') && ![...document.querySelectorAll('button')].some(b => /^(Edit|Delete|Update value)$/.test(b.textContent.trim()))`);
+  if (!noControls) throw new Error('a viewer must not see edit controls');
+  // even calling the database directly, the viewer cannot change anything
+  const hit = await ev(`(async()=>{ const t = JSON.parse(localStorage.getItem('atlas.session.v1')).access_token, h = { authorization: 'Bearer ' + t, apikey: 'mock-anon-key', 'content-type': 'application/json', prefer: 'return=representation' };
+    const a = await fetch('/rest/v1/assets?id=eq.${flat.id}', { method: 'PATCH', headers: h, body: JSON.stringify({ value: 1 }) }).then(r => r.json());
+    const b = await fetch('/rest/v1/assets', { method: 'POST', headers: h, body: JSON.stringify({ user_id: '${flat.user_id}', name: 'Hack', type: 'house', place: 'x', country: 'ES', lat: 1, lon: 1, value: 1, cost: 1 }) }).then(r => r.status);
+    const c = await fetch('/rest/v1/assets?id=eq.${flat.id}', { method: 'DELETE', headers: h }).then(r => r.status);
+    return JSON.stringify({ patched: a.length, created: b, deleted: c }); })()`);
+  const after = (await rows()).find(r => r.id === flat.id);
+  if (!after || after.value !== 300000 || !/"patched":0/.test(hit) || !/"created":403/.test(hit)) throw new Error('viewer could write: ' + hit + ' value ' + after?.value);
+  // the viewer can go back to their own (empty) portfolio and come back
+  await ev(`(()=>{const s=document.querySelector('.sf-account'); s.value=''; s.dispatchEvent(new Event('change'));})()`);
+  await until(`!document.getElementById('shell').hidden && !/looking at/.test(document.getElementById('app-banner').textContent)`, 'own portfolio');
+
+  // the host can see who has access, change a role, and remove access
+  await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth'); await fillLogin(HOST, PW);
+  await until(`!document.getElementById('shell').hidden`, 'host dashboard');
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  await tab('Reports'); await click('#members-btn'); await until(`document.querySelectorAll('.sh-row').length === 2 && document.getElementById('modal').textContent.includes('Has joined')`, 'both joined');
+  await ev(`(()=>{const s=document.querySelector('.sh-row .mini-sel[aria-label*="${VIEWER}"]'); s.value='edit'; s.dispatchEvent(new Event('change'));})()`);
+  await sleep(400);
+  if ((await (await fetch(`${mock.origin}/__members`)).json()).find(m => m.email === VIEWER).role !== 'edit') throw new Error('role not stored');
+  await ev(`[...document.querySelectorAll('.sh-row')].find(r => r.textContent.includes('${PARTNER}')).querySelector('.mini-btn.danger').click()`);
+  await until(`document.querySelectorAll('.sh-row').length === 1`, 'partner removed');
+  // the removed partner is out at once
+  await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth'); await fillLogin(PARTNER, 'partner-pass-123');
+  await until(`!document.getElementById('shell').hidden`, 'partner own dashboard');
+  if (await ev(`!!document.querySelector('.sf-account') || /Shared Flat/.test(document.body.textContent)`)) throw new Error('removed partner still sees the host portfolio');
+});
 await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
   await makeUser('cara@example.com'); await fillLogin('cara@example.com', PW);

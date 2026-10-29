@@ -67,17 +67,19 @@ export function createLocalExtras({ storage = globalThis.localStorage, idb = glo
 }
 
 /* ------------------------------------------------------------------ Supabase */
-export function createCloudExtras(cloud, bucket = 'asset-docs') {
+/** `owner`: the account the files and reminders belong to (your own id, or the one of an account shared with you). */
+export function createCloudExtras(cloud, bucket = 'asset-docs', owner = null) {
+  const only = owner ? `user_id=eq.${encodeURIComponent(owner)}&` : '', mine = owner ? { user_id: owner } : {};
   return {
     kind: 'cloud',
     canEmail: true,
-    async listDocs() { return (await cloud.rest('GET', '/asset_documents?select=*&order=created_at.desc')).map(docFromDb); },
+    async listDocs() { return (await cloud.rest('GET', `/asset_documents?${only}select=*&order=created_at.desc`)).map(docFromDb); },
     async addDoc(assetId, file, kind = 'other') {
-      const uid = cloud.user()?.id; if (!uid) throw new Error('Please sign in again.');
+      const uid = owner || cloud.user()?.id; if (!uid) throw new Error('Please sign in again.');
       const path = `${uid}/${assetId}/${newId()}-${safeName(file.name)}`;
       await cloud.upload(bucket, path, file, file.type);
       try {
-        const [r] = await cloud.rest('POST', '/asset_documents', { asset_id: assetId, name: file.name.slice(0, 200), kind, path, size: file.size, mime: file.type || null }, { prefer: 'return=representation' });
+        const [r] = await cloud.rest('POST', '/asset_documents', { ...mine, asset_id: assetId, name: file.name.slice(0, 200), kind, path, size: file.size, mime: file.type || null }, { prefer: 'return=representation' });
         return docFromDb(r);
       } catch (e) { try { await cloud.removeObject(bucket, path); } catch { /* the orphan is harmless: nobody else can read it */ } throw e; }
     },
@@ -87,8 +89,8 @@ export function createCloudExtras(cloud, bucket = 'asset-docs') {
       const docs = await cloud.rest('GET', `/asset_documents?asset_id=eq.${encodeURIComponent(assetId)}&select=path`);
       for (const d of docs) { try { await cloud.removeObject(bucket, d.path); } catch { /* best effort: the rows are removed with the asset */ } }
     },
-    async listReminders() { return (await cloud.rest('GET', '/asset_reminders?select=*&order=due_on.asc')).map(remFromDb); },
-    async addReminder(assetId, v) { const [r] = await cloud.rest('POST', '/asset_reminders', { asset_id: assetId, ...remToDb(v) }, { prefer: 'return=representation' }); return remFromDb(r); },
+    async listReminders() { return (await cloud.rest('GET', `/asset_reminders?${only}select=*&order=due_on.asc`)).map(remFromDb); },
+    async addReminder(assetId, v) { const [r] = await cloud.rest('POST', '/asset_reminders', { ...mine, asset_id: assetId, ...remToDb(v) }, { prefer: 'return=representation' }); return remFromDb(r); },
     async updateReminder(id, v) {
       const body = {}; if ('title' in v) Object.assign(body, remToDb(v)); if ('done' in v) body.done = v.done; if ('dueOn' in v && !('title' in v)) body.due_on = v.dueOn;
       if ('lastNotifiedOn' in v) body.last_notified_on = v.lastNotifiedOn;
