@@ -8,6 +8,7 @@ import { validateLead } from './src/lead.js';
 import { createGlobe } from './src/globe.js';
 import { attachGeo } from './src/geoui.js';
 import { mountDashboard } from './src/dashboard.js';
+import { mountAutofillDemo } from './src/autofill-demo.js';
 
 document.documentElement.classList.add('js');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -322,6 +323,12 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
   });
 }
 
+/* ------------------------------------------------- document autofill demo */
+{
+  const root = document.getElementById('af-demo');
+  if (root) mountAutofillDemo(root, { reduceMotion });
+}
+
 /* ------------------------------------------------- header, CTA tracking, motion */
 {
   const header = document.querySelector('.site-header');
@@ -332,7 +339,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
     if (c) analytics.track(c.dataset.cta === 'primary' ? 'primary_cta_click' : 'secondary_cta_click', { where: c.dataset.where || '' });
     if (c && c.getAttribute('href') === '#early-access') setTimeout(() => document.getElementById('f-email')?.focus({ preventScroll: true }), reduceMotion ? 0 : 600);
   });
-  const targets = document.querySelectorAll('.sec-head, .globe-stage, .fin, .collection, .reports, .quote-card');
+  const targets = document.querySelectorAll('.sec-head, .globe-stage, .fin, .collection, .reports, .quote-card, .af-demo');
   if (!reduceMotion && 'IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } }), { rootMargin: '0px 0px -8% 0px' });
     targets.forEach(t => { t.setAttribute('data-reveal', ''); io.observe(t); });
