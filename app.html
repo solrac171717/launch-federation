@@ -24,12 +24,12 @@
   <div class="auth-card">
     <a class="logo" href="index.html" aria-label="ATLAS, back to the website"><span class="lmark" style="--s:34px" aria-hidden="true"><img src="assets/logo-a.png" alt="" width="192" height="192"></span><span>ATLAS</span></a>
     <h1 id="auth-title">Sign in to your workspace</h1>
-    <p class="auth-sub">Enter your email and we will send you a secure sign-in link. No password needed.</p>
+    <p class="auth-sub">Access is by invitation during early access. Sign in with your email and password.</p>
     <form id="auth-form" novalidate>
-      <div class="field"><label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="email" inputmode="email" placeholder="you@company.com" required><p class="err" id="auth-err" role="alert"></p></div>
-      <button class="btn btn-primary btn-lg block" type="submit" id="auth-submit"><span class="lbl">Email me a sign-in link</span><span class="spin" aria-hidden="true"></span></button>
+      <div class="field"><label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="username" inputmode="email" placeholder="you@company.com" required></div>
+      <div class="field"><label for="auth-password">Password</label><input id="auth-password" type="password" autocomplete="current-password" required><p class="err" id="auth-err" role="alert"></p></div>
+      <button class="btn btn-primary btn-lg block" type="submit" id="auth-submit"><span class="lbl">Sign in</span><span class="spin" aria-hidden="true"></span></button>
     </form>
-    <p class="auth-ok" id="auth-ok" role="status" hidden></p>
     <p class="auth-legal">By continuing you agree to our <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</p>
     <p class="auth-foot"><a href="index.html">Back to the website</a></p>
   </div>

@@ -77,19 +77,22 @@ function fakeFetch(routes) {
 }
 const cfg = { url: 'https://x.supabase.co', anonKey: 'anon-key' };
 
-test('magic link request sends the email, redirect and anon key', async () => {
-  const f = fakeFetch([{ test: u => u.pathname === '/auth/v1/otp', reply: () => ({ status: 200, body: {} }) }]);
-  const c = createCloud({ ...cfg, storage: memStorage(), fetchImpl: f });
-  await c.signInWithEmail(' Ana@Example.com ', 'https://app.test/app.html');
+test('password sign-in sends the lowercased email and password, and stores the session', async () => {
+  const f = fakeFetch([{ test: u => u.pathname === '/auth/v1/token', reply: () => ({ status: 200, body: { access_token: 'AT', refresh_token: 'RT', expires_in: 3600, user: { id: 'u1', email: 'ana@example.com' } } }) }]);
+  const st = memStorage();
+  const c = createCloud({ ...cfg, storage: st, fetchImpl: f });
+  await c.signInWithPassword(' Ana@Example.com ', 'secret-pw');
   const call = f.calls[0];
-  assert.equal(call.url, '/auth/v1/otp?redirect_to=https%3A%2F%2Fapp.test%2Fapp.html');
-  assert.equal(call.body.email, 'ana@example.com'); assert.equal(call.headers.apikey, 'anon-key');
+  assert.equal(call.url, '/auth/v1/token?grant_type=password');
+  assert.equal(call.body.email, 'ana@example.com'); assert.equal(call.body.password, 'secret-pw'); assert.equal(call.headers.apikey, 'anon-key');
+  assert.equal(c.user().email, 'ana@example.com');
 });
 
-test('rate-limit and invalid-email errors become readable messages', async () => {
-  const f = fakeFetch([{ test: () => true, reply: () => ({ status: 429, body: { error_code: 'over_email_send_rate_limit', msg: 'x' } }) }]);
-  const c = createCloud({ ...cfg, storage: memStorage(), fetchImpl: f });
-  await assert.rejects(() => c.signInWithEmail('a@b.co'), e => e instanceof CloudError && /Too many sign-in emails/.test(e.message));
+test('wrong credentials and rate limits become readable messages', async () => {
+  const bad = fakeFetch([{ test: () => true, reply: () => ({ status: 400, body: { error_code: 'invalid_credentials', msg: 'Invalid login credentials' } }) }]);
+  await assert.rejects(() => createCloud({ ...cfg, storage: memStorage(), fetchImpl: bad }).signInWithPassword('a@b.co', 'x'), e => e instanceof CloudError && /Incorrect email or password/.test(e.message));
+  const f = fakeFetch([{ test: () => true, reply: () => ({ status: 429, body: { error_code: 'over_request_rate_limit', msg: 'x' } }) }]);
+  await assert.rejects(() => createCloud({ ...cfg, storage: memStorage(), fetchImpl: f }).signInWithPassword('a@b.co', 'x'), e => e instanceof CloudError && /Too many attempts/.test(e.message));
 });
 
 test('magic-link return: session is read from the URL hash, saved, and the URL cleaned', async () => {

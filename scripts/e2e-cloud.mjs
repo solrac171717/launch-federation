@@ -34,13 +34,15 @@ let n = 0, failed = 0;
 const step = async (name, fn) => { try { await fn(); console.log(`ok   ${++n}. ${name}`); } catch (e) { failed++; console.log(`FAIL ${++n}. ${name}\n       ${e.message}`); } };
 const rows = async () => (await fetch(`${mock.origin}/__rows`)).json();
 const click = sel => ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)}); if(!e) throw new Error('no ${sel}'); e.click(); return true;})()`);
+const PW = 'correct-horse-9';
+const makeUser = email => fetch(`${mock.origin}/__user?email=${encodeURIComponent(email)}&password=${PW}`);
+const fillLogin = (email, pw) => ev(`(()=>{document.getElementById('auth-email').value=${JSON.stringify(email)}; document.getElementById('auth-password').value=${JSON.stringify(pw)}; document.getElementById('auth-form').requestSubmit();})()`);
 const signIn = async email => {
+  await makeUser(email);
   await goto(`${mock.origin}/app.html`);
   await until(`!document.getElementById('auth').hidden`, 'sign-in screen');
-  await ev(`(()=>{const i=document.getElementById('auth-email'); i.value=${JSON.stringify(email)}; document.getElementById('auth-form').requestSubmit();})()`);
-  await until(`!document.getElementById('auth-ok').hidden`, 'check-your-inbox message');
-  const { url } = await (await fetch(`${mock.origin}/__link?email=${encodeURIComponent(email)}`)).json();
-  await goto(url); await until(`!document.getElementById('shell').hidden`, 'dashboard');
+  await fillLogin(email, PW);
+  await until(`!document.getElementById('shell').hidden`, 'dashboard');
   await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
 };
 
@@ -49,9 +51,15 @@ await step('signed out visitor sees the sign-in screen, invalid email is rejecte
   await ev(`(()=>{document.getElementById('auth-email').value='nope'; document.getElementById('auth-form').requestSubmit();})()`);
   await until(`/valid email/i.test(document.getElementById('auth-err').textContent)`, 'validation message');
 });
-await step('magic link signs in; URL hash is cleaned; account email shown', async () => {
+await step('wrong password and unknown email get the same message; nobody can sign up', async () => {
+  await makeUser('ana@example.com');
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
+  await fillLogin('ana@example.com', 'wrong'); await until(`/Incorrect email or password/.test(document.getElementById('auth-err').textContent)`, 'wrong password message');
+  await fillLogin('stranger@example.com', PW); await until(`/Incorrect email or password/.test(document.getElementById('auth-err').textContent)`, 'unknown email message');
+  if (!(await ev(`document.getElementById('auth').hidden === false`))) throw new Error('left the sign-in screen');
+});
+await step('password signs in; account email shown', async () => {
   await signIn('ana@example.com');
-  if (await ev('location.hash')) throw new Error('hash not cleaned');
   await until(`document.getElementById('side-foot').textContent.includes('ana@example.com')`, 'email in sidebar');
   if (!(await ev(`document.getElementById('side-foot').textContent.includes('Synced')`))) throw new Error('no sync label');
 });
@@ -258,8 +266,7 @@ await step('sign out returns to the sign-in screen and clears the session', asyn
 });
 await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
-  await ev(`document.getElementById('auth-email').value='cara@example.com'; document.getElementById('auth-form').requestSubmit()`); await until(`!document.getElementById('auth-ok').hidden`, 'sent');
-  const { url } = await (await fetch(`${mock.origin}/__link?email=cara%40example.com`)).json(); await goto(url);
+  await makeUser('cara@example.com'); await fillLogin('cara@example.com', PW);
   await until(`document.querySelector('.wizard h2')?.textContent === 'What do you own?'`, 'guide opens by itself');
   await ev(`[...document.querySelectorAll('.wz-types .type-card')].filter(b => /House|Car/.test(b.textContent)).forEach(b => b.click())`);
   await until(`/Continue with 2/.test(document.querySelector('.wizard .btn-primary').textContent)`, 'two picked'); await btn('Continue with 2', 'document');

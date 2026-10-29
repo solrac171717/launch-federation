@@ -37,21 +37,24 @@ const message = e => (e && e.message) || 'Something went wrong. Please try again
 /* ------------------------------------------------------------------ sign in */
 function showAuth(error) {
   show('auth');
-  const form = $('auth-form'), email = $('auth-email'), err = $('auth-err'), ok = $('auth-ok'), btn = $('auth-submit');
-  err.textContent = error || ''; ok.hidden = true; form.hidden = false;
+  const form = $('auth-form'), email = $('auth-email'), pass = $('auth-password'), err = $('auth-err'), btn = $('auth-submit');
+  err.textContent = error || '';
   if (form.dataset.bound) return; form.dataset.bound = '1';
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const v = email.value.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) { err.textContent = 'Enter a valid email address.'; email.setAttribute('aria-invalid', 'true'); email.focus(); return; }
-    email.removeAttribute('aria-invalid'); err.textContent = '';
-    btn.disabled = true; btn.classList.add('busy'); btn.querySelector('.lbl').textContent = 'Sending…';
+    email.removeAttribute('aria-invalid');
+    if (!pass.value) { err.textContent = 'Enter your password.'; pass.setAttribute('aria-invalid', 'true'); pass.focus(); return; }
+    pass.removeAttribute('aria-invalid'); err.textContent = '';
+    btn.disabled = true; btn.classList.add('busy'); btn.querySelector('.lbl').textContent = 'Signing in…';
     try {
-      await cloud.signInWithEmail(v, location.origin + location.pathname);
-      form.hidden = true; ok.hidden = false; ok.textContent = '';
-      ok.append(h('b', {}, 'Check your inbox. '), `We sent a sign-in link to ${v}. Open it on this device to continue.`);
-    } catch (x) { err.textContent = message(x); }
-    finally { btn.disabled = false; btn.classList.remove('busy'); btn.querySelector('.lbl').textContent = 'Email me a sign-in link'; }
+      await cloud.signInWithPassword(v, pass.value);
+      pass.value = ''; location.reload(); // the session is stored; start() picks it up
+    } catch (x) {
+      err.textContent = message(x); pass.value = '';
+      btn.disabled = false; btn.classList.remove('busy'); btn.querySelector('.lbl').textContent = 'Sign in';
+    }
   });
 }
 

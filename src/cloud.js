@@ -40,7 +40,8 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
   }
 
   function friendly(status, code, msg) {
-    if (code === 'over_email_send_rate_limit' || status === 429) return 'Too many sign-in emails were requested. Wait a few minutes and try again.';
+    if (code === 'invalid_credentials') return 'Incorrect email or password.';
+    if (code === 'over_email_send_rate_limit' || status === 429) return 'Too many attempts. Wait a few minutes and try again.';
     if (code === 'validation_failed' || /valid email/i.test(msg)) return 'Enter a valid email address.';
     if (status === 401 || status === 403) return 'Your session has expired. Please sign in again.';
     return msg;
@@ -79,10 +80,10 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     user: () => session?.user || null,
     onAuthChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 
-    /** Sends a magic link to the email. The link returns the user to `redirectTo` with the session in the URL hash. */
-    async signInWithEmail(email, redirectTo) {
-      const q = redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : '';
-      await call(`/auth/v1/otp${q}`, { method: 'POST', body: { email: String(email).trim().toLowerCase(), create_user: true } });
+    /** Email + password. Accounts are created by hand in Supabase; there is no public sign-up. */
+    async signInWithPassword(email, password) {
+      const d = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: String(email).trim().toLowerCase(), password: String(password) } });
+      setSession(fromTokenResponse(d));
     },
 
     /** Call once on load: finishes a magic-link sign-in if the URL carries a session (or an error). */

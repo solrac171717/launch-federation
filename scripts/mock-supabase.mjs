@@ -57,6 +57,10 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         if (!u) return json(res, 404, { message: 'no link sent' });
         const t = issue(u); return json(res, 200, { url: `${origin}/app.html#access_token=${t.access_token}&refresh_token=${t.refresh_token}&expires_in=3600&expires_at=${t.expires_at}&token_type=bearer&type=magiclink` });
       }
+      if (path === '/__user') { // an account created by hand in the Supabase dashboard
+        const email = url.searchParams.get('email'), password = url.searchParams.get('password');
+        users.set(email, { ...(users.get(email) || { id: randomUUID(), email }), password }); return json(res, 200, {});
+      }
       if (path === '/__expire') { for (const a of access.values()) a.exp = 0; return json(res, 200, {}); }
       if (path === '/__log') return json(res, 200, log);
       if (path === '/__rows') return json(res, 200, table);
@@ -82,7 +86,13 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       }
       if (path === '/auth/v1/user') { const u = bearer(req); return u ? json(res, 200, u) : json(res, 401, { msg: 'invalid JWT' }); }
       if (path === '/auth/v1/token' && req.method === 'POST') {
-        const b = await readBody(req); const u = refresh.get(b?.refresh_token);
+        const b = await readBody(req);
+        if (url.searchParams.get('grant_type') === 'password') { // like the real server: same error for a wrong password and an unknown email
+          const u = users.get(String(b?.email || ''));
+          if (!u || !u.password || u.password !== b?.password) return json(res, 400, { error_code: 'invalid_credentials', msg: 'Invalid login credentials' });
+          log.push(['password', u.email]); return json(res, 200, issue(u));
+        }
+        const u = refresh.get(b?.refresh_token);
         if (!u) return json(res, 400, { error_code: 'refresh_token_not_found', msg: 'Invalid Refresh Token' });
         refresh.delete(b.refresh_token); log.push(['refresh', u.email]); return json(res, 200, issue(u));
       }

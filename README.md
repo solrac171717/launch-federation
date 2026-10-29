@@ -25,7 +25,7 @@ Nothing is uploaded and nobody signs in.
 1. In the Supabase SQL editor run `supabase/assets.sql`. It creates `public.assets` with Row Level Security, so every
    user can only read and write their own rows. Nothing is readable by anonymous visitors.
 2. Authentication → URL Configuration: set *Site URL* to your site and add `https://YOUR-SITE/app.html` (and
-   `http://localhost:4173/app.html` for local work) to *Redirect URLs*. Email sign-in (magic link) must be enabled.
+   `http://localhost:4173/app.html` for local work) to *Redirect URLs*. Email sign-in must be enabled. Sign-in is email + password with no public sign-up: turn OFF *Allow new users to sign up* and create each account by hand (Authentication > Users > Add user, tick *Auto Confirm User*).
 3. Build with the **public anon key** (never the service-role key):
    `SUPABASE_URL=https://xxxx.supabase.co SUPABASE_ANON_KEY=... npm run build`. On Vercel set both as environment
    variables. The build writes them to `dist/assets/config.js`. For local development edit `assets/config.js` by hand.
@@ -69,7 +69,7 @@ npm run make-countries # regenerate assets/countries.js (outlines + dot grids fo
 
 ## Testing the signed-in app without a Supabase project
 
-`npm run mock` serves the site and a local stand-in for Supabase (auth, per-user rows, token expiry) on http://localhost:4180/app.html; the magic link is available at `/__link?email=you@example.com`. `npm run e2e` drives that app in headless Chrome: sign-in, sample data, add, edit after token expiry, delete, row isolation between users, sign-out.
+`npm run mock` serves the site and a local stand-in for Supabase (auth, per-user rows, token expiry) on http://localhost:4180/app.html; create an account with `/__user?email=you@example.com&password=secret` and sign in with it. `npm run e2e` drives that app in headless Chrome: sign-in, sample data, add, edit after token expiry, delete, row isolation between users, sign-out.
 
 ## Debt, import, exports, documents and reminders
 
