@@ -515,10 +515,10 @@ h1 { font-size: clamp(2.75rem, 5.4vw + .6rem, 5.6rem); line-height: 1; letter-sp
 @media (max-width: 1000px) { .doc { zoom: .9; } .rep-stage { width: min(560px, 100%); } }
 @media (max-width: 620px) { .doc { zoom: 1; } }
 
-/* ===== ATLAS mark ===== */
+/* ===== Owned Map mark ===== */
 .lmark { display: inline-grid; width: var(--s); height: var(--s); flex: none; }
 .lmark img { width: 100%; height: 100%; display: block; }
-.pp-brand i { width: 22px; height: 22px; background: url(assets/logo-a.png) center / contain no-repeat; }
+.pp-brand i { width: 22px; height: 22px; background: url(assets/logo-o.png) center / contain no-repeat; }
 .pp-brand i::after { content: none; }
 
 /* collection photos: keep each image's own proportions on white */
@@ -962,3 +962,11 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 @keyframes cardIn { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .geo-crumbs, .geo-crumbs b, .geo-assets button.geo-card, .geo-assets button[data-id] { animation: none !important; transition: none !important; } }
 .geo-ui.deep .geo-chips { display: none; }
+
+/* The name is two words: keep it on one line */
+.logo, .side-brand, .pp-brand, .quote-brand { white-space: nowrap; }
+.logo { letter-spacing: .1em; }
+/* Longer name, so the navbar is a little wider than the headline and the three columns size to their content */
+.site-header .bar.wrap { width: min(calc(var(--h1) * 9.9), calc(100% - 32px)); }
+@media (min-width: 861px) { .site-header .bar.wrap { grid-template-columns: auto 1fr auto; } .pill-nav a { padding: 9px 13px; } }
+@media (max-width: 1180px) { .site-header .bar.wrap { grid-template-columns: 1fr auto; } .pill-nav { display: none; } }

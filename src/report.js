@@ -34,7 +34,7 @@ export function buildExcel(assets, { today, scope = 'All assets', sample = false
     a.acquiredOn || '', a.notes || ''])];
   rows.push([{ v: 'Total', s: 'bold' }, '', '', '', '', '', '', { v: p.cost, s: 'boldMoney' }, { v: p.value, s: 'boldMoney' }, { v: p.appreciation, s: 'boldMoney' }, { v: p.appreciationPct, s: 'boldPct' },
     { v: p.debt, s: 'boldMoney' }, { v: p.netWorth, s: 'boldMoney' }, p.ltv == null ? '' : { v: p.ltv, s: 'boldPct' }, '', '', p.earningCount ? { v: p.noi, s: 'boldMoney' } : '', p.noiYield == null ? '' : { v: p.noiYield, s: 'boldPct' }]);
-  const sum = [[{ v: 'ATLAS portfolio summary', s: 'title' }, ''],
+  const sum = [[{ v: 'Owned Map portfolio summary', s: 'title' }, ''],
     ['Scope', scope], ['As of', today], ...(sample ? [['Data', 'Illustrative sample data']] : []), ['Assets', p.count], ['', ''],
     [{ v: 'Total value', s: 'bold' }, { v: p.value, s: 'boldMoney' }], ['Acquisition cost', { v: p.cost, s: 'money' }], ['Gain vs. cost', { v: p.appreciation, s: 'money' }], ['Gain %', { v: p.appreciationPct, s: 'pct' }],
     ['Total debt', { v: p.debt, s: 'money' }], [{ v: 'Net worth (value minus debt)', s: 'bold' }, { v: p.netWorth, s: 'boldMoney' }], ['Loan-to-value', p.ltv == null ? '–' : { v: p.ltv, s: 'pct' }],
@@ -57,7 +57,7 @@ export function reportHtml(assets, { today, scope = 'All assets', owner = '', sa
   const kpi = (l, v, sub = '') => `<div class="k"><span>${esc(l)}</span><b>${esc(v)}</b>${sub ? `<em>${esc(sub)}</em>` : ''}</div>`;
   const tone = n => (n > 0 ? 'pos' : n < 0 ? 'neg' : '');
   const rows = [...assets].sort((a, b) => b.value - a.value).map(a => `<tr><td><b>${esc(a.name)}</b><small>${esc(a.kind)} · ${esc(a.place)}${a.shared ? ` · you own ${a.ownership}%` : ''}${a.owner ? ` · ${esc(a.owner)}` : ''}</small></td><td>${esc(a.status)}</td><td class="r">${usd(a.value)}</td><td class="r">${a.debt ? usd(a.debt) : '–'}</td><td class="r">${usd(a.equity)}</td><td class="r ${tone(a.appreciation)}">${a.appreciationPct >= 0 ? '+' : ''}${pct(a.appreciationPct)}</td><td class="r">${a.earning ? usd(a.noi) : '–'}</td></tr>`).join('');
-  return `<!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>ATLAS portfolio report ${esc(today)}</title><style>
+  return `<!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>Owned Map portfolio report ${esc(today)}</title><style>
 @page { size: A4; margin: 16mm 14mm 18mm; }
 * { box-sizing: border-box; } html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { margin: 0; font: 11px/1.45 Inter, "Segoe UI", Arial, sans-serif; color: #0A0F1F; }
@@ -77,14 +77,14 @@ tfoot td { border-top: 1.5px solid #CBD5E1; border-bottom: 0; font-weight: 700; 
 .note { margin-top: 18px; padding-top: 10px; border-top: 1px solid #E2E8F0; color: #64748B; font-size: 9.5px; }
 .sample { margin-top: 10px; padding: 6px 10px; border-radius: 8px; background: #FEF3C7; color: #92400E; font-size: 10px; }
 </style></head><body>
-<header><div><div class="brand">ATLAS</div><h1>Portfolio report</h1></div><div class="meta"><div><b>${esc(scope)}</b></div><div>As of ${esc(prettyDate(today))}</div>${owner ? `<div>${esc(owner)}</div>` : ''}</div></header>
+<header><div><div class="brand">OWNED MAP</div><h1>Portfolio report</h1></div><div class="meta"><div><b>${esc(scope)}</b></div><div>As of ${esc(prettyDate(today))}</div>${owner ? `<div>${esc(owner)}</div>` : ''}</div></header>
 ${sample ? '<div class="sample">Illustrative sample data, not a real portfolio.</div>' : ''}
 <section class="kpis">${kpi('Total value', usd(p.value), `${p.count} asset${p.count === 1 ? '' : 's'}`).replace('class="k"', 'class="k big"')}${kpi('Total debt', usd(p.debt), p.ltv == null ? 'No debt' : `${pct(p.ltv)} loan-to-value`)}${kpi('Net worth', usd(p.netWorth), 'Value minus debt').replace('class="k"', 'class="k big"')}${kpi('Gain vs. cost', usd(p.appreciation), `${p.appreciationPct >= 0 ? '+' : ''}${pct(p.appreciationPct)} on ${usd(p.cost)}`)}
 ${kpi('Net operating income', p.earningCount ? usd(p.noi) : '–', 'Yearly, income assets')}${kpi('NOI yield', pct(p.noiYield), `${p.earningCount} income asset${p.earningCount === 1 ? '' : 's'}`)}${kpi('Monthly debt payments', usd(p.debtPayment), p.indebtedCount ? `${p.indebtedCount} loan${p.indebtedCount === 1 ? '' : 's'}` : 'None')}${kpi('Acquisition cost', usd(p.cost))}</section>
 <h2>Allocation</h2><div class="alloc">${alloc.map(x => `<div><span>${esc(x.label)}</span><i style="width:${Math.max(1, x.share * 100)}%"></i><span>${pct(x.share)}</span><span>${usd(x.value)}</span></div>`).join('')}</div>
 <h2>Assets</h2><table><thead><tr><th>Asset</th><th>Status</th><th class="r">Value</th><th class="r">Debt</th><th class="r">Equity</th><th class="r">Gain</th><th class="r">NOI</th></tr></thead><tbody>${rows}</tbody>
 <tfoot><tr><td>Total</td><td></td><td class="r">${usd(p.value)}</td><td class="r">${usd(p.debt)}</td><td class="r">${usd(p.netWorth)}</td><td class="r">${p.appreciationPct >= 0 ? '+' : ''}${pct(p.appreciationPct)}</td><td class="r">${p.earningCount ? usd(p.noi) : '–'}</td></tr></tfoot></table>
-<p class="note">${fxNote ? esc(fxNote) + ' ' : ''}Values are estimates entered by the owner and follow the share the owner holds in each asset. This is not an appraisal, and this report is not financial, tax or legal advice. Net worth is the sum of estimated values minus the outstanding debt entered for each asset. Generated by ATLAS on ${esc(prettyDate(today))}.</p>
+<p class="note">${fxNote ? esc(fxNote) + ' ' : ''}Values are estimates entered by the owner and follow the share the owner holds in each asset. This is not an appraisal, and this report is not financial, tax or legal advice. Net worth is the sum of estimated values minus the outstanding debt entered for each asset. Generated by Owned Map on ${esc(prettyDate(today))}.</p>
 </body></html>`;
 }
 

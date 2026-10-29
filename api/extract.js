@@ -36,7 +36,7 @@ async function geocode({ env, fetchImpl, r }) {
   for (let i = 0; i < tries.length; i++) {
     try {
       const u = `${base}/search?format=jsonv2&limit=1&addressdetails=1&q=${encodeURIComponent(tries[i])}`;
-      const res = await fetchImpl(u, { headers: { 'user-agent': 'ATLAS/1.0 (https://launchfederation.com)', 'accept-language': 'en' } });
+      const res = await fetchImpl(u, { headers: { 'user-agent': 'OwnedMap/1.0 (https://launchfederation.com)', 'accept-language': 'en' } });
       if (!res.ok) continue;
       const hit = (await res.json())[0];
       if (!hit) continue;

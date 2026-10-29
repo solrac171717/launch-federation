@@ -31,7 +31,7 @@ const HEADLINES = {
 }
 
 /* ------------------------------------------------------------------ hero dashboard (the same dashboard the app uses, on sample data) */
-mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'atlas-sample-assets.csv', globeLabel: 'Rotating 3D globe of sample assets' });
+mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-sample-assets.csv', globeLabel: 'Rotating 3D globe of sample assets' });
 
 /* ---------------------------------------------------------- globe section */
 {
@@ -228,7 +228,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'atlas-sample-a
   })();
 
   const pdf = h('div', { class: 'doc doc-pdf', role: 'img', 'aria-label': 'Preview of a portfolio summary report page with sample data' },
-    h('div', { class: 'pp-top' }, h('div', { class: 'pp-brand' }, h('i', {}), 'ATLAS'), h('span', {}, 'Portfolio summary')),
+    h('div', { class: 'pp-top' }, h('div', { class: 'pp-brand' }, h('i', {}), 'OWNED MAP'), h('span', {}, 'Portfolio summary')),
     h('div', { class: 'pp-title' }, h('b', {}, 'Monthly portfolio report'), h('span', {}, `As of ${TODAY} · USD · sample data`)),
     h('div', { class: 'pp-kpis' },
       h('div', {}, h('em', {}, 'Portfolio value'), h('b', {}, compact(P.value)), Delta(P.appreciation, fmtPct(P.appreciationPct, { sign: true }))),
@@ -247,7 +247,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'atlas-sample-a
   const hdr = ['Asset', 'Category', 'Cost', 'Value', 'Δ vs. cost', 'NOI'];
   const L = 'ABCDEF';
   const sheet = h('div', { class: 'doc doc-xls', role: 'img', 'aria-label': 'Preview of a spreadsheet export with sample data' },
-    h('div', { class: 'xl-top' }, h('span', { class: 'xl-logo' }, 'X'), h('b', {}, 'atlas-assets.xlsx'), h('span', { class: 'xl-saved' }, 'Sample data')),
+    h('div', { class: 'xl-top' }, h('span', { class: 'xl-logo' }, 'X'), h('b', {}, 'owned-map-assets.xlsx'), h('span', { class: 'xl-saved' }, 'Sample data')),
     h('div', { class: 'xl-ribbon' }, ['Home', 'Insert', 'Formulas', 'Data'].map((t, i) => h('span', { class: i === 0 ? 'on' : '' }, t))),
     h('div', { class: 'xl-fx' }, h('span', { class: 'xl-name' }, 'E12'), h('i', {}, 'fx'), h('span', { class: 'xl-f' }, `=SUM(E2:E${ASSETS.length + 1})`)),
     h('div', { class: 'xl-grid' }, h('table', {},
@@ -306,7 +306,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'atlas-sample-a
       if (r.ok && data.ok) {
         analytics.track('early_access_form_success');
         form.replaceChildren(h('div', { class: 'done', tabindex: -1, role: 'status' }, h('div', { class: 'tick', 'aria-hidden': 'true' }, '✓'), h('h3', {}, 'You’re on the list.'),
-          h('p', {}, 'We’ve recorded your request and will email you when ATLAS opens.')));
+          h('p', {}, 'We’ve recorded your request and will email you when Owned Map opens.')));
         form.querySelector('.done').focus();
         return;
       }

@@ -1,4 +1,4 @@
-// What a user can track in ATLAS. Each type maps to a category (used by the map filters and reports)
+// What a user can track in Owned Map. Each type maps to a category (used by the map filters and reports)
 // and to the 3D illustration shown for it.
 export const CATEGORIES = {
   residential: 'Residential',

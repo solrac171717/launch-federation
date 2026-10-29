@@ -216,7 +216,7 @@ await step('cash flow tab: monthly income, expenses and loan payments follow the
 });
 await step('asset activity timeline shows value increases and debt reduction', async () => {
   await tab('Assets'); await btn('Documents', 'document'); await until(`document.querySelector('.extras .tl')`, 'timeline');
-  const t = await ev(`document.querySelector('.extras .tl').textContent`); if (!/Value increased/.test(t) || !/Debt reduced/.test(t) || !/Added to ATLAS/.test(t)) throw new Error(t);
+  const t = await ev(`document.querySelector('.extras .tl').textContent`); if (!/Value increased/.test(t) || !/Debt reduced/.test(t) || !/Added to Owned Map/.test(t)) throw new Error(t);
   await ev(`document.querySelector('.modal-x').click()`); await until(`!document.getElementById('modal').open`, 'closed');
 });
 await step('delete hides the asset at once, Undo brings it back, and without Undo it is really deleted with its files', async () => {

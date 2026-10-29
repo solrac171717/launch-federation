@@ -42,4 +42,4 @@ createServer(async (req, res) => {
     const data = await readFile(f);
     res.writeHead(200, { 'content-type': types[extname(f)] || 'application/octet-stream' }).end(data);
   } catch { res.writeHead(404).end('Not found'); }
-}).listen(process.env.PORT || 4173, () => console.log('ATLAS on http://localhost:' + (process.env.PORT || 4173)));
+}).listen(process.env.PORT || 4173, () => console.log('Owned Map on http://localhost:' + (process.env.PORT || 4173)));

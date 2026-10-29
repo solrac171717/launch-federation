@@ -1,4 +1,4 @@
-// Minimal Supabase client (no SDK): email magic-link sign-in + the PostgREST calls ATLAS needs.
+// Minimal Supabase client (no SDK): email magic-link sign-in + the PostgREST calls Owned Map needs.
 // Only the public anon key lives in the browser; every row is protected by Row Level Security
 // (see supabase/assets.sql), so a user can only ever read and write their own assets.
 export class CloudError extends Error {

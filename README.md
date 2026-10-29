@@ -1,6 +1,6 @@
-# ATLAS
+# Owned Map
 
-Marketing site and app preview for ATLAS, a global asset intelligence platform.
+Marketing site and app preview for Owned Map, a global asset intelligence platform.
 
 - `index.html` + `landing.css` + `landing.js` — the visual-first landing page (static, no framework, no map SDK). The form asks only for email + consent; `src/lead.js` still accepts optional name, portfolio size, asset types and investor type.
 - `app.html` + `app.css` + `src/app-main.js` — **the app**: the same dashboard as the website preview (Map with Globe/Country,
@@ -42,7 +42,7 @@ endpoint answers `503` and the form tells the visitor that nothing was saved —
 
 1. Run `supabase/early_access.sql` in your Supabase project (RLS is enabled; only the service role writes).
 2. Set env vars on the host (e.g. Vercel): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
-3. Set `SITE_URL` (e.g. `https://atlas.example.com`) for the production build so canonical/Open Graph tags and
+3. Set `SITE_URL` (e.g. `https://ownedmap.example.com`) for the production build so canonical/Open Graph tags and
    `sitemap.xml` are emitted.
 
 Not included yet: rate limiting, email confirmation, a consent banner, Privacy Policy and Terms pages.

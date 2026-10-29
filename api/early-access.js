@@ -3,7 +3,7 @@
 // and the form shows an error: a lead is never reported as saved unless it was actually stored.
 import { validateLead } from '../src/lead.js';
 
-const CONSENT_TEXT = 'I agree to be contacted about ATLAS early access. My details are used only for that purpose.';
+const CONSENT_TEXT = 'I agree to be contacted about Owned Map early access. My details are used only for that purpose.';
 
 function send(res, status, body) {
   res.statusCode = status;

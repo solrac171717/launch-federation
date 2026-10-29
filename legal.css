@@ -1,4 +1,4 @@
-/* Legal pages (privacy.html, terms.html): readable long-form text on the ATLAS base styles */
+/* Legal pages (privacy.html, terms.html): readable long-form text on the Owned Map base styles */
 body.legal-page { background: #fff; color: var(--text); }
 .legal-top { position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,.88); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid #E6ECF6; }
 .legal-top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; }

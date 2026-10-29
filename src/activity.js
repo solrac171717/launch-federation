@@ -9,7 +9,7 @@ export function activityFor(row, docs = [], { dayOf = x => String(x).slice(0, 10
   const hist = (row.history || []).filter(p => p && p.d && Number.isFinite(Number(p.v))).sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
   if (row.acquiredOn) ev.push({ date: row.acquiredOn, type: 'buy', title: 'Acquired', detail: `Acquisition cost ${usd(row.cost)}` });
   const created = row.createdAt ? dayOf(row.createdAt) : null;
-  if (created) ev.push({ date: created, type: 'added', title: 'Added to ATLAS', detail: `Estimated value ${usd(row.value)}` });
+  if (created) ev.push({ date: created, type: 'added', title: 'Added to Owned Map', detail: `Estimated value ${usd(row.value)}` });
   hist.forEach((p, i) => {
     const prev = hist[i - 1]; if (!prev) return;
     if (Number(p.v) !== Number(prev.v)) ev.push({ date: p.d, type: 'value', title: Number(p.v) > Number(prev.v) ? 'Value increased' : 'Value decreased', detail: `${usd(prev.v)} to ${usd(p.v)} (${pct(prev.v, p.v)})` });

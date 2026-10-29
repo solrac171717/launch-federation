@@ -1,4 +1,4 @@
-// The ATLAS dashboard (Map, Assets, Performance, Reports). One implementation drives both the
+// The Owned Map dashboard (Map, Assets, Performance, Reports). One implementation drives both the
 // marketing preview (sample data, read-only) and the real app (the user's own assets).
 import { h, s, clear, money, compact, pct1, TODAY, ICON, icon, thumb, Delta, statusDot, assetCard, sparkline, valuationChart, analytics } from './ui.js';
 import { fmtPct, fmtSigned, tone, toCsv } from './calc.js';
@@ -37,7 +37,7 @@ const REMINDERS_NAV = ['reminders', 'Reminders', 'M8 2a4 4 0 0 0-4 4c0 3-1.5 4-1
  * }} opts
  */
 export function mountDashboard(opts) {
-  const { getAssets, sample = false, csvName = 'atlas-assets.csv', actions = {}, reminders: R = null, meta = () => null } = opts;
+  const { getAssets, sample = false, csvName = 'owned-map-assets.csv', actions = {}, reminders: R = null, meta = () => null } = opts;
   const CASH_NAV = ['cashflow', 'Cash flow', 'M2 4h12v8H2zM2 7h12M5 10h2'];
   const INSIGHTS_NAV = ['insights', 'Insights', 'M8 2v2M8 12v2M2 8h2M12 8h2M4 4l1.4 1.4M10.6 10.6L12 12M4 12l1.4-1.4M10.6 5.4L12 4M8 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z'];
   const I = opts.insights || null;
@@ -85,7 +85,7 @@ export function mountDashboard(opts) {
   function setView(v) {
     state.view = v; geo.toggle.hidden = v !== 'map';
     for (const [k, el] of Object.entries(views)) if (el) el.hidden = k !== v;
-    const url = $('app-url'); if (url) url.textContent = `atlas.app / portfolio / ${v}`;
+    const url = $('app-url'); if (url) url.textContent = `ownedmap.app / portfolio / ${v}`;
     $('view-title').textContent = NAVS.find(n => n[0] === v)[1];
     renderNav();
     ({ map: renderMap, assets: renderAssets, perf: renderPerf, reports: renderReports, reminders: renderReminders, cashflow: renderCashflow, insights: renderInsights })[v]();
@@ -222,7 +222,7 @@ export function mountDashboard(opts) {
         kpi('', 'Winners / losers', `${up} up · ${down} down`, `${sc.length} asset${sc.length === 1 ? '' : 's'} in view`, h('span', { class: 'split', 'aria-hidden': 'true' }, h('i', { class: 'pos', style: `flex:${up || 0.001}` }), h('i', { class: 'neg', style: `flex:${down || 0.001}` })))),
       h('div', { class: 'perf-grid' },
         h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('div', {}, h('b', {}, a.name), h('span', {}, 'Estimated value over time')), hist ? h('span', { class: 'rng' }, `${hist[0].label} – ${hist.at(-1).label}`) : h('span', { class: 'rng' }, sample ? 'Sample data' : '')),
-          hist ? chart : h('div', {}, empty('Valuation history not recorded', 'Only one valuation is recorded for this asset, so ATLAS shows cost vs. estimated value instead. Update its value over time to build a history.'), costVsValue(a)),
+          hist ? chart : h('div', {}, empty('Valuation history not recorded', 'Only one valuation is recorded for this asset, so Owned Map shows cost vs. estimated value instead. Update its value over time to build a history.'), costVsValue(a)),
           h('div', { class: 'pstats' }, h('div', {}, h('span', {}, 'Acquisition cost'), h('b', {}, money(a.cost))), h('div', {}, h('span', {}, 'Estimated value'), h('b', {}, money(a.value))),
             h('div', {}, h('span', {}, 'Gain vs. cost'), h('b', { class: tone(a.appreciation, 0.5) }, `${fmtSigned(a.appreciation, { compact: true })}`)))),
         h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('div', {}, h('b', {}, 'Ranking by return'), h('span', {}, `${sc.length} asset${sc.length > 1 ? 's' : ''} · value vs. acquisition cost`))),

@@ -55,7 +55,7 @@ export function normalizeExtraction(raw, geo = null) {
   if (addr) {
     fields.placeName = addr.slice(0, 80); found.push('location');
     if (COUNTRIES[cc]) fields.country = cc;
-    else if (cc) notes.push(`The document is in a country ATLAS cannot place yet (${cc}). Choose the closest country and set the coordinates by hand.`);
+    else if (cc) notes.push(`The document is in a country Owned Map cannot place yet (${cc}). Choose the closest country and set the coordinates by hand.`);
     if (geo && Number.isFinite(geo.lat) && Number.isFinite(geo.lon)) {
       fields.lat = String(Math.round(geo.lat * 1e5) / 1e5); fields.lon = String(Math.round(geo.lon * 1e5) / 1e5);
       if (!fields.country && COUNTRIES[geo.countryCode]) fields.country = geo.countryCode;
@@ -71,7 +71,7 @@ export function normalizeExtraction(raw, geo = null) {
     if (pay != null) { fields.debtPayment = pay; found.push('payment'); }
     if (rent != null) { fields.gross = rent; found.push('rent'); }
   }
-  if (currency !== 'USD') notes.push(`The document is in ${currency}. The amounts are filled in ${currency} and ATLAS converts them to dollars with today's rate.`);
+  if (currency !== 'USD') notes.push(`The document is in ${currency}. The amounts are filled in ${currency} and Owned Map converts them to dollars with today's rate.`);
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(r.acquiredOn || '') && Date.parse(r.acquiredOn) <= Date.now()) { fields.acquiredOn = r.acquiredOn; found.push('date'); }
   const own = typeof r.ownershipPercent === 'number' ? r.ownershipPercent : NaN;

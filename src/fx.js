@@ -1,4 +1,4 @@
-// Exchange rates. Every figure ATLAS adds up is in US dollars; an asset can be entered in its own currency and is converted here.
+// Exchange rates. Every figure Owned Map adds up is in US dollars; an asset can be entered in its own currency and is converted here.
 // Rates come from the European Central Bank through frankfurter.dev (free, no key), once a day, and are cached on the device.
 // If they cannot be fetched we use the last cached ones and say so; we never invent a rate.
 const KEY = 'atlas.fx.v1';

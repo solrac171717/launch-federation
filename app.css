@@ -1,4 +1,4 @@
-/* ATLAS app: the same dashboard as the website preview (landing.css), laid out full-screen,
+/* Owned Map app: the same dashboard as the website preview (landing.css), laid out full-screen,
    plus the pieces only a real product needs: sign-in, add/edit form, empty states, toasts. */
 body.app-page { margin: 0; background: var(--alt, #F5F8FD); min-height: 100dvh; }
 [hidden] { display: none !important; }

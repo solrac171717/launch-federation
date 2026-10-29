@@ -1,4 +1,4 @@
-// ATLAS app entry: sign-in, the user's assets (Supabase or this device), and the dashboard on top of them.
+// Owned Map app entry: sign-in, the user's assets (Supabase or this device), and the dashboard on top of them.
 import { CONFIG } from '../assets/config.js';
 import { h, clear } from './dom.js';
 import { thumb, money } from './ui.js';
@@ -297,13 +297,13 @@ function openForm(existing, opts = {}) {
     vinBox,
     field('Name', name, 'name'),
     h('div', { class: 'field' }, h('label', { for: 'f-place' }, 'Location'), place, cityList, customBox, custom, mkErr.place),
-    ...(hasRates() ? [field('Currency of these amounts', curSel, 'currency', 'Amounts are kept in this currency; ATLAS shows and adds everything in US dollars at today’s rate.')] : []),
+    ...(hasRates() ? [field('Currency of these amounts', curSel, 'currency', 'Amounts are kept in this currency; Owned Map shows and adds everything in US dollars at today’s rate.')] : []),
     h('div', { class: 'two' }, field('Estimated value', value, 'value'), field('Acquisition cost', cost, 'cost')),
     h('div', { class: 'field period' }, h('label', { for: 'f-period' }, 'I will enter income and expenses'), period),
     h('div', { class: 'two' }, incField, expField),
     h('div', { class: 'two' }, field('Debt owed (optional)', debt, 'debt', 'Mortgage or loan balance still to pay.'), field('Monthly payment (optional)', debtPayment, 'debtPayment', 'What you pay each month on that debt.')),
-    h('div', { class: 'two' }, field('Loan interest rate, % a year (optional)', debtRate, 'debtRate', 'Lets ATLAS work out when the loan ends.'), field('Value moves by, % a year (optional)', annualChange, 'annualChange', 'For example -12 for a car, 3 for a home. Leave empty if you update it yourself.')),
-    h('div', { class: 'two' }, field('Your share of this asset, % (optional)', ownership, 'ownership', 'Leave empty if it is all yours. Value, debt and income above are for the whole asset; ATLAS counts only your share.'), field('Held by (optional)', owner, 'owner', 'You, a company, your partner…')), ownerData,
+    h('div', { class: 'two' }, field('Loan interest rate, % a year (optional)', debtRate, 'debtRate', 'Lets Owned Map work out when the loan ends.'), field('Value moves by, % a year (optional)', annualChange, 'annualChange', 'For example -12 for a car, 3 for a home. Leave empty if you update it yourself.')),
+    h('div', { class: 'two' }, field('Your share of this asset, % (optional)', ownership, 'ownership', 'Leave empty if it is all yours. Value, debt and income above are for the whole asset; Owned Map counts only your share.'), field('Held by (optional)', owner, 'owner', 'You, a company, your partner…')), ownerData,
     h('div', { class: 'two' }, field('Status', status, 'status'), field('Acquired on (optional)', acquired, 'acquiredOn', 'Starts the value history.')),
     field('Notes (optional)', notes, 'notes'),
     formErr,
@@ -493,7 +493,7 @@ function openImport(opts = {}) {
   openModal(h('div', { class: 'modal-card wide' }, h('div', { class: 'modal-head' }, h('h2', { id: 'modal-title' }, 'Import assets from a CSV'),
     h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')),
     h('p', { class: 'modal-text' }, 'Export your spreadsheet as CSV (File, Download, CSV in Excel or Google Sheets) and choose it below. Required columns: name, type, location, value and cost. Debt, income, expenses, status, date and notes are optional.'),
-    h('div', { class: 'imp-pick' }, file, h('button', { type: 'button', class: 'mini-btn', onclick: () => download('atlas-import-template.csv', new Blob([TEMPLATE_CSV], { type: 'text/csv;charset=utf-8' })) }, 'Download template')),
+    h('div', { class: 'imp-pick' }, file, h('button', { type: 'button', class: 'mini-btn', onclick: () => download('owned-map-import-template.csv', new Blob([TEMPLATE_CSV], { type: 'text/csv;charset=utf-8' })) }, 'Download template')),
     err, out, h('div', { class: 'modal-actions' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => modal().close() }, 'Cancel'), doImport)));
 }
 
@@ -636,7 +636,7 @@ async function start() {
   try { settings = await settingsApi.get(); } catch (e) { console.error('settings unavailable', e); settingsReady = false; }
   recompute(); show('shell'); renderFoot();
   dash = mountDashboard({
-    getAssets: () => views, csvName: 'atlas-assets.csv', globeLabel: 'Rotating 3D globe of your assets', owner: cloud.user()?.email || '', meta: metaOf,
+    getAssets: () => views, csvName: 'owned-map-assets.csv', globeLabel: 'Rotating 3D globe of your assets', owner: cloud.user()?.email || '', meta: metaOf,
     cashflow: true,
     insights: insightsApi,
     actions: { onLoan: id => tools.openLoan(id), onSell: id => tools.openSale(id), onEmergency: () => tools.printEmergency(), onContacts: () => tools.openContacts(), onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset, onSample: loadSample, onImport: () => openImport(), onDocs: id => openExtras(id), onQuick: openQuick, onWelcome: () => openWelcome(),

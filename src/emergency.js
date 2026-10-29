@@ -23,7 +23,7 @@ ${d.length ? `<dt>Papers</dt><dd>${d.map(x => `${esc(x.name)} <span class="m">($
 ${r.length ? `<dt>Coming up</dt><dd>${r.map(x => `${esc(x.title)} <span class="m">${esc(prettyDate(x.dueOn))}${daysUntil(x.dueOn, today) < 0 ? ', overdue' : ''}</span>`).join('; ')}</dd>` : ''}
 ${a.notes ? `<dt>Notes</dt><dd>${esc(a.notes)}</dd>` : ''}</dl></section>`;
   }).join('');
-  return `<!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>ATLAS emergency sheet ${esc(today)}</title><style>
+  return `<!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>Owned Map emergency sheet ${esc(today)}</title><style>
 @page { size: A4; margin: 16mm 14mm 18mm; }
 * { box-sizing: border-box; } html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { margin: 0; font: 11.5px/1.5 Inter, "Segoe UI", Arial, sans-serif; color: #0A0F1F; }
@@ -37,10 +37,10 @@ table { width: 100%; border-collapse: collapse; } td, th { padding: 6px 6px; bor
 dl { display: grid; grid-template-columns: 74px 1fr; gap: 2px 10px; margin: 0; } dt { color: #64748B; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; padding-top: 1px; } dd { margin: 0; } .m { color: #64748B; font-size: 10.5px; }
 .note { margin-top: 16px; padding-top: 10px; border-top: 1px solid #E2E8F0; color: #64748B; font-size: 9.5px; }
 </style></head><body>
-<header><div><div class="brand">ATLAS</div><h1>Emergency sheet</h1></div><div class="meta"><div><b>${owner ? esc(owner) : 'Asset overview'}</b></div><div>Prepared ${esc(prettyDate(today))}</div><div>${assets.length} asset${assets.length === 1 ? '' : 's'} · estimated net worth ${usd(net)}</div></div></header>
+<header><div><div class="brand">OWNED MAP</div><h1>Emergency sheet</h1></div><div class="meta"><div><b>${owner ? esc(owner) : 'Asset overview'}</b></div><div>Prepared ${esc(prettyDate(today))}</div><div>${assets.length} asset${assets.length === 1 ? '' : 's'} · estimated net worth ${usd(net)}</div></div></header>
 ${settings.emergencyNote ? `<h2>Where to start</h2><div class="box">${esc(settings.emergencyNote).replace(/\n/g, '<br>')}</div>` : ''}
-<h2>Who to call</h2>${contacts.length ? `<table><thead><tr><th>Role</th><th>Name</th><th>Phone</th><th>Email</th></tr></thead><tbody>${contacts.map(c => `<tr><td>${esc(c.role)}</td><td><b>${esc(c.name)}</b></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td></tr>`).join('')}</tbody></table>` : '<p class="m">No contacts added yet. In ATLAS, open Reports and choose &ldquo;Emergency contacts&rdquo; to add your lawyer, accountant, insurer and family.</p>'}
+<h2>Who to call</h2>${contacts.length ? `<table><thead><tr><th>Role</th><th>Name</th><th>Phone</th><th>Email</th></tr></thead><tbody>${contacts.map(c => `<tr><td>${esc(c.role)}</td><td><b>${esc(c.name)}</b></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td></tr>`).join('')}</tbody></table>` : '<p class="m">No contacts added yet. In Owned Map, open Reports and choose &ldquo;Emergency contacts&rdquo; to add your lawyer, accountant, insurer and family.</p>'}
 <h2>What there is</h2>${items || '<p class="m">No assets recorded.</p>'}
-<p class="note">This sheet lists estimates entered by the owner, and the names of documents stored in ATLAS (the documents themselves are not printed). It contains private information: keep the paper somewhere safe and share it only with people you trust. Not legal, tax or financial advice.</p>
+<p class="note">This sheet lists estimates entered by the owner, and the names of documents stored in Owned Map (the documents themselves are not printed). It contains private information: keep the paper somewhere safe and share it only with people you trust. Not legal, tax or financial advice.</p>
 </body></html>`;
 }

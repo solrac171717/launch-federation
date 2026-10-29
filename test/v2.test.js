@@ -114,7 +114,7 @@ test('email rule: once when entering the window, once on the due date, weekly wh
   assert.match(m.subject, /overdue/); assert.match(m.text, /overdue by 2 days/); assert.match(m.html, /Lake &lt;House&gt;/);
 });
 test('daily email job: needs config, groups per person, marks only what was sent, survives failures', async () => {
-  const env = { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'srv', RESEND_API_KEY: 're_1', REMINDER_FROM: 'ATLAS <a@x.test>' };
+  const env = { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'srv', RESEND_API_KEY: 're_1', REMINDER_FROM: 'Owned Map <a@x.test>' };
   assert.equal((await runReminders({ env: {}, fetchImpl: async () => { throw new Error('no network'); } })).status, 503);
   const rows = [
     { id: 'r1', user_id: 'u1', title: 'Insurance', kind: 'insurance', due_on: '2026-11-01', notify_days: 14, last_notified_on: null, assets: { name: 'House' } },

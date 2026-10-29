@@ -102,7 +102,7 @@ export function createTools(ctx) {
       h('p', { class: 'hint' }, v.shared ? `This is your ${v.ownership}% share, in US dollars.` : 'Figures in US dollars.'),
       fld('Sale price (USD)', price),
       h('div', { class: 'two' }, fld('Selling costs, %', costs, 'Agent, legal, closing.'), fld('Tax on the gain, %', tax, 'Your own rate.')),
-      out, h('p', { class: 'hint' }, 'A rough estimate for planning. Real taxes depend on your country, how long you owned it and your situation, so ask your accountant. Nothing is changed in ATLAS.'),
+      out, h('p', { class: 'hint' }, 'A rough estimate for planning. Real taxes depend on your country, how long you owned it and your situation, so ask your accountant. Nothing is changed in Owned Map.'),
       h('div', { class: 'modal-actions' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => modal().close() }, 'Close'), h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: remember }, 'Remember these percentages')));
     calc(); openModal(card('If you sold it', v.name, body)); setTimeout(() => price.focus(), 30);
   }
