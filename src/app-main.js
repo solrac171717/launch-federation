@@ -14,6 +14,7 @@ import { createCloudExtras, createLocalExtras, DOC_KINDS, validateFile, sizeText
 import { REMINDER_KINDS, REPEATS, validateReminder, statusOf, isoDay, nextDue, UPDATE_TITLE } from './reminders.js';
 import { previewImport, TEMPLATE_CSV } from './csv-import.js';
 import { download } from './report.js';
+import { planFor } from './plan.js';
 
 document.documentElement.classList.add('js');
 const $ = id => document.getElementById(id);
@@ -58,7 +59,10 @@ function showAuth(error) {
 function renderFoot() {
   const f = clear($('side-foot'));
   if (cloud.configured) {
-    f.append(h('span', { class: 'sf-user', title: cloud.user()?.email || '' }, cloud.user()?.email || 'Signed in'), h('span', { class: 'sf-sync' }, 'Synced to your account'),
+    const plan = planFor(cloud.user()?.email);
+    f.append(h('span', { class: 'sf-user', title: cloud.user()?.email || '' }, cloud.user()?.email || 'Signed in'),
+      ...(plan.key === 'superadmin' ? [h('span', { class: 'sf-plan', title: plan.note }, `${plan.label} · unlimited`)] : []),
+      h('span', { class: 'sf-sync' }, 'Synced to your account'),
       h('button', { type: 'button', class: 'mini-btn', onclick: signOut }, 'Sign out'));
   } else {
     f.append(h('span', { class: 'sf-sync' }, 'Saved on this device only'));
