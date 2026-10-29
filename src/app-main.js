@@ -21,6 +21,7 @@ import { createLocalSettings, createCloudSettings, cleanSettings } from './setti
 import { createTools } from './app-tools.js';
 import { isVin, cleanVin } from './vin.js';
 import { showInvite } from './app-invite.js';
+import { createHeirUi } from './app-heir.js';
 import { createMembersUi, loadShared, pickAccount, savedAccount, saveAccount, inviteTokenOf, accessFor, ROLES } from './app-members.js';
 
 document.documentElement.classList.add('js');
@@ -29,7 +30,7 @@ const cloud = createCloud({ url: CONFIG.supabaseUrl, anonKey: CONFIG.supabaseAno
 let store = null, extras = null, raw = [], views = [], dash = null, docs = [], rems = [];
 let settingsApi = null, settings = cleanSettings({}), settingsReady = true, fxInfo = { ok: false, stale: true, date: null };
 // whose portfolio is open: your own, or one shared with you (as 'view' or 'edit')
-let account = { ownerId: null, ownerEmail: '', role: 'owner', mine: true }, shared = [];
+let account = { ownerId: null, ownerEmail: '', role: 'owner', mine: true }, shared = [], heirNote = null;
 
 /* ------------------------------------------------------------------ small helpers */
 let toastTimer = 0;
@@ -89,7 +90,8 @@ function renderFoot() {
 function renderBanner() {
   const b = $('app-banner'), sample = raw.some(r => r.isSample), due = dueNow();
   const foreign = raw.some(r => r.currency && r.currency !== 'USD'), fxMsg = !foreign ? '' : !fxInfo.ok ? 'Exchange rates could not be loaded, so assets in other currencies are shown as if 1 unit equaled 1 dollar. Reload to try again.' : fxInfo.stale ? `Exchange rates are from ${fxInfo.date}; they could not be refreshed today.` : '';
-  b.hidden = !sample && !due && !fxMsg && account.mine; clear(b);
+  b.hidden = !sample && !due && !fxMsg && account.mine && !heirNote; clear(b);
+  if (heirNote) b.append(h('div', { class: 'banner-row due' }, h('span', {}, `Your trusted person (${heirNote.name}) opened your emergency sheet on ${String(heirNote.openedAt).slice(0, 10)}.`), h('button', { type: 'button', class: 'mini-btn', onclick: () => { heirNote = null; renderBanner(); heirUi.open(); } }, 'Review'), h('button', { type: 'button', class: 'mini-btn', onclick: () => { heirNote = null; renderBanner(); } }, 'Dismiss')));
   if (!account.mine) b.append(h('div', { class: 'banner-row' }, h('span', {}, `You are looking at ${account.ownerEmail}’s portfolio. ${accessFor(account.role).edit ? 'You can make changes.' : 'It is read only.'}`), h('button', { type: 'button', class: 'mini-btn', onclick: () => switchAccount('') }, 'Back to my portfolio')));
   if (fxMsg) b.append(h('div', { class: 'banner-row due' }, h('span', {}, fxMsg)));
   if (sample && accessFor(account.role).sample) b.append(h('div', { class: 'banner-row' }, h('span', {}, 'You are looking at sample data. Add your own assets and remove the sample whenever you like.'), h('button', { type: 'button', class: 'mini-btn', onclick: removeSample }, 'Remove sample data')));
@@ -608,6 +610,7 @@ function openWelcome({ step = 1, picked = [], assetId = null } = {}) {
 
 const shareUi = createShareUi({ cloud, openModal, modal, toast, run, message });
 const membersUi = createMembersUi({ cloud, openModal, modal, toast, run, message });
+const heirUi = createHeirUi({ cloud, openModal, modal, toast, run, message });
 const settingsFacade = {
   get: async () => settings,
   save: async patch => {
@@ -636,7 +639,7 @@ function actionsFor(acc) {
     onImport: () => openImport(), onDocs: id => openExtras(id), onQuick: openQuick,
     ...(acc.sample ? { onSample: loadSample } : {}), ...(acc.welcome ? { onWelcome: () => openWelcome() } : {}),
     ...(acc.emergency ? { onEmergency: () => tools.printEmergency(), onContacts: () => tools.openContacts() } : {}),
-    ...(cloud.configured && acc.share ? { onShare: () => shareUi.open(), onMembers: () => membersUi.open() } : {}),
+    ...(cloud.configured && acc.share ? { onShare: () => shareUi.open(), onMembers: () => membersUi.open(), onHeir: () => heirUi.open() } : {}),
   };
 }
 
@@ -665,6 +668,8 @@ async function start() {
   settingsApi = cloud.configured ? createCloudSettings(cloud) : createLocalSettings();
   try { settings = await settingsApi.get(); } catch (e) { console.error('settings unavailable', e); settingsReady = false; }
   recompute(); show('shell'); renderFoot();
+  // a visit of the owner closes the trusted person's sheet again; and tells the owner if it was opened since their last visit
+  if (cloud.configured && account.mine) { const before = await heirUi.touch(); if (before?.openedAt && Date.parse(before.openedAt) > Date.parse(before.lastSeenAt)) heirNote = before; }
   dash = mountDashboard({
     getAssets: () => views, csvName: 'owned-map-assets.csv', globeLabel: 'Rotating 3D globe of your assets', owner: (account.mine ? cloud.user()?.email : account.ownerEmail) || '', meta: metaOf,
     cashflow: true,

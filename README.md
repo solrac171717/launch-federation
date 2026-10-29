@@ -130,3 +130,15 @@ a selector in the sidebar switches between their own portfolio and the shared on
 - `api/invite.js` (service role) previews an invitation and accepts it, creating the account for the invited email when it does not exist. It needs no new variable.
 - Members cannot create share links, invite others, print the owner's emergency sheet or load sample data.
 - Apply the migration once (SQL editor, or the Supabase assistant) before using the feature; without it the sidebar selector simply does not appear.
+
+## Trusted person (emergency access)
+
+Reports, "Trusted person": the owner chooses one person and a time (30 days to 1 year). That person has no account: they hold a private link
+(`heir.html#t=<secret>`; only a SHA-256 hash is stored). The link does nothing until the sheet is **open**, which happens when the owner has not visited the app
+for the chosen time, or when the owner presses "Release it now". Every visit of the owner (the app calls `touch()` on load) moves the clock and closes it again.
+
+- The rules are in `src/heir-core.js` (pure, shared by the app and the server) and the table `emergency_access` (`supabase/migrations/20261102000000_trusted_person.sql`, owner-only RLS).
+- `api/heir.js` (service role) decides at the moment of each visit. It returns the assets with debt, the **names** of documents (never files or storage paths), open reminders and the owner's emergency contacts and note. Unknown, paused and removed links all answer 404; a closed one answers 403 "locked".
+- `api/heir-check.js` (daily cron, 13:30 UTC) emails the owner 14 days before it opens and tells the trusted person once that it is open (never with the link). It needs the same email variables as the reminders: `RESEND_API_KEY`, `REMINDER_FROM`, `CRON_SECRET`. Without them the feature still works, but nobody is emailed.
+- The owner sees a banner if the sheet was opened since their last visit.
+- Apply the migration once. It is not a will and does not transfer ownership; the screen says so, and it asks for an explicit confirmation before creating the link. Have a lawyer review how it fits with local rules before selling it.

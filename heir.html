@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Emergency sheet | Owned Map</title>
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="landing.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body class="app-page heir-page">
+
+<div class="boot" id="boot" role="status">Opening the emergency sheet…</div>
+
+<main class="heir" id="heir" hidden>
+  <header class="heir-bar">
+    <a class="logo" href="index.html" aria-label="Owned Map website"><span class="lmark" style="--s:28px" aria-hidden="true"><img src="assets/logo-o.png" alt="" width="192" height="192"></span><span>OWNED MAP</span></a>
+    <div class="heir-who"><b id="heir-title">Emergency sheet</b><span id="heir-sub"></span></div>
+    <button type="button" class="btn btn-primary btn-sm" id="heir-print">Print or save as PDF</button>
+  </header>
+  <p class="heir-note" id="heir-note"></p>
+  <iframe id="heir-frame" title="Emergency sheet" sandbox="allow-same-origin allow-modals"></iframe>
+</main>
+
+<noscript><p style="padding:24px;text-align:center">Owned Map needs JavaScript to run.</p></noscript>
+<script type="module" src="src/heir-main.js"></script>
+</body>
+</html>

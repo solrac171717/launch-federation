@@ -266,3 +266,15 @@ input[type=file]::file-selector-button:hover { background: #fff; border-color: #
 #invite-card h1 { font-size: 1.5rem; margin: 18px 0 6px; }
 #invite-card form { display: grid; gap: 14px; margin-top: 18px; }
 #invite-card input[readonly] { background: var(--alt); color: var(--text-2); }
+.hr-sees { background: var(--alt, #F7F9FC); border: 1px solid var(--line, #E5EAF1); border-radius: 12px; padding: 12px 16px; margin: 14px 0; }
+.hr-sees ul { margin: 6px 0 4px 18px; padding: 0; list-style: disc; font-size: 14px; color: var(--text-2, #5B6473); }
+.hr-line { font-weight: 600; color: var(--navy); }
+.hr-line.open { color: #B91C1C; }
+.hr-line.paused { color: var(--text-3, #778195); }
+.heir { max-width: 980px; margin: 0 auto; padding: 18px 16px 40px; display: grid; gap: 14px; }
+.heir-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: space-between; }
+.heir-who { display: grid; flex: 1; min-width: 220px; }
+.heir-who b { color: var(--navy); } .heir-who span { color: var(--text-2, #5B6473); font-size: 13.5px; }
+.heir-note { font-size: 13px; color: var(--text-3, #778195); }
+#heir-frame { width: 100%; min-height: 80vh; border: 1px solid var(--line, #E5EAF1); border-radius: 14px; background: #fff; }
+.hr-status { margin: 16px 0 20px; }

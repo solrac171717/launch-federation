@@ -474,6 +474,79 @@ await step('household access: an editor and a viewer join by invitation link; th
   await until(`!document.getElementById('shell').hidden`, 'partner own dashboard');
   if (await ev(`!!document.querySelector('.sf-account') || /Shared Flat/.test(document.body.textContent)`)) throw new Error('removed partner still sees the host portfolio');
 });
+await step('trusted person: a private link that opens only after the owner is away or releases it, closes again on a visit, and can be paused, renewed and removed', async () => {
+  const OWNER_T = 'owner.t@example.com';
+  await ev(`localStorage.clear()`); await signIn(OWNER_T);
+  await tab('Map'); await click('#import-btn'); await until(`document.getElementById('modal').open`, 'import modal');
+  await setFile('#imp-file', 'heir.csv', 'name,type,location,value,cost\nHeir Flat,house,"Madrid, ES",410000,300000', 'text/csv');
+  await until(`/Import 1 asset/.test(document.querySelector('.modal-actions .btn-primary')?.textContent || '')`, 'one ready');
+  await btn('Import 1', 'document'); await until(`!document.getElementById('modal').open`, 'imported');
+  const mbtn = t => ev(`(()=>{const b=[...document.querySelectorAll('#modal button')].find(b=>b.textContent.trim()===${JSON.stringify(t)}); if(!b) throw new Error('no ${t}'); b.click(); return true;})()`);
+  const modalHas = re => ev(`${re}.test(document.getElementById('modal').textContent)`);
+  const lockedPage = async () => { await ev(`localStorage.clear()`); };
+  const openLink = async link => { await goto(link); await until(`document.getElementById('heir') && !document.getElementById('heir').hidden || /not open yet|does not work|incomplete|could not/i.test(document.getElementById('boot').textContent)`, 'heir page'); };
+
+  await tab('Reports'); await until(`document.getElementById('heir-btn')`, 'trusted person button'); await click('#heir-btn');
+  await until(`document.getElementById('hr-name')`, 'form');
+  if (!(await modalHas(`/never the files/`))) throw new Error('what is shared is not explained');
+  // consent first
+  await ev(`document.getElementById('hr-name').value='Maria'; document.querySelector('.share-form').requestSubmit();`);
+  await until(`/understand/.test(document.querySelector('.share-form .form-err').textContent)`, 'consent required');
+  await ev(`document.getElementById('hr-email').value='not-an-email'; document.getElementById('hr-consent').checked=true; document.querySelector('.share-form').requestSubmit();`);
+  await until(`/does not look right/.test(document.querySelector('.share-form .form-err').textContent)`, 'email checked');
+  await ev(`document.getElementById('hr-email').value='maria@x.test'; document.getElementById('hr-days').value='30'; document.querySelector('.share-form').requestSubmit();`);
+  await until(`document.querySelector('.share-new input')?.value.includes('heir.html#t=')`, 'private link');
+  const link = await ev(`document.querySelector('.share-new input').value`);
+  await until(`/Closed\\. It would open on/.test(document.getElementById('modal').textContent)`, 'status says closed');
+  const stored = await (await fetch(`${mock.origin}/__heirs`)).json();
+  if (stored.length !== 1 || stored[0].token_hash.length !== 64 || link.includes(stored[0].token_hash) || stored[0].inactive_days !== 30) throw new Error('only the hash is stored: ' + JSON.stringify(stored));
+
+  // closed: the link says so and shows nothing
+  await ev(`localStorage.clear()`); await openLink(link);
+  if (!(await ev(`/not open yet/.test(document.getElementById('boot').textContent) && !document.body.textContent.includes('Heir Flat')`))) throw new Error('a closed sheet must show nothing');
+
+  // 31 days without a visit: it opens
+  await fetch(`${mock.origin}/__heir_age?days=31`); await openLink(link);
+  await until(`document.getElementById('heir-frame').srcdoc.includes('Heir Flat')`, 'sheet content');
+  const sheet = await ev(`document.getElementById('heir-frame').srcdoc`);
+  if (!/Emergency sheet/.test(sheet) || !sheet.includes('410,000') || /secret|token/i.test(sheet)) throw new Error('unexpected sheet content');
+  if (!(await ev(`/owner\\.t@example\\.com/.test(document.getElementById('heir-title').textContent) && /not signed in/.test(document.getElementById('heir-sub').textContent)`))) throw new Error('page does not say who and why');
+  await sleep(300);
+  if ((await (await fetch(`${mock.origin}/__heirs`)).json())[0].opened_count !== 1) throw new Error('the visit was not recorded');
+
+  // the owner comes back: told about the visit, and the sheet closes again
+  await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth'); await fillLogin(OWNER_T, PW);
+  await until(`!document.getElementById('shell').hidden`, 'owner dashboard');
+  await until(`/Your trusted person \\(Maria\\) opened your emergency sheet/.test(document.getElementById('app-banner').textContent)`, 'owner is told');
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  await openLink(link);
+  if (!(await ev(`/not open yet/.test(document.getElementById('boot').textContent)`))) throw new Error('a visit of the owner must close it again');
+
+  // release now, close again, pause, resume, new link, remove
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'owner again');
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  await tab('Reports'); await click('#heir-btn'); await until(`document.getElementById('hr-name')?.value === 'Maria'`, 'saved person');
+  await mbtn('Release it now'); await until(`/Open now: you released it/.test(document.getElementById('modal').textContent)`, 'released');
+  await openLink(link); await until(`document.getElementById('heir-frame').srcdoc.includes('Heir Flat')`, 'open after release');
+  if (!(await ev(`/released it for you/.test(document.getElementById('heir-sub').textContent)`))) throw new Error('reason not shown');
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'owner back');
+  await tab('Reports'); await click('#heir-btn'); await until(`document.getElementById('hr-name')`, 'modal');
+  await mbtn('Close it again'); await until(`/Closed\\./.test(document.getElementById('modal').textContent)`, 'closed again');
+  await mbtn('Pause'); await until(`/Paused/.test(document.getElementById('modal').textContent) && [...document.querySelectorAll('#modal button')].some(b => b.textContent.trim() === 'Resume')`, 'paused');
+  await fetch(`${mock.origin}/__heir_age?days=400`); await openLink(link);
+  if (!(await ev(`/does not work/.test(document.getElementById('boot').textContent)`))) throw new Error('a paused link must look like any dead link');
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'owner back 2');
+  await tab('Reports'); await click('#heir-btn'); await until(`document.getElementById('hr-name')`, 'modal 2');
+  await mbtn('Resume'); await until(`[...document.querySelectorAll('#modal button')].some(b => b.textContent.trim() === 'Pause')`, 'resumed');
+  await mbtn('New link'); await until(`document.querySelector('.share-new input')?.value.includes('heir.html#t=') && document.querySelector('.share-new input').value !== ${JSON.stringify(link)}`, 'new link');
+  const link2 = await ev(`document.querySelector('.share-new input').value`);
+  await openLink(link); if (!(await ev(`/does not work/.test(document.getElementById('boot').textContent)`))) throw new Error('the old link must stop working');
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'owner back 3');
+  await tab('Reports'); await click('#heir-btn'); await until(`document.getElementById('hr-name')`, 'modal 3');
+  await mbtn('Remove'); await until(`!document.querySelector('.hr-status')`, 'removed');
+  if ((await (await fetch(`${mock.origin}/__heirs`)).json()).length !== 0) throw new Error('row not removed');
+  await openLink(link2); if (!(await ev(`/does not work/.test(document.getElementById('boot').textContent)`))) throw new Error('a removed link must stop working');
+});
 await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
   await makeUser('cara@example.com'); await fillLogin('cara@example.com', PW);

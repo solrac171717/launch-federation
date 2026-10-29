@@ -16,6 +16,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
   const refresh = new Map();     // refresh token -> user
   const table = [];              // all rows, every user
   const members = [];            // account_members: who may open whose account
+  const heirs = [];              // emergency_access: one trusted person per user
   const docs = [], rems = [], shares = [], settingsRows = [], files = new Map(); // other tables + the private file bucket
   const log = [];
   const origin = `http://localhost:${port}`;
@@ -71,6 +72,12 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/__rows') return json(res, 200, table);
       if (path === '/__extras') return json(res, 200, { docs, rems, files: [...files.keys()], shares });
       if (path === '/__members') return json(res, 200, members);
+      if (path === '/__heirs') return json(res, 200, heirs);
+      if (path === '/__heir_age') { const d = Number(url.searchParams.get('days')) || 0; for (const r of heirs) r.last_seen_at = new Date(Date.parse(r.last_seen_at) - d * 86400000).toISOString(); return json(res, 200, {}); }
+      if (path === '/api/heir') {
+        process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE;
+        const mod = await import('../api/heir.js'); return mod.default(req, res);
+      }
       if (path === '/api/invite') {
         process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE;
         const mod = await import('../api/invite.js'); return mod.default(req, res);
@@ -98,6 +105,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path.startsWith('/auth/v1/admin/users')) { // Supabase admin API, service key only
         if ((req.headers.authorization || '') !== `Bearer ${SERVICE}`) return json(res, 401, { msg: 'not admin' });
         const id = path.split('/')[5];
+        if (req.method === 'GET' && id) { const u = [...users.values()].find(x => x.id === id); return u ? json(res, 200, { id: u.id, email: u.email }) : json(res, 404, {}); }
         if (req.method === 'GET') return json(res, 200, { users: [...users.values()] });
         const b = await readBody(req);
         if (req.method === 'POST') { if (users.has(b.email)) return json(res, 422, { error_code: 'email_exists', msg: 'exists' }); const u = { id: randomUUID(), email: b.email, password: b.password }; users.set(b.email, u); log.push(['admin-create', b.email]); return json(res, 200, { id: u.id, email: u.email }); }
@@ -140,7 +148,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       /* ---- rest: documents + reminders (same RLS idea) and the private asset-docs bucket */
       if (path === '/rest/v1/user_settings') { // one JSON document per user, upserted
         const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
-        if (req.method === 'GET') return json(res, 200, settingsRows.filter(r => r.user_id === user.id).map(r => ({ data: r.data })));
+        if (req.method === 'GET') return json(res, 200, (user.service ? settingsRows.filter(r => matches(r, url.searchParams)) : settingsRows.filter(r => r.user_id === user.id)).map(r => ({ data: r.data })));
         if (req.method === 'POST') { const b = await readBody(req); const cur = settingsRows.find(r => r.user_id === user.id); if (cur) cur.data = b.data; else settingsRows.push({ user_id: user.id, data: b.data }); return json(res, 201); }
       }
       if (path === '/rest/v1/account_members') { // owner: everything about their invitations; member: see and leave
@@ -162,6 +170,20 @@ export function startMock({ port = 4180, root = '.' } = {}) {
           const rows = members.filter(m => (user.service || m.owner_id === user.id) && matches(m, url.searchParams)); rows.forEach(r => Object.assign(r, b)); return json(res, 200, want ? rows : undefined);
         }
         if (req.method === 'DELETE') { for (const m of visible.filter(r => matches(r, url.searchParams))) members.splice(members.indexOf(m), 1); return json(res, 204); }
+      }
+      if (path === '/rest/v1/emergency_access') { // one row per user, owner only (the server reads it with the service key)
+        const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
+        const mineH = heirs.filter(r => user.service || r.user_id === user.id), want = /return=representation/.test(req.headers.prefer || '');
+        if (req.method === 'GET') return json(res, 200, mineH.filter(r => matches(r, url.searchParams)));
+        if (req.method === 'POST') {
+          const b = await readBody(req) || {};
+          if (heirs.some(r => r.user_id === user.id)) return json(res, 409, { code: '23505', message: 'duplicate key value violates unique constraint' });
+          if (!b.contact_name || String(b.contact_name).length > 80 || !b.token_hash || String(b.token_hash).length !== 64 || ![30, 60, 90, 180, 365].includes(b.inactive_days ?? 90)) return json(res, 400, { code: '23514', message: 'check constraint' });
+          const row = { contact_email: null, inactive_days: 90, enabled: true, warned_at: null, released_at: null, notified_at: null, opened_at: null, opened_count: 0, ...b, user_id: user.id, last_seen_at: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+          heirs.push(row); return json(res, 201, want ? [row] : undefined);
+        }
+        if (req.method === 'PATCH') { const b = await readBody(req); const rows = mineH.filter(r => matches(r, url.searchParams)); rows.forEach(r => Object.assign(r, b)); return json(res, 200, want ? rows : undefined); }
+        if (req.method === 'DELETE') { for (const r of mineH.filter(r => matches(r, url.searchParams))) heirs.splice(heirs.indexOf(r), 1); return json(res, 204); }
       }
       const sub = /^\/rest\/v1\/(asset_documents|asset_reminders|asset_shares)$/.exec(path);
       if (sub) {
