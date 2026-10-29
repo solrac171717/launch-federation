@@ -36,6 +36,12 @@ export function validateAsset(input, { today = isoDay() } = {}) {
   }
   const owner = String(input.owner || '').trim();
   if (owner.length > 60) errors.owner = 'Keep the owner name under 60 characters.';
+  // Currency (figures are entered in it), interest rate of the debt, and a yearly rate at which the value moves on its own
+  const currency = String(input.currency || 'USD').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) errors.currency = 'Choose a currency.';
+  const rate = (k, lo, hi, msg) => { const raw = input[k]; if (raw === '' || raw == null) return 0; const n = Number(String(raw).replace(/[%\s]/g, '')); if (!Number.isFinite(n) || n < lo || n > hi) { errors[k] = msg; return NaN; } return n; };
+  const debtRate = rate('debtRate', 0, 100, 'Enter a yearly rate from 0 to 100.');
+  const annualChange = rate('annualChange', -90, 100, 'Enter a yearly change from -90 to 100.');
 
   // Location: a city from the built-in list, or a custom place with country and coordinates.
   let place = '', country = '', lat = null, lon = null;
@@ -61,7 +67,7 @@ export function validateAsset(input, { today = isoDay() } = {}) {
   if (notes.length > 500) errors.notes = 'Keep notes under 500 characters.';
 
   if (Object.keys(errors).length) return { ok: false, errors };
-  return { ok: true, errors, value: { name, type: type.key, place, country, lat, lon, value, cost, gross, expenses, debt, debtPayment, ownership, owner, status, acquiredOn: acquiredOn || null, notes: notes || null } };
+  return { ok: true, errors, value: { name, type: type.key, place, country, lat, lon, value, cost, gross, expenses, debt, debtPayment, ownership, owner, currency, debtRate, annualChange, status, acquiredOn: acquiredOn || null, notes: notes || null } };
 }
 
 /** History after saving: starts at acquisition, then one point each time the estimated value changes. */
@@ -83,7 +89,7 @@ export function nextHistory(prev, { value, cost, acquiredOn, debt = 0 }, { today
 }
 
 /** Quick "update value": new estimated value (and debt balance) on top of the stored asset, validated like the form. */
-export function quickValues(row, { value, debt }, { today = isoDay() } = {}) {
+export function quickValues(row, { value, debt, debtPayment, debtRate }, { today = isoDay() } = {}) {
   const errors = {}, n = (raw, k, required) => {
     if (raw === '' || raw == null) { if (required) errors[k] = 'Enter an amount.'; return required ? NaN : 0; }
     const x = Number(String(raw).replace(/[$,\s]/g, ''));
@@ -91,27 +97,34 @@ export function quickValues(row, { value, debt }, { today = isoDay() } = {}) {
     return x;
   };
   const v = n(value, 'value', true), d = n(debt, 'debt', false);
+  const pay = debtPayment === undefined ? undefined : n(debtPayment, 'debtPayment', false), rate = debtRate === undefined ? undefined : n(debtRate, 'debtRate', false);
+  if (rate !== undefined && rate > 100) errors.debtRate = 'Enter a yearly rate from 0 to 100.';
   if (Object.keys(errors).length) return { ok: false, errors };
-  const keep = ['name', 'type', 'place', 'country', 'lat', 'lon', 'cost', 'gross', 'expenses', 'debtPayment', 'ownership', 'owner', 'status', 'acquiredOn', 'notes'];
-  return { ok: true, errors, value: { ...Object.fromEntries(keep.map(k => [k, row[k] ?? (k === 'ownership' ? 100 : k === 'owner' ? '' : k === 'debtPayment' ? 0 : null)])), value: v, debt: d } };
+  const keep = ['name', 'type', 'place', 'country', 'lat', 'lon', 'cost', 'gross', 'expenses', 'debtPayment', 'ownership', 'owner', 'currency', 'debtRate', 'annualChange', 'status', 'acquiredOn', 'notes'];
+  const dflt = { ownership: 100, owner: '', debtPayment: 0, currency: 'USD', debtRate: 0, annualChange: 0 };
+  return { ok: true, errors, value: { ...Object.fromEntries(keep.map(k => [k, row[k] ?? (k in dflt ? dflt[k] : null)])), ...(pay !== undefined ? { debtPayment: pay } : {}), ...(rate !== undefined ? { debtRate: rate } : {}), value: v, debt: d } };
 }
 
 /** Stored row -> the object the dashboard renders (derived metrics + chart series). */
 export function toView(row) {
   const t = TYPE_BY_KEY[row.type] || { category: 'residential', label: 'Asset' };
   const hist = (row.history || []).filter(p => p && p.d).sort((a, b) => (a.d < b.d ? -1 : 1));
+  const today = isoDay(), e = enrich({ ...row, gross: row.gross, expenses: row.expenses, valueAsOf: hist.length ? hist[hist.length - 1].d : String(row.createdAt || today).slice(0, 10), today });
+  // the chart follows the owner's share and the dollar rate, like every other figure
+  const scale = ((Number(row.ownership) > 0 ? Math.min(100, Number(row.ownership)) : 100) / 100) * e.fxRate;
+  const pts = hist.map(p => ({ label: label(p.d), v: Number(p.v) * scale }));
+  if (e.drift !== 1 && pts.length) pts.push({ label: label(today), v: e.value }); // the value has moved since it was last confirmed
   return {
-    ...enrich({ ...row, gross: row.gross, expenses: row.expenses }),
+    ...e,
     category: t.category, kind: t.label,
     status: row.status || 'Held',
-    // the chart follows the owner's share, like every other figure
-    series: hist.length >= 2 ? hist.map(p => ({ label: label(p.d), v: Number(p.v) * ((Number(row.ownership) > 0 ? Math.min(100, Number(row.ownership)) : 100) / 100) })) : null,
+    series: pts.length >= 2 ? pts : null,
   };
 }
 
 // Optional columns that were added later. A value equal to its default is left out, so accounts keep working even before
 // those columns exist in the database; updates send the default explicitly when the stored value has to be reset (see zeroing).
-const OPTIONAL = [['debt', 'debt', 0], ['debtPayment', 'debt_payment', 0], ['ownership', 'ownership', 100], ['owner', 'owner', '']];
+const OPTIONAL = [['debt', 'debt', 0], ['debtPayment', 'debt_payment', 0], ['ownership', 'ownership', 100], ['owner', 'owner', ''], ['currency', 'currency', 'USD'], ['debtRate', 'debt_rate', 0], ['annualChange', 'annual_change', 0]];
 const toRow = v => {
   const row = { ...v, acquired_on: v.acquiredOn, acquiredOn: undefined };
   for (const [camel, db, def] of OPTIONAL) { const x = v[camel]; delete row[camel]; if (x !== undefined && x !== def && !(def === '' && !x)) row[db] = x; }
@@ -124,7 +137,7 @@ const zeroing = (prev, v) => {
 };
 export const fromDb = r => ({
   id: r.id, name: r.name, type: r.type, place: r.place, country: r.country, lat: r.lat, lon: r.lon,
-  value: Number(r.value), cost: Number(r.cost), gross: Number(r.gross), expenses: Number(r.expenses), debt: Number(r.debt || 0), debtPayment: Number(r.debt_payment || 0), ownership: Number(r.ownership || 100), owner: r.owner || '',
+  value: Number(r.value), cost: Number(r.cost), gross: Number(r.gross), expenses: Number(r.expenses), debt: Number(r.debt || 0), debtPayment: Number(r.debt_payment || 0), ownership: Number(r.ownership || 100), owner: r.owner || '', currency: r.currency || 'USD', debtRate: Number(r.debt_rate || 0), annualChange: Number(r.annual_change || 0),
   status: r.status, acquiredOn: r.acquired_on, notes: r.notes, history: r.history || [], isSample: !!r.is_sample, createdAt: r.created_at,
 });
 

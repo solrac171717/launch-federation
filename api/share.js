@@ -5,7 +5,8 @@
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 import { createHash } from 'node:crypto';
 
-const COLS = 'id,name,type,place,country,lat,lon,value,cost,gross,expenses,debt,debt_payment,ownership,owner,status,acquired_on,history,is_sample,created_at';
+const COLS = ['id', 'name', 'type', 'place', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debt_payment', 'ownership', 'owner', 'currency', 'debt_rate', 'annual_change', 'status', 'acquired_on', 'history', 'is_sample', 'created_at'];
+const pick = row => Object.fromEntries(COLS.filter(k => k in row).map(k => [k, row[k]]));
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -27,9 +28,9 @@ export async function runShare({ env, fetchImpl = fetch, token, now = Date.now()
   const share = (await r.json())[0];
   if (!share || share.revoked || (share.expires_at && Date.parse(share.expires_at) <= now)) return { status: 404, body: { error: 'not_found' } };
 
-  const a = await sb(`/rest/v1/assets?user_id=eq.${encodeURIComponent(share.user_id)}&select=${COLS}&order=created_at.asc`);
+  const a = await sb(`/rest/v1/assets?user_id=eq.${encodeURIComponent(share.user_id)}&select=*&order=created_at.asc`);
   if (!a.ok) return { status: 502, body: { error: 'load_failed' } };
-  const assets = (await a.json()).map(x => (share.include_debt ? x : { ...x, debt: 0, debt_payment: 0, history: (x.history || []).map(({ b, ...p }) => p) }));
+  const assets = (await a.json()).map(pick).map(x => (share.include_debt ? x : { ...x, debt: 0, debt_payment: 0, debt_rate: 0, history: (x.history || []).map(({ b, ...p }) => p) }));
   sb(`/rest/v1/asset_shares?id=eq.${encodeURIComponent(share.id)}`, { method: 'PATCH', body: JSON.stringify({ last_viewed_at: new Date(now).toISOString() }), headers: { prefer: 'return=minimal' } }).catch(() => {});
   return { status: 200, body: { label: share.label, includeDebt: !!share.include_debt, expiresAt: share.expires_at, assets } };
 }

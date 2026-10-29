@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-const COLS = ['id', 'user_id', 'name', 'type', 'place', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debt_payment', 'ownership', 'owner', 'status', 'acquired_on', 'notes', 'history', 'is_sample', 'created_at', 'updated_at'];
+const COLS = ['id', 'user_id', 'name', 'type', 'place', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debt_payment', 'ownership', 'owner', 'currency', 'debt_rate', 'annual_change', 'status', 'acquired_on', 'notes', 'history', 'is_sample', 'created_at', 'updated_at'];
 const TYPES = ['house', 'office', 'warehouse', 'parking', 'land', 'car', 'truck', 'motorcycle', 'rv', 'yacht', 'sailboat', 'jetski', 'aircraft', 'equipment'];
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
 
@@ -15,7 +15,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
   const access = new Map();      // access token -> { user, exp }
   const refresh = new Map();     // refresh token -> user
   const table = [];              // all rows, every user
-  const docs = [], rems = [], shares = [], files = new Map(); // other tables + the private file bucket
+  const docs = [], rems = [], shares = [], settingsRows = [], files = new Map(); // other tables + the private file bucket
   const log = [];
   const origin = `http://localhost:${port}`;
   const SERVICE = 'mock-service-key'; // the server-side key used by /api/* (bypasses row security, like the real service role)
@@ -75,6 +75,12 @@ export function startMock({ port = 4180, root = '.' } = {}) {
           content: [{ type: 'text', text: JSON.stringify({ documentKind: 'purchase_deed', assetType: 'house', name: 'Lakeview Cottage', addressLine: '12 Calle Mayor', city: 'Madrid', region: 'Madrid', postalCode: '28013', countryCode: 'ES', currency: 'USD', purchasePrice: 640000, currentValue: null, outstandingDebt: 250000, monthlyDebtPayment: 1900, monthlyRent: null, acquiredOn: '2020-06-01', ownershipPercent: null, ownerName: 'Ana Test', details: 'Registry 77-A', confidence: 'high' }) }] });
       }
       if (path === '/__nominatim/search') return json(res, 200, [{ lat: '40.4168', lon: '-3.7038', category: 'building', address: { house_number: '12', country_code: 'es' } }]);
+      if (path === '/api/vin') { // the real handler, with a stand-in for the NHTSA database
+        process.env.NHTSA_URL = `${origin}/__nhtsa`;
+        const mod = await import('../api/vin.js'); return mod.default(req, res);
+      }
+      if (path.startsWith('/__nhtsa/api/vehicles/DecodeVinValues/')) return json(res, 200, { Results: [{ Make: 'HONDA', Model: 'Accord', ModelYear: '2003', Trim: 'EX-V6', VehicleType: 'PASSENGER CAR', BodyClass: 'Coupe', ErrorCode: '0', PlantCountry: 'UNITED STATES (USA)' }] });
+      if (path === '/__settings') return json(res, 200, settingsRows);
       if (path === '/api/login') {
         process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE; process.env.SUPABASE_ANON_KEY = 'mock-anon-key'; process.env.ADMIN_PASSWORD = 'e2e-owner-pw';
         const mod = await import('../api/login.js'); return mod.default(req, res);
@@ -122,6 +128,11 @@ export function startMock({ port = 4180, root = '.' } = {}) {
 
 
       /* ---- rest: documents + reminders (same RLS idea) and the private asset-docs bucket */
+      if (path === '/rest/v1/user_settings') { // one JSON document per user, upserted
+        const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
+        if (req.method === 'GET') return json(res, 200, settingsRows.filter(r => r.user_id === user.id).map(r => ({ data: r.data })));
+        if (req.method === 'POST') { const b = await readBody(req); const cur = settingsRows.find(r => r.user_id === user.id); if (cur) cur.data = b.data; else settingsRows.push({ user_id: user.id, data: b.data }); return json(res, 201); }
+      }
       const sub = /^\/rest\/v1\/(asset_documents|asset_reminders|asset_shares)$/.exec(path);
       if (sub) {
         const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });

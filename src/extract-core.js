@@ -28,7 +28,7 @@ Rules:
 - assetType must be one of: ${TYPE_KEYS.join(', ')}. Use null if you cannot tell.
 - name: a short label a person would recognise, e.g. "Calle Mayor 12, 3B", "2021 Porsche 911", "Beneteau Oceanis 46". Max 60 characters.
 - addressLine, city, region, postalCode: the asset's location as written (for a vehicle, vessel or aircraft use the registered or home address or port only if stated). countryCode is ISO 3166-1 alpha-2.
-- Amounts are plain numbers in the document's own currency, with no symbols or separators. Do not convert currencies. currency is the ISO 4217 code (USD, EUR, GBP...).
+- Amounts are plain numbers in the document's own currency, with no symbols or separators. Never convert currencies. currency is the ISO 4217 code (USD, EUR, GBP...).
 - purchasePrice: the price paid, from a deed, purchase contract or invoice. currentValue: only a market or appraised value that the document states. outstandingDebt: remaining loan balance. monthlyDebtPayment: the monthly instalment. monthlyRent: rent per month if it is a lease of this asset.
 - acquiredOn: the purchase or signing date as YYYY-MM-DD.
 - ownershipPercent and ownerName: only if the document names the owner(s) and their share.
@@ -44,8 +44,8 @@ const text = (v, max) => { const s = clean(v); return typeof s === 'string' && s
 export function normalizeExtraction(raw, geo = null) {
   const r = raw && typeof raw === 'object' ? raw : {};
   const fields = {}, found = [], notes = [];
-  const currency = text(r.currency, 3).toUpperCase();
-  const usd = !currency || currency === 'USD';
+  const currency = /^[A-Za-z]{3}$/.test(r.currency || '') ? String(r.currency).toUpperCase() : 'USD';
+  if (currency !== 'USD') fields.currency = currency;
 
   if (TYPE_KEYS.includes(r.assetType)) { fields.type = r.assetType; found.push('type'); }
   const name = text(r.name, 80); if (name) { fields.name = name; found.push('name'); }
@@ -64,16 +64,14 @@ export function normalizeExtraction(raw, geo = null) {
   }
 
   const price = amount(r.purchasePrice), val = amount(r.currentValue), debt = amount(r.outstandingDebt), pay = amount(r.monthlyDebtPayment), rent = amount(r.monthlyRent);
-  if (usd) {
+  {
     if (price != null) { fields.cost = price; found.push('cost'); }
     if (val != null) { fields.value = val; found.push('value'); } else if (price != null) { fields.value = price; notes.push('The estimated value is set to the purchase price. Change it to what the asset is worth today.'); }
     if (debt != null) { fields.debt = debt; found.push('debt'); }
     if (pay != null) { fields.debtPayment = pay; found.push('payment'); }
     if (rent != null) { fields.gross = rent; found.push('rent'); }
-  } else if ([price, val, debt, pay, rent].some(x => x != null)) {
-    const show = (label, x) => (x != null ? `${label} ${x.toLocaleString('en-US')} ${currency}` : null);
-    notes.push(`Amounts in the document are in ${currency}, and ATLAS works in USD. We did not convert them. Found: ${[show('price', price), show('value', val), show('debt', debt), show('monthly payment', pay), show('monthly rent', rent)].filter(Boolean).join(', ')}.`);
   }
+  if (currency !== 'USD') notes.push(`The document is in ${currency}. The amounts are filled in ${currency} and ATLAS converts them to dollars with today's rate.`);
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(r.acquiredOn || '') && Date.parse(r.acquiredOn) <= Date.now()) { fields.acquiredOn = r.acquiredOn; found.push('date'); }
   const own = typeof r.ownershipPercent === 'number' ? r.ownershipPercent : NaN;

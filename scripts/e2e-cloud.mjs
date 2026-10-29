@@ -147,7 +147,7 @@ await step('documents: upload to the private bucket under the user folder, open 
   await until(`!document.querySelector('.doc-row')`, 'document removed'); const y = await extrasState(); if (y.docs.length || y.files.length) throw new Error('file not deleted');
 });
 await step('reminders: add, show in the tab with a badge, mark done renews a repeating one', async () => {
-  await ev(`[...document.querySelectorAll('.extras .xt-h .mini-btn')][0].click()`); await until(`document.getElementById('r-due')`, 'reminder form');
+  await ev(`[...document.querySelectorAll('.extras .xt-h .mini-btn')].find(b => b.textContent.includes('+ Add reminder')).click()`); await until(`document.getElementById('r-due')`, 'reminder form');
   const d = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
   await ev(`(()=>{document.getElementById('r-kind').value='insurance'; document.getElementById('r-due').value=${JSON.stringify(d)}; document.getElementById('r-repeat').value='yearly'; document.querySelector('.asset-form').requestSubmit();})()`);
   await until(`document.querySelector('.rem-row')`, 'back on the asset with the reminder');
@@ -292,6 +292,66 @@ await step('document autofill: a deed fills the form, the pin and the numbers ca
   if (!ex.docs.some(d => d.name === 'deed.pdf' && d.asset_id === saved.id)) throw new Error('deed was not kept with the asset');
   const log = await (await fetch(`${mock.origin}/__log`)).json();
   if (!log.some(l => l[0] === 'model' && l[1] === 'claude-opus-5-5' && l[2] === 'document')) throw new Error('model was not asked with a document');
+});
+await step('currency, loan calculator, sale simulator, insights, usual reminders, VIN and emergency contacts', async () => {
+  await ev(`localStorage.clear()`); await signIn('erin@example.com');
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  // exchange rates: 1 US dollar buys 0.5 euros, so one euro is two dollars
+  const today = new Date().toISOString().slice(0, 10);
+  await ev(`localStorage.setItem('atlas.fx.v1', JSON.stringify({ date: '${today}', rates: { EUR: 0.5, GBP: 0.8 }, fetchedOn: '${today}' }))`);
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'dashboard');
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  await tab('Map'); await click('#add-asset-btn'); await until(`document.getElementById('f-currency')`, 'currency field');
+  await ev(`(()=>{document.querySelector('.type-card').click(); const set=(id,v)=>{document.getElementById(id).value=v;};
+    set('f-name','Euro Flat'); set('f-place','Austin, TX'); document.getElementById('f-currency').value='EUR'; set('f-value','200000'); set('f-cost','100000'); set('f-debt','50000'); set('f-debtpay','500'); set('f-debtrate','5'); set('f-annual','3');
+    document.querySelector('.asset-form').requestSubmit();})()`);
+  await until(`!document.getElementById('modal').open`, 'saved');
+  const r = await asset('Euro Flat');
+  if (r.currency !== 'EUR' || Number(r.debt_rate) !== 5 || Number(r.annual_change) !== 3 || Number(r.value) !== 200000) throw new Error('stored wrongly: ' + JSON.stringify(r));
+  await until(`/Entered in EUR: €200,000/.test(document.getElementById('hero-sel').textContent) && /\\$400,000/.test(document.getElementById('hero-sel').textContent)`, 'card shows dollars and the euro amount');
+  if (!(await ev(`/moves \\+3% a year/.test(document.getElementById('hero-sel').textContent)`))) throw new Error('yearly change not shown');
+  // loan calculator
+  await btn('Loan', 'document'); await until(`document.getElementById('l-bal')`, 'loan dialog');
+  await until(`/Debt-free in/.test(document.querySelector('.calc-out').textContent)`, 'payoff shown');
+  await ev(`(()=>{const i=document.getElementById('l-extra'); i.value='200'; i.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await until(`/finish sooner by/.test(document.querySelector('.calc-out').textContent) && /Interest you save/.test(document.querySelector('.calc-out').textContent)`, 'extra payment effect');
+  await ev(`(()=>{const i=document.getElementById('l-pay'); i.value='100'; i.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await until(`/does not even cover/.test(document.querySelector('.calc-out').textContent)`, 'payment too low is explained');
+  await ev(`(()=>{const i=document.getElementById('l-pay'); i.value='900'; i.dispatchEvent(new Event('input',{bubbles:true})); [...document.querySelectorAll('#modal button')].find(b=>/Save rate/.test(b.textContent)).click();})()`);
+  await until(`!document.getElementById('modal').open`, 'loan saved');
+  if (Number((await asset('Euro Flat')).debt_payment) !== 900) throw new Error('loan payment not saved');
+  // sale simulator
+  await btn('If sold', 'document'); await until(`document.getElementById('s-price')`, 'sale dialog');
+  await until(`/What you keep/.test(document.querySelector('.calc-out').textContent) && /After the sale/.test(document.querySelector('.calc-out').textContent)`, 'sale result');
+  await ev(`document.getElementById('modal').close()`);
+  // insights: goal, projections, concentration
+  await tab('Insights'); await until(`document.getElementById('i-goal')`, 'insights view');
+  await ev(`(()=>{document.getElementById('i-goal').value='1,000,000'; [...document.querySelectorAll('#view-insights button')].find(b=>/Save goal/.test(b.textContent)).click();})()`);
+  await until(`/of \\$1,000,000/.test(document.getElementById('view-insights').textContent) && document.querySelector('.goal-bar')`, 'goal progress');
+  if (!(await ev(`/In 10 years/.test(document.getElementById('view-insights').textContent) && /Returns by asset/.test(document.getElementById('view-insights').textContent)`))) throw new Error('projections or returns missing');
+  if (!(await ev(`/about \\d+ years?/.test(document.getElementById('view-insights').textContent)`))) throw new Error('years to goal not shown');
+  const st = await (await fetch(`${mock.origin}/__settings`)).json(); if (!st.some(s => s.data.goal.target === 1000000)) throw new Error('goal not stored in the account');
+  // the usual reminders
+  await tab('Map'); await btn('Documents', 'document'); await until(`document.querySelector('.xt-btns')`, 'documents dialog');
+  await btn('Add the usual ones', 'document'); await until(`document.querySelectorAll('.std-row').length >= 3`, 'list of usual reminders');
+  await btn('Add the selected ones', 'document'); await until(`!document.querySelector('.std-row') && document.querySelectorAll('.rem-row').length >= 3`, 'reminders added and back on the asset');
+  await ev(`document.getElementById('modal').close()`);
+  const rems = (await (await fetch(`${mock.origin}/__extras`)).json()).rems.filter(x => x.repeat === 'yearly');
+  if (rems.length < 3 || !rems.some(x => /Property tax/.test(x.title))) throw new Error('usual reminders missing: ' + JSON.stringify(rems.map(x => x.title)));
+  // VIN lookup for a car
+  await click('#add-asset-btn'); await until(`document.getElementById('f-vin')`, 'form');
+  if (!(await ev(`document.querySelector('.vin-box').hidden`))) throw new Error('VIN box should be hidden until a vehicle type is chosen');
+  await ev(`[...document.querySelectorAll('.type-card')].find(b=>/^Car/.test(b.textContent)).click()`);
+  await until(`!document.querySelector('.vin-box').hidden`, 'VIN box for cars');
+  await ev(`document.getElementById('f-vin').value='1HGCM82633A004352'; [...document.querySelectorAll('.vin-box button')].find(b=>/Look up/.test(b.textContent)).click()`);
+  await until(`document.getElementById('f-name').value === '2003 Honda Accord' && /VIN 1HGCM82633A004352/.test(document.getElementById('f-notes').value)`, 'VIN fills the name and notes');
+  await ev(`document.getElementById('modal').close()`);
+  // emergency contacts
+  await tab('Reports'); await btn('Emergency contacts', 'document'); await until(`document.querySelector('.contact-row')`, 'contacts dialog');
+  await ev(`(()=>{const r=document.querySelector('.contact-row').querySelectorAll('input'); r[0].value='Lawyer'; r[1].value='Ana Ruiz'; r[2].value='+34 600 000 000'; document.querySelector('#modal textarea').value='Keys are with the notary'; [...document.querySelectorAll('#modal button')].find(b=>/^Save$/.test(b.textContent)).click();})()`);
+  await until(`!document.getElementById('modal').open`, 'contacts saved');
+  const st2 = await (await fetch(`${mock.origin}/__settings`)).json();
+  if (!st2.some(s => s.data.contacts[0]?.name === 'Ana Ruiz' && s.data.emergencyNote === 'Keys are with the notary' && s.data.goal.target === 1000000)) throw new Error('contacts not stored, or the goal was lost: ' + JSON.stringify(st2));
 });
 await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');

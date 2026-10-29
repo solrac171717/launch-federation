@@ -238,3 +238,26 @@ input[type=file]::file-selector-button:hover { background: #fff; border-color: #
 .af-status ul { margin: 8px 0 0; padding-left: 18px; color: #92400E; } .af-status li { margin: 3px 0; }
 .af-status .spin.on { display: inline-block; vertical-align: -3px; border-color: rgba(37,99,235,.25); border-top-color: var(--blue); }
 .asset-form .field input.autofilled, .asset-form .field select.autofilled, .asset-form .field textarea.autofilled { background: #F0F9FF; border-color: #7DD3FC; }
+
+/* v4: loan calculator, sale simulator, usual reminders, insights, VIN, emergency */
+.calc-out { display: grid; gap: 6px; padding: 12px 14px; border-radius: 14px; background: #F0F9FF; border: 1px solid #BAE6FD; min-height: 24px; }
+.calc-out:empty { display: none; }
+.calc-row { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; } .calc-row span { color: var(--text-2); } .calc-row.good b { color: #047857; } .calc-row.bad b { color: #B91C1C; } .calc-row.muted b { color: var(--text-2); font-weight: 500; } .calc-row.total { padding-top: 6px; border-top: 1px solid #BAE6FD; font-size: 15.5px; }
+.calc-sep { margin-top: 6px; padding-top: 8px; border-top: 1px dashed #93C5FD; font-weight: 600; font-size: 13.5px; }
+.std-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; } .std-row input[type="date"] { font: inherit; padding: 8px 10px; border: 1px solid #CBD5E1; border-radius: 10px; min-height: 40px; }
+.contact-row { display: grid; grid-template-columns: .8fr 1.2fr 1fr 1.3fr; gap: 8px; } .contact-row input { font: inherit; font-size: 14px; padding: 9px 10px; border: 1px solid #CBD5E1; border-radius: 10px; min-height: 40px; min-width: 0; }
+@media (max-width: 640px) { .contact-row { grid-template-columns: 1fr 1fr; } }
+.xt-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.vin-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; } .vin-box[hidden] { display: none; }
+.vin-row input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 12px; min-height: 44px; text-transform: uppercase; letter-spacing: .04em; min-width: 0; }
+.ac-cur { color: var(--text-2); }
+.dl-emerg { margin-top: 18px; padding-top: 16px; border-top: 1px solid #E2E8F0; } .dl-emerg p { margin: 4px 0 10px; color: var(--text-2); font-size: 13.5px; }
+.ins-card { margin-bottom: 16px; }
+.goal-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 4px 0 12px; } .goal-form input { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 12px; min-height: 42px; max-width: 190px; } .goal-form span, .goal-form label { color: var(--text-2); font-size: 14px; }
+#i-lim { max-width: 80px; }
+.goal-bar { height: 12px; border-radius: 8px; background: #E2E8F0; overflow: hidden; margin: 6px 0 8px; } .goal-bar i { display: block; height: 100%; border-radius: 8px; background: linear-gradient(90deg, #2563EB, #38BDF8); }
+.ins-line { margin: 0 0 6px; font-weight: 600; }
+.ins-tbl { width: 100%; border-collapse: collapse; font-size: 14px; } .ins-tbl th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); padding: 8px 8px; border-bottom: 1.5px solid #CBD5E1; } .ins-tbl td { padding: 10px 8px; border-bottom: 1px solid #E8EEF8; vertical-align: top; } .ins-tbl .r { text-align: right; font-variant-numeric: tabular-nums; } .ins-tbl small { display: block; color: var(--text-3); font-size: 12px; } .ins-tbl .neg { color: #B91C1C; }
+.conc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 12px; } @media (max-width: 860px) { .conc-grid { grid-template-columns: 1fr; } }
+.conc-col > b { display: block; margin-bottom: 8px; font-size: 13px; } .conc-col .rep-alloc li { grid-template-columns: minmax(0, 1.1fr) 1fr 48px; } .conc-col .rep-alloc span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .conc-col li.hot b { color: #B45309; } .conc-col i.over { background: linear-gradient(90deg, #F59E0B, #EF4444); }
+.warn-list { margin: 8px 0 4px; padding: 10px 14px 10px 30px; border-radius: 12px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; font-size: 14px; } .warn-list li { margin: 3px 0; }

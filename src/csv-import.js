@@ -1,5 +1,6 @@
 // Import assets from a CSV (e.g. exported from Excel or Google Sheets). Every row goes through the same
 // validation as the add-asset form, so imported data can never be worse than typed data.
+import { currencies, hasRates } from './fx.js';
 import { validateAsset } from './asset-store.js';
 import { ASSET_TYPES, TYPE_BY_KEY, ALL_STATUSES } from './types.js';
 import { COUNTRIES } from './places.js';
@@ -42,6 +43,9 @@ const ALIASES = {
   grossM: ['monthly income', 'income per month', 'monthly rent', 'rent per month', 'monthly revenue'],
   expensesM: ['monthly expenses', 'expenses per month', 'monthly costs'],
   ownership: ['ownership', 'ownership percent', 'share', 'my share', 'owned', 'percent owned', 'ownership share'],
+  currency: ['currency', 'currency code', 'ccy', 'moneda', 'divisa'],
+  debtRate: ['interest rate', 'loan rate', 'mortgage rate', 'debt rate', 'rate'],
+  annualChange: ['yearly change', 'annual change', 'value change', 'appreciation rate', 'depreciation rate'],
   owner: ['owner', 'legal owner', 'held by', 'title holder', 'titleholder', 'owned by'],
   debt: ['debt', 'loan', 'mortgage', 'outstanding debt', 'loan balance', 'mortgage balance', 'amount owed'],
   debtPayment: ['monthly payment', 'debt payment', 'loan payment', 'mortgage payment'],
@@ -103,12 +107,13 @@ export function previewImport(text, { today = new Date().toISOString().slice(0, 
     const countryCode = r.country ? (COUNTRY_LOOKUP.get(norm(r.country)) || '') : '';
     const hasCoords = r.lat !== undefined && r.lat !== '' && r.lon !== undefined && r.lon !== '';
     const yearly = (y, m) => (y !== undefined && y !== '' ? y : (m !== undefined && m !== '' && Number.isFinite(Number(String(m).replace(/[$,\s]/g, ''))) ? String(Number(String(m).replace(/[$,\s]/g, '')) * 12) : y));
-    const input = { type: typeKey, name: r.name, value: r.value, cost: r.cost, gross: yearly(r.gross, r.grossM), expenses: yearly(r.expenses, r.expensesM), ownership: r.ownership, owner: r.owner, debt: r.debt, debtPayment: r.debtPayment, status, acquiredOn: toIsoDate(r.acquiredOn), notes: r.notes, place: r.place };
+    const input = { type: typeKey, name: r.name, value: r.value, cost: r.cost, gross: yearly(r.gross, r.grossM), expenses: yearly(r.expenses, r.expensesM), ownership: r.ownership, owner: r.owner, debt: r.debt, debtPayment: r.debtPayment, currency: r.currency, debtRate: r.debtRate, annualChange: r.annualChange, status, acquiredOn: toIsoDate(r.acquiredOn), notes: r.notes, place: r.place };
     let v = validateAsset(input, { today });
     if (!v.ok && v.errors.place && hasCoords) { // not a listed city: use the coordinates from the file
       v = validateAsset({ ...input, customPlace: true, placeName: r.place, country: countryCode || r.country, lat: r.lat, lon: r.lon }, { today });
     }
     if (!v.ok) errors.push(...Object.entries(v.errors).filter(([k, m]) => !errors.includes(m) && !(!typeKey && (k === 'type' || k === 'status'))).map(([, m]) => m));
+    else if (v.value.currency !== 'USD' && hasRates() && !currencies().includes(v.value.currency)) errors.push(`The currency ${v.value.currency} is not supported. Use USD or one of: ${currencies().filter(c => c !== 'USD').join(', ')}.`);
     else if (typeKey && !errors.length) {
       const key = `${norm(v.value.name)}|${norm(v.value.place)}`;
       const dupe = known.has(key) || seen.has(key); seen.add(key);

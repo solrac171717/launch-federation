@@ -96,3 +96,16 @@ Run `supabase/migrations/20261030000000_ownership_sharing.sql` once (after the e
 ## Document autofill (v4)
 
 `Add an asset` has an "Upload an invoice, deed or contract" box. The PDF or photo goes to `POST /api/extract`, which checks the user is signed in, sends the file to Claude (`claude-opus-5-5`, structured output, no storage), looks the address up on OpenStreetMap Nominatim for exact coordinates, and returns values for the form. Everything is editable; fields filled from the document are highlighted; amounts in a currency other than USD are not converted, only reported. The feature appears only when `ANTHROPIC_API_KEY` is set in Vercel (the build writes `extractor: true` into `assets/config.js`). Limits: 3 MB per PDF (photos are shrunk in the browser), 30 documents per user per hour per server instance.
+
+## v4: currencies, loans, insights, usual reminders, VIN, emergency sheet
+
+Apply `supabase/migrations/20261031000000_currency_rates_settings.sql` (adds `currency`, `debt_rate`, `annual_change` to assets and the `user_settings` table). Assets keep working without it; currency, loan rate, yearly change, goal, concentration level, sale assumptions and emergency contacts need it.
+
+- **Currencies** (`src/fx.js`): each asset is entered in its own currency; everything is shown and added up in US dollars. Daily ECB rates from frankfurter.dev (free), cached on the device; if they cannot be loaded the last cached ones are used and a banner says so, and with none at all assets are shown unconverted with a warning (no rate is ever invented). History is converted at today's rate. Document autofill now keeps the document's currency.
+- **Loan calculator** (`src/finance.js` `amortize`): payoff date, interest still to pay, effect of extra payments; can save rate and payment to the asset.
+- **Insights tab**: net-worth goal, 1/5/10 year projections (only from the yearly change and loan terms the user typed), concentration warnings with a level the user sets, returns ranking.
+- **Value that moves on its own**: `annual_change` % per asset, applied from the day the value was last confirmed.
+- **If sold**: sale price, selling costs and tax assumptions, what is kept after paying the loan, and the effect on net worth.
+- **The usual reminders** (`standardFor` in `src/reminders.js`): per kind of asset, with placeholder dates the user is asked to correct.
+- **VIN lookup** (`api/vin.js`): free NHTSA vPIC database, US-market vehicles.
+- **Emergency sheet** (`src/emergency.js`): printable page with assets, locations, documents by name, upcoming dates and the contacts the user saved.

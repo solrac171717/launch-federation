@@ -79,3 +79,48 @@ export function digestEmail(items, { today = isoDay(), appUrl = '' } = {}) {
   const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:auto;color:#0A0F1F"><h2 style="margin:0 0 12px">Reminders from ATLAS</h2><ul style="padding-left:18px;line-height:1.6">${rows.map(i => `<li><b>${esc(i.title)}</b> (${esc(i.assetName)})<br><span style="color:${i.d < 0 ? '#B91C1C' : '#475569'}">${esc(line(i).split('): ')[1])}</span></li>`).join('')}</ul>${appUrl ? `<p><a href="${esc(appUrl)}" style="display:inline-block;background:#2563EB;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none">Open ATLAS</a></p>` : ''}<p style="color:#64748B;font-size:13px">You are getting this because you set reminders in ATLAS. You can mark them done or delete them in the app.</p></div>`;
   return { subject, text, html };
 }
+
+/* ------------------------------------------------------------------ the usual reminders for each kind of asset */
+const PROPERTY = [
+  { kind: 'insurance', title: 'Property insurance renewal', repeat: 'yearly', inDays: 60 },
+  { kind: 'tax', title: 'Property tax', repeat: 'yearly', inDays: 90 },
+  { kind: 'maintenance', title: 'Annual safety and maintenance check', repeat: 'yearly', inDays: 120 },
+];
+const VEHICLE = [
+  { kind: 'insurance', title: 'Vehicle insurance renewal', repeat: 'yearly', inDays: 60 },
+  { kind: 'inspection', title: 'Roadworthiness inspection (ITV / MOT / state inspection)', repeat: 'yearly', inDays: 90 },
+  { kind: 'registration', title: 'Registration and road tax renewal', repeat: 'yearly', inDays: 120 },
+  { kind: 'maintenance', title: 'Service', repeat: 'yearly', inDays: 150 },
+];
+const VESSEL = [
+  { kind: 'insurance', title: 'Boat insurance renewal', repeat: 'yearly', inDays: 60 },
+  { kind: 'inspection', title: 'Annual survey or safety inspection', repeat: 'yearly', inDays: 90 },
+  { kind: 'registration', title: 'Registration and mooring fees', repeat: 'yearly', inDays: 120 },
+  { kind: 'maintenance', title: 'Engine and hull service', repeat: 'yearly', inDays: 150 },
+];
+const STANDARD = {
+  house: PROPERTY, office: PROPERTY, warehouse: PROPERTY,
+  parking: PROPERTY.slice(0, 2), land: [{ kind: 'tax', title: 'Land tax', repeat: 'yearly', inDays: 90 }, { kind: 'insurance', title: 'Liability insurance renewal', repeat: 'yearly', inDays: 60 }],
+  car: VEHICLE, truck: VEHICLE, motorcycle: VEHICLE, rv: VEHICLE,
+  yacht: VESSEL, sailboat: VESSEL, jetski: VESSEL,
+  aircraft: [
+    { kind: 'insurance', title: 'Aircraft insurance renewal', repeat: 'yearly', inDays: 60 },
+    { kind: 'inspection', title: 'Annual inspection', repeat: 'yearly', inDays: 90 },
+    { kind: 'registration', title: 'Registration and airworthiness certificate', repeat: 'yearly', inDays: 120 },
+    { kind: 'maintenance', title: 'Maintenance and avionics check', repeat: 'yearly', inDays: 150 },
+  ],
+  equipment: [
+    { kind: 'insurance', title: 'Equipment insurance renewal', repeat: 'yearly', inDays: 60 },
+    { kind: 'inspection', title: 'Safety inspection', repeat: 'yearly', inDays: 90 },
+    { kind: 'maintenance', title: 'Scheduled service', repeat: 'yearly', inDays: 150 },
+  ],
+};
+/**
+ * The reminders people usually need for this kind of asset, skipping any whose title already exists on it.
+ * The real dates are not known, so each comes with a placeholder date the person is asked to correct.
+ * @returns {Array<{ kind, title, repeat, dueOn }>}
+ */
+export function standardFor(type, existing = [], today = isoDay()) {
+  const have = new Set(existing.map(r => String(r.title).trim().toLowerCase()));
+  return (STANDARD[type] || []).filter(s => !have.has(s.title.toLowerCase())).map(({ inDays, ...s }) => ({ ...s, dueOn: isoDay(ts(today) + inDays * DAY) }));
+}

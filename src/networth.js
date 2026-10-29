@@ -8,13 +8,13 @@ function pointsOf(a, today) {
   const h = (a.history || []).filter(p => p && p.d && Number.isFinite(Number(p.v)))
     .map(p => ({ d: p.d, v: Number(p.v), b: p.b == null ? undefined : Number(p.b) })).sort((x, y) => (x.d < y.d ? -1 : x.d > y.d ? 1 : 0));
   if (h.length) return h;
-  const k = share(a); return [{ d: String(a.createdAt || today).slice(0, 10), v: a.value / k, b: a.debt / k }];
+  const k = share(a) * (a.fxRate || 1); return [{ d: String(a.createdAt || today).slice(0, 10), v: a.value / k, b: a.debt / k }];
 }
 
 /** @returns {Array<{ d: string, label: string, value: number, debt: number, net: number }>} oldest first, ending at today's real totals */
 export function portfolioTimeline(assets, { today = new Date().toISOString().slice(0, 10), maxPoints = 72 } = {}) {
   if (!assets.length) return [];
-  const pts = assets.map(a => ({ a, k: share(a), p: pointsOf(a, today) }));
+  const pts = assets.map(a => ({ a, k: share(a) * (a.fxRate || 1), p: pointsOf(a, today) })); // k also turns the asset's own currency into dollars
   const dates = [...new Set([...pts.flatMap(x => x.p.map(q => q.d)), today])].filter(d => d <= today).sort();
   const out = dates.map(t => {
     let value = 0, debt = 0;

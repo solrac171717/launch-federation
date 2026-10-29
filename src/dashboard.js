@@ -10,6 +10,7 @@ import { attachGeo } from './geoui.js';
 import { buildExcel, reportHtml, download, printReport, ownerRows } from './report.js';
 import { isoDay, statusOf, whenText, REMINDER_KINDS, REPEATS } from './reminders.js';
 import { portfolioTimeline } from './networth.js';
+import { projectPortfolio, hasModel, concentration, breaches, yieldRows, goalStatus } from './finance.js';
 
 const GROUPS = {
   all: { label: 'All', cats: null },
@@ -38,14 +39,16 @@ const REMINDERS_NAV = ['reminders', 'Reminders', 'M8 2a4 4 0 0 0-4 4c0 3-1.5 4-1
 export function mountDashboard(opts) {
   const { getAssets, sample = false, csvName = 'atlas-assets.csv', actions = {}, reminders: R = null, meta = () => null } = opts;
   const CASH_NAV = ['cashflow', 'Cash flow', 'M2 4h12v8H2zM2 7h12M5 10h2'];
-  const NAVS = [...NAV.slice(0, 3), ...(opts.cashflow ? [CASH_NAV] : []), NAV[3], ...(R ? [REMINDERS_NAV] : [])];
+  const INSIGHTS_NAV = ['insights', 'Insights', 'M8 2v2M8 12v2M2 8h2M12 8h2M4 4l1.4 1.4M10.6 10.6L12 12M4 12l1.4-1.4M10.6 5.4L12 4M8 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z'];
+  const I = opts.insights || null;
+  const NAVS = [...NAV.slice(0, 3), ...(opts.cashflow ? [CASH_NAV] : []), ...(I ? [INSIGHTS_NAV] : []), NAV[3], ...(R ? [REMINDERS_NAV] : [])];
   const all = () => getAssets();
   const find = id => all().find(a => a.id === id);
   const state = { view: 'map', group: 'all', sel: null, sort: { key: 'value', dir: -1 }, q: '', pf: 'net' };
   const $ = id => document.getElementById(id);
   const scope = () => all().filter(a => !GROUPS[state.group].cats || GROUPS[state.group].cats.includes(a.category));
   const historyFor = a => (a && a.series && a.series.length >= 2 ? a.series : null);
-  const views = { map: $('view-map'), assets: $('view-assets'), perf: $('view-perf'), reports: $('view-reports'), ...(R ? { reminders: $('view-reminders') } : {}), ...(opts.cashflow ? { cashflow: $('view-cashflow') } : {}) };
+  const views = { map: $('view-map'), assets: $('view-assets'), perf: $('view-perf'), reports: $('view-reports'), ...(R ? { reminders: $('view-reminders') } : {}), ...(opts.cashflow ? { cashflow: $('view-cashflow') } : {}), ...(I ? { insights: $('view-insights') } : {}) };
   const dueCount = () => (R ? R.list().filter(r => ['overdue', 'soon'].includes(statusOf(r))).length : 0);
   const ensureSel = () => { const sc = scope(); if (!sc.some(a => a.id === state.sel)) state.sel = sc[0]?.id ?? null; };
   ensureSel();
@@ -85,7 +88,7 @@ export function mountDashboard(opts) {
     const url = $('app-url'); if (url) url.textContent = `atlas.app / portfolio / ${v}`;
     $('view-title').textContent = NAVS.find(n => n[0] === v)[1];
     renderNav();
-    ({ map: renderMap, assets: renderAssets, perf: renderPerf, reports: renderReports, reminders: renderReminders, cashflow: renderCashflow })[v]();
+    ({ map: renderMap, assets: renderAssets, perf: renderPerf, reports: renderReports, reminders: renderReminders, cashflow: renderCashflow, insights: renderInsights })[v]();
     analytics.track('dashboard_view', { view: v });
   }
   function setGroup(g) {
@@ -117,6 +120,8 @@ export function mountDashboard(opts) {
     h('div', {}, h('span', {}, 'Loan-to-value'), h('b', {}, pct1(a.ltv))), a.debtPayment ? h('div', {}, h('span', {}, 'Monthly payment'), h('b', {}, money(a.debtPayment))) : null) : null);
   const rowActions = a => (actions.onEdit || actions.onDelete || actions.onDocs || actions.onQuick) ? h('div', { class: 'ac-actions' },
     actions.onQuick ? h('button', { type: 'button', class: 'mini-btn accent', onclick: () => actions.onQuick(a.id) }, 'Update value') : null,
+    actions.onLoan && a.debt > 0 ? h('button', { type: 'button', class: 'mini-btn', onclick: () => actions.onLoan(a.id) }, 'Loan') : null,
+    actions.onSell ? h('button', { type: 'button', class: 'mini-btn', onclick: () => actions.onSell(a.id) }, 'If sold') : null,
     actions.onDocs ? h('button', { type: 'button', class: 'mini-btn', onclick: () => actions.onDocs(a.id) }, extrasLabel(a)) : null,
     actions.onEdit ? h('button', { type: 'button', class: 'mini-btn', onclick: () => actions.onEdit(a.id) }, 'Edit') : null,
     actions.onDelete ? h('button', { type: 'button', class: 'mini-btn danger', onclick: () => actions.onDelete(a.id) }, 'Delete') : null) : null;
@@ -301,8 +306,9 @@ export function mountDashboard(opts) {
       download(csvName, new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
       analytics.track('dashboard_csv_download');
     };
-    const excel = () => { download(`${stem}.xlsx`, buildExcel(sc, { today, scope: scopeLabel, sample }), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); analytics.track('dashboard_xlsx_download'); };
-    const pdf = () => { printReport(reportHtml(sc, { today, scope: scopeLabel, sample, owner: opts.owner || '' })); analytics.track('dashboard_pdf_report'); };
+    const fxNote = sc.some(x => x.currency && x.currency !== 'USD') ? `Amounts entered in other currencies (${[...new Set(sc.map(x => x.currency).filter(c => c && c !== 'USD'))].join(', ')}) are converted to US dollars at the European Central Bank rates of the day the report was made.` : '';
+    const excel = () => { download(`${stem}.xlsx`, buildExcel(sc, { today, scope: scopeLabel, sample, fxNote }), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); analytics.track('dashboard_xlsx_download'); };
+    const pdf = () => { printReport(reportHtml(sc, { today, scope: scopeLabel, sample, owner: opts.owner || '', fxNote })); analytics.track('dashboard_pdf_report'); };
     host.append(h('div', { class: 'rep-grid' },
       h('div', { class: 'tbl-card pad' }, h('div', { class: 'chart-t' }, h('b', {}, `Portfolio summary${state.group === 'all' ? '' : ' · ' + GROUPS[state.group].label}`), h('span', {}, `As of ${TODAY}`)),
         h('div', { class: 'rep-kpis' },
@@ -318,7 +324,64 @@ export function mountDashboard(opts) {
           h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: pdf }, 'PDF report'),
           h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: excel }, 'Excel (.xlsx)'),
           h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: csv }, 'CSV')),
-        h('small', {}, 'PDF opens your browser’s print dialog: choose “Save as PDF”.'))));
+        h('small', {}, 'PDF opens your browser’s print dialog: choose “Save as PDF”.'),
+        actions.onEmergency ? h('div', { class: 'dl-emerg' }, h('b', {}, 'Emergency sheet'), h('p', {}, 'One page for someone you trust: every asset, where it is, who to call and where the papers are.'),
+          h('div', { class: 'dl-btns' }, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => actions.onEmergency() }, 'Print emergency sheet'), actions.onContacts ? h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => actions.onContacts() }, 'Emergency contacts') : null)) : null)));
+  }
+
+  /* INSIGHTS view (the app only): goal, projections, concentration, returns */
+  function renderInsights() {
+    if (!views.insights) return;
+    const host = clear(views.insights), sc = scope();
+    if (!all().length) { host.append(emptyPanel('Insights start with your first asset', 'Once you add assets you can set a net-worth goal, see where your money is concentrated and compare returns.')); return; }
+    const S = I.settings(), say = h('p', { class: 'err form-err', role: 'alert' });
+    const saveWith = async (patch, okMsg) => { say.textContent = ''; const e = await I.save(patch); if (e) say.textContent = e; else renderInsights(); };
+    const card = (title, sub, ...kids) => h('div', { class: 'tbl-card pad ins-card' }, h('div', { class: 'chart-t' }, h('b', {}, title), sub ? h('span', {}, sub) : null), ...kids);
+    const bar = (share, over) => h('i', { class: over ? 'over' : '', style: `width:${Math.max(1, Math.min(100, share * 100))}%` });
+
+    // goal (whole portfolio)
+    const gT = h('input', { id: 'i-goal', type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: '5,000,000', value: S.goal.target ? String(S.goal.target) : '', 'aria-label': 'Net worth target in dollars' });
+    const gD = h('input', { id: 'i-goal-date', type: 'date', value: S.goal.date || '', 'aria-label': 'Target date (optional)' });
+    const g = goalStatus(all(), S.goal);
+    const gl = [];
+    if (g) {
+      gl.push(h('div', { class: 'goal-bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': Math.round(g.pct * 100) }, h('i', { style: `width:${Math.max(2, g.pct * 100)}%` })));
+      gl.push(h('p', { class: 'ins-line' }, g.reached ? `You have reached it: ${money(g.now)} against a goal of ${money(g.target)}.` : `${money(g.now)} of ${money(g.target)} (${Math.round(g.pct * 100)}%). ${money(g.remaining)} to go.`));
+      if (!g.reached && g.modelled) gl.push(h('p', { class: 'hint' }, g.yearsToReach != null ? `At the yearly changes and loan rates you entered, you would get there in about ${g.yearsToReach} year${g.yearsToReach === 1 ? '' : 's'}.` : 'At the yearly changes and loan rates you entered, you would not get there within 40 years.'));
+      if (!g.reached && !g.modelled) gl.push(h('p', { class: 'hint' }, 'Add a yearly change (for example +3% for a home) or a loan interest rate to your assets to see when you would get there.'));
+      if (!g.reached && g.date) gl.push(h('p', { class: 'hint' }, g.daysLeft > 0 ? `${g.daysLeft} days to ${g.date}.${g.neededPerMonth ? ` You would need to add about ${money(g.neededPerMonth)} a month to net worth on top of today.` : ''}${g.onTrack === true ? ' At your current rates you are on track.' : g.onTrack === false ? ' At your current rates you would fall short.' : ''}` : 'That date has passed.'));
+    }
+    host.append(card('Net worth goal', 'Whole portfolio', h('div', { class: 'goal-form' }, gT, gD, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => saveWith({ goal: { target: gT.value, date: gD.value } }) }, 'Save goal'),
+      S.goal.target ? h('button', { type: 'button', class: 'mini-btn', onclick: () => saveWith({ goal: { target: '', date: '' } }) }, 'Clear') : null), ...gl, say));
+
+    if (!sc.length) { host.append(noneInFilter()); return; }
+
+    // projections
+    const rows = [1, 5, 10].map(y => ({ y, ...projectPortfolio(sc, y) })), now = portfolio(sc);
+    const delta = (n, b) => (b ? `${n >= b ? '+' : ''}${((n - b) / Math.abs(b) * 100).toFixed(1)}%` : '');
+    host.append(card('Where you are heading', 'Uses the yearly change and loan terms you entered',
+      h('div', { class: 'tbl-wrap' }, h('table', { class: 'ins-tbl' }, h('thead', {}, h('tr', {}, ['', 'Value', 'Debt', 'Net worth', 'Change'].map((t, i) => h('th', { class: i ? 'r' : '' }, t)))),
+        h('tbody', {}, h('tr', {}, h('td', {}, 'Today'), h('td', { class: 'r' }, money(now.value)), h('td', { class: 'r' }, money(now.debt)), h('td', { class: 'r' }, h('b', {}, money(now.netWorth))), h('td', { class: 'r' }, '')),
+          ...rows.map(r => h('tr', {}, h('td', {}, `In ${r.y} year${r.y > 1 ? 's' : ''}`), h('td', { class: 'r' }, money(r.value)), h('td', { class: 'r' }, money(r.debt)), h('td', { class: 'r' }, h('b', {}, money(r.net))), h('td', { class: 'r' }, delta(r.net, now.netWorth))))))),
+      h('p', { class: 'hint' }, hasModel(sc) ? 'This is arithmetic on the rates you entered, not a forecast. Assets without a yearly change stay at today’s value; loans with an interest rate and payment are paid down.' : 'Nothing moves yet. Edit an asset and add a yearly change (for example -12% for a car, +3% for a home) and, for loans, the interest rate and monthly payment.')));
+
+    // concentration
+    const conc = concentration(sc), lim = S.concentrationLimit, hot = breaches(conc, lim);
+    const limIn = h('input', { id: 'i-lim', type: 'text', inputmode: 'numeric', value: String(lim), 'aria-label': 'Warning level in percent' });
+    const list = (title, items) => h('div', { class: 'conc-col' }, h('b', {}, title), h('ul', { class: 'rep-alloc' }, items.slice(0, 8).map(x => h('li', { class: x.share > lim / 100 && items.length > 1 ? 'hot' : '' }, h('span', { title: x.label }, x.label), bar(x.share, x.share > lim / 100 && items.length > 1), h('b', {}, pct1(x.share))))));
+    host.append(card('Concentration', 'Share of total value',
+      h('div', { class: 'goal-form' }, h('label', { for: 'i-lim' }, 'Warn me above'), limIn, h('span', {}, '% in one place'), h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => saveWith({ concentrationLimit: limIn.value }) }, 'Save')),
+      hot.length ? h('ul', { class: 'warn-list' }, hot.slice(0, 5).map(x => h('li', {}, `${x.label} is ${pct1(x.share)} of your total value (${x.by === 'asset' ? 'one asset' : x.by === 'category' ? 'one kind of asset' : 'one country'}), above your ${lim}% level.`))) : h('p', { class: 'hint' }, sc.length < 2 ? 'Add more assets to see how spread out you are.' : `Nothing is above your ${lim}% level.`),
+      h('div', { class: 'conc-grid' }, list('By asset', conc.asset), list('By kind', conc.category), list('By country', conc.country))));
+
+    // returns ranking
+    const yr = yieldRows(sc), earning = yr.filter(r => r.earning), idle = yr.filter(r => !r.earning);
+    host.append(card('Returns by asset', 'Best net yield first',
+      earning.length ? h('div', { class: 'tbl-wrap' }, h('table', { class: 'ins-tbl' }, h('thead', {}, h('tr', {}, ['#', 'Asset', 'Gross yield', 'Net yield', 'On cost', 'Cash flow / yr', 'Payback'].map((t, i) => h('th', { class: i > 1 ? 'r' : '' }, t)))),
+        h('tbody', {}, earning.map((r, i) => h('tr', {}, h('td', {}, String(i + 1)), h('td', {}, h('b', {}, r.name), h('small', {}, r.kind)), h('td', { class: 'r' }, pct1(r.grossYield)), h('td', { class: 'r' }, pct1(r.netYield)), h('td', { class: 'r' }, pct1(r.yieldOnCost)),
+          h('td', { class: 'r ' + (r.cashFlow < 0 ? 'neg' : '') }, `${r.cashFlow < 0 ? '-' : ''}${money(Math.abs(r.cashFlow))}`), h('td', { class: 'r' }, r.payback ? `${r.payback.toFixed(1)} yrs` : '–')))))) : h('p', { class: 'hint' }, 'None of these assets has income yet. Add rent or revenue to an asset to compare returns.'),
+      h('p', { class: 'hint' }, 'Net yield is income minus expenses over today’s value; on cost uses what you paid; cash flow also subtracts loan payments; payback is cost divided by yearly net income.'),
+      idle.length ? h('p', { class: 'hint' }, `No income entered for: ${idle.map(r => r.name).join(', ')}.`) : null));
   }
 
   /* REMINDERS view (the app only) */

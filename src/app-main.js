@@ -16,11 +16,16 @@ import { previewImport, TEMPLATE_CSV } from './csv-import.js';
 import { download } from './report.js';
 import { planFor } from './plan.js';
 import { extractFromFile, checkExtractFile, EXTRACT_ACCEPT } from './extract-client.js';
+import { loadRates, currencies, currencyName, formatIn, hasRates } from './fx.js';
+import { createLocalSettings, createCloudSettings, cleanSettings } from './settings-store.js';
+import { createTools } from './app-tools.js';
+import { isVin, cleanVin } from './vin.js';
 
 document.documentElement.classList.add('js');
 const $ = id => document.getElementById(id);
 const cloud = createCloud({ url: CONFIG.supabaseUrl, anonKey: CONFIG.supabaseAnonKey });
 let store = null, extras = null, raw = [], views = [], dash = null, docs = [], rems = [];
+let settingsApi = null, settings = cleanSettings({}), settingsReady = true, fxInfo = { ok: false, stale: true, date: null };
 
 /* ------------------------------------------------------------------ small helpers */
 let toastTimer = 0;
@@ -74,7 +79,9 @@ function renderFoot() {
 }
 function renderBanner() {
   const b = $('app-banner'), sample = raw.some(r => r.isSample), due = dueNow();
-  b.hidden = !sample && !due; clear(b);
+  const foreign = raw.some(r => r.currency && r.currency !== 'USD'), fxMsg = !foreign ? '' : !fxInfo.ok ? 'Exchange rates could not be loaded, so assets in other currencies are shown as if 1 unit equaled 1 dollar. Reload to try again.' : fxInfo.stale ? `Exchange rates are from ${fxInfo.date}; they could not be refreshed today.` : '';
+  b.hidden = !sample && !due && !fxMsg; clear(b);
+  if (fxMsg) b.append(h('div', { class: 'banner-row due' }, h('span', {}, fxMsg)));
   if (sample) b.append(h('div', { class: 'banner-row' }, h('span', {}, 'You are looking at sample data. Add your own assets and remove the sample whenever you like.'), h('button', { type: 'button', class: 'mini-btn', onclick: removeSample }, 'Remove sample data')));
   if (due) b.append(h('div', { class: 'banner-row due' }, h('span', {}, `${due} reminder${due > 1 ? 's' : ''} need${due > 1 ? '' : 's'} your attention.`), h('button', { type: 'button', class: 'mini-btn', onclick: () => dash.show('reminders') }, 'Review')));
 }
@@ -150,7 +157,7 @@ function openForm(existing, opts = {}) {
   const st = { type: init.type, custom: Boolean(existing && !known) };
   const errs = {};
   const err = k => h('p', { class: 'err', id: `er-${k}`, role: 'alert' });
-  const mkErr = {}; ['type', 'name', 'place', 'placeName', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debtPayment', 'ownership', 'owner', 'status', 'acquiredOn', 'notes'].forEach(k => { mkErr[k] = err(k); });
+  const mkErr = {}; ['type', 'name', 'place', 'placeName', 'country', 'lat', 'lon', 'value', 'cost', 'gross', 'expenses', 'debt', 'debtPayment', 'ownership', 'owner', 'currency', 'debtRate', 'annualChange', 'status', 'acquiredOn', 'notes'].forEach(k => { mkErr[k] = err(k); });
   const field = (label, control, k, hint) => h('div', { class: 'field' }, h('label', { for: control.id }, label), control, hint ? h('p', { class: 'hint' }, hint) : null, mkErr[k]);
   const input = (id, props = {}) => h('input', { id, ...props });
   const money_ = (id, v, ph) => input(id, { type: 'text', inputmode: 'decimal', autocomplete: 'off', placeholder: ph, value: v === '' || v == null ? '' : String(v) });
@@ -164,11 +171,15 @@ function openForm(existing, opts = {}) {
     status.replaceChildren(...list.map(s => h('option', { value: s }, s)));
     status.value = list.includes(cur) ? cur : list[0];
   };
-  const drawTypes = () => typeHost.replaceChildren(...ASSET_TYPES.map(t => {
-    const on = st.type === t.key;
-    return h('button', { type: 'button', class: 'type-card' + (on ? ' on' : ''), role: 'radio', 'aria-checked': String(on), onclick: () => { st.type = t.key; status.value = ''; drawTypes(); fillStatus(); } },
-      thumb({ type: t.key, category: t.category }, 52), h('span', {}, t.label));
-  }));
+  let onType = () => {};
+  const drawTypes = () => {
+    typeHost.replaceChildren(...ASSET_TYPES.map(t => {
+      const on = st.type === t.key;
+      return h('button', { type: 'button', class: 'type-card' + (on ? ' on' : ''), role: 'radio', 'aria-checked': String(on), onclick: () => { st.type = t.key; status.value = ''; drawTypes(); fillStatus(); } },
+        thumb({ type: t.key, category: t.category }, 52), h('span', {}, t.label));
+    }));
+    onType();
+  };
   drawTypes();
 
   const name = input('f-name', { type: 'text', maxlength: 80, autocomplete: 'off', placeholder: 'e.g. Lake House, Porsche 911, Sea Atlas 52', value: init.name });
@@ -192,6 +203,9 @@ function openForm(existing, opts = {}) {
   const gross = money_('f-gross', init.gross || '', '0'), expenses = money_('f-expenses', init.expenses || '', '0');
   const debt = money_('f-debt', init.debt || '', '0'), debtPayment = money_('f-debtpay', init.debtPayment || '', '0');
   const ownership = money_('f-own', init.ownership != null && init.ownership !== 100 ? init.ownership : '', '100');
+  const curSel = h('select', { id: 'f-currency' }, ...(() => { const list = currencies(); if (init.currency && !list.includes(init.currency)) list.push(init.currency); return list; })().map(c => h('option', { value: c }, c === 'USD' ? 'USD · US dollar' : `${c} · ${currencyName(c)}`)));
+  curSel.value = init.currency || 'USD';
+  const debtRate = money_('f-debtrate', init.debtRate || '', '4.5'), annualChange = money_('f-annual', init.annualChange || '', '3');
   const ownerList = [...new Set(raw.map(r => r.owner).filter(Boolean))];
   const owner = input('f-owner', { type: 'text', list: 'owner-list', maxlength: 60, autocomplete: 'off', placeholder: 'Me, Acme LLC, my partner…', value: init.owner || '' });
   const ownerData = h('datalist', { id: 'owner-list' }, ...ownerList.map(o => h('option', { value: o })));
@@ -229,6 +243,7 @@ function openForm(existing, opts = {}) {
       setFill(custom.querySelector('#f-placename'), f.placeName); setFill(custom.querySelector('#f-lat'), f.lat); setFill(custom.querySelector('#f-lon'), f.lon);
       if (f.country && !custom.querySelector('#f-country').value) custom.querySelector('#f-country').value = f.country;
     }
+    if (f.currency && [...curSel.options].some(o => o.value === f.currency)) curSel.value = f.currency;
     setFill(value, f.value); setFill(cost, f.cost); setFill(debt, f.debt); setFill(debtPayment, f.debtPayment);
     if (f.gross != null) setFill(gross, period.value === 'month' ? f.gross : Math.round(f.gross * 12 * 100) / 100);
     setFill(ownership, f.ownership); setFill(owner, f.owner); setFill(acquired, f.acquiredOn); setFill(notes, f.notes);
@@ -254,15 +269,40 @@ function openForm(existing, opts = {}) {
   afDrop.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer?.files[0]) readDocument(e.dataTransfer.files[0]); });
   const autofill = !edit && cloud.configured && CONFIG.extractor ? h('div', { class: 'autofill' }, afDrop, afFile, afStatus) : null;
 
+  // VIN lookup (cars, trucks, motorcycles, motorhomes): the free US NHTSA database fills in make, model and year
+  const VEHICLES = ['car', 'truck', 'motorcycle', 'rv'];
+  const vinIn = h('input', { id: 'f-vin', type: 'text', maxlength: 20, autocomplete: 'off', placeholder: '17-character VIN', 'aria-label': 'Vehicle identification number' });
+  const vinMsg = h('p', { class: 'hint', role: 'status', 'aria-live': 'polite' });
+  const vinBtn = h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: lookupVin }, 'Look up');
+  const vinBox = h('div', { class: 'field vin-box' }, h('label', { for: 'f-vin' }, 'Have the VIN? (optional)'), h('div', { class: 'vin-row' }, vinIn, vinBtn), vinMsg);
+  async function lookupVin() {
+    const v = cleanVin(vinIn.value);
+    if (!isVin(v)) { vinMsg.className = 'err'; vinMsg.textContent = 'A VIN has 17 letters and digits (no I, O or Q).'; return; }
+    vinBtn.disabled = true; vinMsg.className = 'hint'; vinMsg.textContent = 'Looking it up…';
+    try {
+      const r = await fetch(`/api/vin?vin=${encodeURIComponent(v)}`); const d = await r.json().catch(() => ({}));
+      if (!r.ok) { vinMsg.className = 'err'; vinMsg.textContent = d.message || 'Could not look that up.'; return; }
+      if (d.type && VEHICLES.includes(d.type) && !VEHICLES.includes(st.type)) { st.type = d.type; status.value = ''; drawTypes(); fillStatus(); }
+      setFill(name, d.name); setFill(notes, [`VIN ${d.vin}`, d.details].filter(Boolean).join('. ').slice(0, 500));
+      vinMsg.className = 'hint'; vinMsg.textContent = `${d.name || 'Vehicle'} found${d.checkDigitOk ? '' : ' (the VIN check digit does not match, so double-check it)'}. Add its value and cost below.`;
+    } catch { vinMsg.className = 'err'; vinMsg.textContent = 'Could not reach the vehicle database. Type the details in instead.'; }
+    finally { vinBtn.disabled = false; }
+  }
+  const syncVin = () => { vinBox.hidden = edit || !VEHICLES.includes(st.type); };
+  onType = syncVin; syncVin();
+
   const form = h('form', { class: 'asset-form', novalidate: true },
     autofill,
     h('div', { class: 'field' }, h('span', { class: 'lab' }, 'What are you adding?'), typeHost, mkErr.type),
+    vinBox,
     field('Name', name, 'name'),
     h('div', { class: 'field' }, h('label', { for: 'f-place' }, 'Location'), place, cityList, customBox, custom, mkErr.place),
-    h('div', { class: 'two' }, field('Estimated value (USD)', value, 'value'), field('Acquisition cost (USD)', cost, 'cost')),
+    ...(hasRates() ? [field('Currency of these amounts', curSel, 'currency', 'Amounts are kept in this currency; ATLAS shows and adds everything in US dollars at today’s rate.')] : []),
+    h('div', { class: 'two' }, field('Estimated value', value, 'value'), field('Acquisition cost', cost, 'cost')),
     h('div', { class: 'field period' }, h('label', { for: 'f-period' }, 'I will enter income and expenses'), period),
     h('div', { class: 'two' }, incField, expField),
     h('div', { class: 'two' }, field('Debt owed (optional)', debt, 'debt', 'Mortgage or loan balance still to pay.'), field('Monthly payment (optional)', debtPayment, 'debtPayment', 'What you pay each month on that debt.')),
+    h('div', { class: 'two' }, field('Loan interest rate, % a year (optional)', debtRate, 'debtRate', 'Lets ATLAS work out when the loan ends.'), field('Value moves by, % a year (optional)', annualChange, 'annualChange', 'For example -12 for a car, 3 for a home. Leave empty if you update it yourself.')),
     h('div', { class: 'two' }, field('Your share of this asset, % (optional)', ownership, 'ownership', 'Leave empty if it is all yours. Value, debt and income above are for the whole asset; ATLAS counts only your share.'), field('Held by (optional)', owner, 'owner', 'You, a company, your partner…')), ownerData,
     h('div', { class: 'two' }, field('Status', status, 'status'), field('Acquired on (optional)', acquired, 'acquiredOn', 'Starts the value history.')),
     field('Notes (optional)', notes, 'notes'),
@@ -275,11 +315,11 @@ function openForm(existing, opts = {}) {
     const r = validateAsset({
       type: st.type, name: name.value, place: place.value, customPlace: customOn,
       placeName: custom.querySelector('#f-placename').value, country: custom.querySelector('#f-country').value, lat: custom.querySelector('#f-lat').value, lon: custom.querySelector('#f-lon').value,
-      value: value.value, cost: cost.value, gross: toYear(gross.value), expenses: toYear(expenses.value), debt: debt.value, debtPayment: debtPayment.value, ownership: ownership.value, owner: owner.value, status: status.value, acquiredOn: acquired.value, notes: notes.value,
+      value: value.value, cost: cost.value, gross: toYear(gross.value), expenses: toYear(expenses.value), debt: debt.value, debtPayment: debtPayment.value, ownership: ownership.value, owner: owner.value, currency: curSel.value, debtRate: debtRate.value, annualChange: annualChange.value, status: status.value, acquiredOn: acquired.value, notes: notes.value,
     });
     Object.entries(mkErr).forEach(([k, p]) => { p.textContent = r.errors[k] || ''; });
     form.querySelectorAll('[aria-invalid]').forEach(x => x.removeAttribute('aria-invalid'));
-    Object.keys(r.errors).forEach(k => { const el = { name, place, value, cost, gross, expenses, debt, debtPayment, ownership, owner, status, acquiredOn: acquired, notes, placeName: custom.querySelector('#f-placename'), country: custom.querySelector('#f-country'), lat: custom.querySelector('#f-lat'), lon: custom.querySelector('#f-lon') }[k]; el && el.setAttribute('aria-invalid', 'true'); });
+    Object.keys(r.errors).forEach(k => { const el = { name, place, value, cost, gross, expenses, debt, debtPayment, ownership, owner, currency: curSel, debtRate, annualChange, status, acquiredOn: acquired, notes, placeName: custom.querySelector('#f-placename'), country: custom.querySelector('#f-country'), lat: custom.querySelector('#f-lat'), lon: custom.querySelector('#f-lon') }[k]; el && el.setAttribute('aria-invalid', 'true'); });
     if (!r.ok) { formErr.textContent = ''; (form.querySelector('[aria-invalid="true"]') || typeHost.querySelector('button'))?.focus(); return; }
     formErr.textContent = ''; submit.disabled = true; submit.classList.add('busy'); submit.querySelector('.lbl').textContent = 'Saving…';
     try {
@@ -406,7 +446,7 @@ function openExtras(assetId, { keepScroll = false } = {}) {
       h('p', { class: 'hint' }, extras.kind === 'cloud' ? 'Deeds, insurance, registration, invoices and your own photos. Stored privately in your account. Up to 10 MB each.' : 'Stored on this device only. Up to 10 MB each. Sign in to keep them across devices.'),
       h('div', { class: 'upload-row' }, kindSel, file, up), dErr,
       mine.length ? h('ul', { class: 'doc-list' }, mine.map(docRow)) : h('p', { class: 'xt-empty' }, 'No documents yet.')),
-    h('section', { class: 'xt-sec' }, h('div', { class: 'xt-h' }, h('h3', {}, 'Reminders'), h('button', { type: 'button', class: 'mini-btn', onclick: () => openReminderForm(assetId, { back: () => openExtras(assetId) }) }, '+ Add reminder')),
+    h('section', { class: 'xt-sec' }, h('div', { class: 'xt-h' }, h('h3', {}, 'Reminders'), h('div', { class: 'xt-btns' }, h('button', { type: 'button', class: 'mini-btn', onclick: () => tools.openStandard(assetId, { back: () => openExtras(assetId) }) }, 'Add the usual ones'), h('button', { type: 'button', class: 'mini-btn', onclick: () => openReminderForm(assetId, { back: () => openExtras(assetId) }) }, '+ Add reminder'))),
       myRems.length ? h('ul', { class: 'rem-list' }, myRems.map(remRow)) : h('p', { class: 'xt-empty' }, 'No reminders yet. Add insurance, tax or inspection dates so they never slip.')),
     h('section', { class: 'xt-sec' }, h('h3', {}, 'Activity'),
       activity.length ? h('ol', { class: 'tl' }, activity.map(e => h('li', { class: `tl-i ${e.type}` }, h('span', { class: 'tl-dot', 'aria-hidden': 'true' }), h('div', {}, h('b', {}, e.title), h('span', {}, e.detail)), h('time', {}, e.when)))) : h('p', { class: 'xt-empty' }, 'Nothing recorded yet.'))),
@@ -468,8 +508,8 @@ function openQuick(id) {
   const save = h('button', { type: 'submit', class: 'btn btn-primary btn-sm' }, h('span', { class: 'lbl' }, 'Save value'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
   const share = Number(a.ownership) < 100 ? h('p', { class: 'hint' }, `This is the value of the whole asset. You own ${a.ownership}%.`) : null;
   const form = h('form', { class: 'asset-form', novalidate: true },
-    h('div', { class: 'field' }, h('label', { for: 'q-value' }, 'Estimated value today (USD)'), value, share, err.value),
-    h('div', { class: 'field' }, h('label', { for: 'q-debt' }, 'Debt still owed (USD, optional)'), debt, h('p', { class: 'hint' }, a.debt ? 'Update it if you paid some of it down.' : 'Leave empty if there is no loan on it.'), err.debt),
+    h('div', { class: 'field' }, h('label', { for: 'q-value' }, `Estimated value today (${a.currency || 'USD'})`), value, share, err.value),
+    h('div', { class: 'field' }, h('label', { for: 'q-debt' }, `Debt still owed (${a.currency || 'USD'}, optional)`), debt, h('p', { class: 'hint' }, a.debt ? 'Update it if you paid some of it down.' : 'Leave empty if there is no loan on it.'), err.debt),
     rem ? h('p', { class: 'hint' }, `Your monthly reminder to update this value is due ${rem.dueOn}. Saving moves it to next month.`) : h('label', { class: 'check' }, remind, h('span', {}, 'Remind me every month to update this value')),
     formErr, h('div', { class: 'modal-actions' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => modal().close() }, 'Cancel'), save));
   form.addEventListener('submit', async e => {
@@ -555,6 +595,25 @@ function openWelcome({ step = 1, picked = [], assetId = null } = {}) {
 }
 
 const shareUi = createShareUi({ cloud, openModal, modal, toast, run, message });
+const settingsFacade = {
+  get: async () => settings,
+  save: async patch => {
+    if (!settingsReady) throw new Error('Settings need the latest database update (see the README) before they can be saved.');
+    settings = await settingsApi.save({ ...settings, ...patch }); return settings;
+  },
+};
+// what the Insights view reads and writes; save() resolves to an error message, or null when it worked
+const insightsApi = {
+  settings: () => settings,
+  save: async patch => { try { await settingsFacade.save(patch); return null; } catch (e) { return message(e); } },
+};
+const tools = createTools({
+  openModal, modal, toast, run, message,
+  rawOf: id => raw.find(r => r.id === id), viewOf: id => views.find(v => v.id === id), assets: () => views, docs: () => docs, rems: () => rems, setRems: l => { rems = l; },
+  addReminder: (id, v) => extras.addReminder(id, v),
+  saveAsset: async (id, v, prev) => { const saved = await store.update(id, v, { prev }); raw = raw.map(x => (x.id === id ? saved : x)); sync(id); return saved; },
+  settings: settingsFacade, sync: id => sync(id), owner: () => cloud.user()?.email || '',
+});
 
 /* ------------------------------------------------------------------ start */
 async function start() {
@@ -564,6 +623,7 @@ async function start() {
       if (!cloud.session()) return showAuth(r && r.error);
       store = createCloudStore(cloud); extras = createCloudExtras(cloud);
     } else { store = createLocalStore(); extras = createLocalExtras(); }
+    fxInfo = await loadRates();
     raw = await store.list();
   } catch (e) {
     if (e && e.status === 401) return showAuth('Your session has expired. Please sign in again.');
@@ -572,11 +632,14 @@ async function start() {
   }
   // documents and reminders are secondary: if they cannot load (e.g. the database update was not applied yet) the assets still work
   try { [docs, rems] = await Promise.all([extras.listDocs(), extras.listReminders()]); } catch (e) { console.error('extras unavailable', e); docs = []; rems = []; toast('Documents and reminders could not be loaded.', 'err'); }
+  settingsApi = cloud.configured ? createCloudSettings(cloud) : createLocalSettings();
+  try { settings = await settingsApi.get(); } catch (e) { console.error('settings unavailable', e); settingsReady = false; }
   recompute(); show('shell'); renderFoot();
   dash = mountDashboard({
     getAssets: () => views, csvName: 'atlas-assets.csv', globeLabel: 'Rotating 3D globe of your assets', owner: cloud.user()?.email || '', meta: metaOf,
     cashflow: true,
-    actions: { onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset, onSample: loadSample, onImport: () => openImport(), onDocs: id => openExtras(id), onQuick: openQuick, onWelcome: () => openWelcome(),
+    insights: insightsApi,
+    actions: { onLoan: id => tools.openLoan(id), onSell: id => tools.openSale(id), onEmergency: () => tools.printEmergency(), onContacts: () => tools.openContacts(), onAdd: () => openForm(), onEdit: id => openForm(raw.find(r => r.id === id)), onDelete: removeAsset, onSample: loadSample, onImport: () => openImport(), onDocs: id => openExtras(id), onQuick: openQuick, onWelcome: () => openWelcome(),
       ...(cloud.configured ? { onShare: () => shareUi.open() } : {}) },
     reminders: reminderApi,
   });

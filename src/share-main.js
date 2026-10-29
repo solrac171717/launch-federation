@@ -2,6 +2,7 @@
 import { h } from './dom.js';
 import { toView, fromDb } from './asset-store.js';
 import { mountDashboard } from './dashboard.js';
+import { loadRates } from './fx.js';
 
 document.documentElement.classList.add('js');
 const $ = id => document.getElementById(id);
@@ -21,6 +22,7 @@ async function start() {
     data = await r.json();
   } catch { return fail('We could not reach ATLAS.', 'Check your connection and try again.'); }
 
+  await loadRates();
   const views = data.assets.map(fromDb).map(toView);
   $('boot').hidden = true; $('shell').hidden = false;
   mountDashboard({ getAssets: () => views, csvName: 'atlas-shared-assets.csv', globeLabel: 'Rotating 3D globe of the shared assets', owner: `Shared by ${data.label || 'the owner'}`, cashflow: true });

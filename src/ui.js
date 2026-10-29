@@ -2,6 +2,7 @@
 import { h, s, clear } from './dom.js';
 import { fmtPct, fmtSigned, tone } from './calc.js';
 import { TYPE_BY_KEY, STATUS_TONE } from './types.js';
+import { formatIn } from './fx.js';
 
 export { h, s, clear };
 const USD0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -55,6 +56,7 @@ export function assetCard(a) {
   return h('div', { class: 'asset-card' },
     h('div', { class: 'ac-top' }, h('span', { class: 'ac-ico' }, thumb(a, 34)), h('div', {}, h('b', {}, a.name), h('span', {}, `${a.place} · ${a.kind}`)), statusDot(a.status)),
     (a.shared || a.owner) ? h('p', { class: 'ac-own' }, a.shared ? `You own ${a.ownership}% of ${money(a.fullValue)}` : 'Owner', a.owner ? ` · ${a.owner}` : '') : null,
+    (a.currency && a.currency !== 'USD') || a.annualChange ? h('p', { class: 'ac-own ac-cur' }, a.currency && a.currency !== 'USD' ? (a.fxMissing ? `Entered in ${a.currency} (no exchange rate available)` : `Entered in ${a.currency}: ${formatIn(a.localValue, a.currency)}`) : '', a.currency && a.currency !== 'USD' && a.annualChange ? ' · ' : '', a.annualChange ? `moves ${a.annualChange > 0 ? '+' : ''}${a.annualChange}% a year` : '') : null,
     h('dl', { class: 'ac-grid' },
       h('div', {}, h('dt', {}, a.shared ? 'Your share of value' : 'Estimated value'), h('dd', {}, money(a.value))),
       h('div', {}, h('dt', {}, 'Acquisition cost'), h('dd', {}, money(a.cost))),

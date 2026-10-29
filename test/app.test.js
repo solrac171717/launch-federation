@@ -11,7 +11,7 @@ const good = { type: 'house', name: ' Lake House ', place: 'Austin, TX', customP
 test('validateAsset normalises a good form', () => {
   const r = validateAsset(good, { today: '2026-10-28' });
   assert.equal(r.ok, true);
-  assert.deepEqual(r.value, { name: 'Lake House', type: 'house', place: 'Austin, TX', country: 'US', lat: 30.27, lon: -97.74, value: 685000, cost: 520000, gross: 61200, expenses: 17360, debt: 0, debtPayment: 0, ownership: 100, owner: '', status: 'Occupied', acquiredOn: '2022-03-01', notes: null });
+  assert.deepEqual(r.value, { name: 'Lake House', type: 'house', place: 'Austin, TX', country: 'US', lat: 30.27, lon: -97.74, value: 685000, cost: 520000, gross: 61200, expenses: 17360, debt: 0, debtPayment: 0, ownership: 100, owner: '', currency: 'USD', debtRate: 0, annualChange: 0, status: 'Occupied', acquiredOn: '2022-03-01', notes: null });
 });
 
 test('validateAsset reports every problem and rejects bad numbers', () => {

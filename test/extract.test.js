@@ -30,10 +30,10 @@ test('a stated market value wins over the price; an imprecise pin or missing pin
   assert.equal(none.fields.lat, undefined); assert.ok(none.notes.some(n => /could not find this address/.test(n)));
 });
 
-test('amounts in another currency are never put into the USD fields', () => {
+test('amounts in another currency are kept as written and the currency is set', () => {
   const r = normalizeExtraction({ ...deed, currency: 'EUR' }, null);
-  assert.equal(r.fields.cost, undefined); assert.equal(r.fields.value, undefined); assert.equal(r.fields.debt, undefined);
-  assert.ok(r.notes.some(n => /EUR/.test(n) && /450,000/.test(n)));
+  assert.equal(r.fields.cost, 450000); assert.equal(r.fields.currency, 'EUR'); assert.equal(normalizeExtraction(deed, null).fields.currency, undefined);
+  assert.ok(r.notes.some(n => /EUR/.test(n) && /converts/.test(n)));
 });
 
 test('garbage and unreadable documents fill nothing and warn', () => {
