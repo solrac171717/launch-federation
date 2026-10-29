@@ -1,6 +1,7 @@
 // Trusted person (owner side): choose who receives the emergency sheet if you cannot, and after how long without a visit.
 // The person has no account. They get a private link that does nothing until the sheet opens (see src/heir-core.js, api/heir.js).
 // Only a SHA-256 hash of the link's secret is stored, so even a database leak does not expose a working link.
+import { CONFIG } from '../assets/config.js';
 import { h } from './dom.js';
 import { makeToken, sha256Hex } from './app-share.js';
 import { INACTIVE_OPTIONS, heirStatus, WARN_DAYS } from './heir-core.js';
@@ -58,7 +59,7 @@ export function createHeirUi(ctx) {
       h('div', { class: 'two' },
         h('div', { class: 'field' }, h('label', { for: 'hr-name' }, 'Who is it for?'), name),
         h('div', { class: 'field' }, h('label', { for: 'hr-email' }, 'Their email'), email, h('p', { class: 'hint' }, 'Only used to tell them, once, that it is open. The link is never emailed.'))),
-      h('div', { class: 'field' }, h('label', { for: 'hr-days' }, 'When does it open?'), days, h('p', { class: 'hint' }, `We email you ${WARN_DAYS} days before, so you can stop it by signing in.`)),
+      h('div', { class: 'field' }, h('label', { for: 'hr-days' }, 'When does it open?'), days, CONFIG.remindersEmail ? h('p', { class: 'hint' }, `We email you ${WARN_DAYS} days before, so you can stop it by signing in.`) : h('p', { class: 'hint warn' }, 'Email is not set up on this site yet, so you would not get a warning before it opens. Sign in now and then to keep it closed.')),
       row ? null : h('div', { class: 'field' }, h('label', { class: 'check', for: 'hr-consent' }, consent, h('span', {}, 'I understand that, after that time without a visit, this person will be able to see the details above.'))),
       err, h('div', { class: 'modal-actions' }, submit));
     form.addEventListener('submit', async e => {
