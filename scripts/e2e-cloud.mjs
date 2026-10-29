@@ -35,6 +35,7 @@ const step = async (name, fn) => { try { await fn(); console.log(`ok   ${++n}. $
 const rows = async () => (await fetch(`${mock.origin}/__rows`)).json();
 const click = sel => ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)}); if(!e) throw new Error('no ${sel}'); e.click(); return true;})()`);
 const PW = 'correct-horse-9';
+const OWNER = 'carlosmartinezhold@gmail.com', OWNER_PW = 'e2e-owner-pw';
 const makeUser = email => fetch(`${mock.origin}/__user?email=${encodeURIComponent(email)}&password=${PW}`);
 const fillLogin = (email, pw) => ev(`(()=>{document.getElementById('auth-email').value=${JSON.stringify(email)}; document.getElementById('auth-password').value=${JSON.stringify(pw)}; document.getElementById('auth-form').requestSubmit();})()`);
 const signIn = async email => {
@@ -57,6 +58,12 @@ await step('wrong password and unknown email get the same message; nobody can si
   await fillLogin('ana@example.com', 'wrong'); await until(`/Incorrect email or password/.test(document.getElementById('auth-err').textContent)`, 'wrong password message');
   await fillLogin('stranger@example.com', PW); await until(`/Incorrect email or password/.test(document.getElementById('auth-err').textContent)`, 'unknown email message');
   if (!(await ev(`document.getElementById('auth').hidden === false`))) throw new Error('left the sign-in screen');
+});
+await step('the owner signs in with the fixed password without any Supabase setup, and becomes Super admin', async () => {
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
+  await fillLogin(OWNER, OWNER_PW); await until(`!document.getElementById('shell').hidden`, 'dashboard');
+  await until(`document.getElementById('side-foot').textContent.includes('Super admin')`, 'super admin label');
+  await ev(`localStorage.clear()`);
 });
 await step('password signs in; account email shown', async () => {
   await signIn('ana@example.com');

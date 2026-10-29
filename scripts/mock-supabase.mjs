@@ -65,6 +65,18 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/__log') return json(res, 200, log);
       if (path === '/__rows') return json(res, 200, table);
       if (path === '/__extras') return json(res, 200, { docs, rems, files: [...files.keys()], shares });
+      if (path === '/api/login') {
+        process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE; process.env.SUPABASE_ANON_KEY = 'mock-anon-key'; process.env.ADMIN_PASSWORD = 'e2e-owner-pw';
+        const mod = await import('../api/login.js'); return mod.default(req, res);
+      }
+      if (path.startsWith('/auth/v1/admin/users')) { // Supabase admin API, service key only
+        if ((req.headers.authorization || '') !== `Bearer ${SERVICE}`) return json(res, 401, { msg: 'not admin' });
+        const id = path.split('/')[5];
+        if (req.method === 'GET') return json(res, 200, { users: [...users.values()] });
+        const b = await readBody(req);
+        if (req.method === 'POST') { if (users.has(b.email)) return json(res, 422, { error_code: 'email_exists', msg: 'exists' }); const u = { id: randomUUID(), email: b.email, password: b.password }; users.set(b.email, u); log.push(['admin-create', b.email]); return json(res, 200, { id: u.id, email: u.email }); }
+        if (req.method === 'PUT') { const u = [...users.values()].find(x => x.id === id); if (!u) return json(res, 404, {}); u.password = b.password; log.push(['admin-password', u.email]); return json(res, 200, { id: u.id }); }
+      }
       if (path === '/api/share') { // run the real serverless handler against this mock
         process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE;
         const mod = await import('../api/share.js'); return mod.default(req, res);

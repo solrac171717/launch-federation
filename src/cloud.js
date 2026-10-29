@@ -20,10 +20,10 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
   // another tab signed in or out: follow it, so a signed-out tab never keeps showing someone's assets
   try { globalThis.addEventListener?.('storage', e => { if (e.key === SESSION_KEY) { session = readStore(); emit(); } }); } catch { /* no window */ }
 
-  async function call(path, { method = 'GET', body, token, headers = {}, raw = false } = {}) {
+  async function call(path, { method = 'GET', body, token, headers = {}, raw = false, local = false } = {}) {
     let res;
     try {
-      res = await fetchImpl(`${base}${path}`, {
+      res = await fetchImpl(`${local ? '' : base}${path}`, {
         method,
         headers: { apikey: anonKey, authorization: `Bearer ${token || anonKey}`, ...(body !== undefined && !raw ? { 'content-type': 'application/json' } : {}), ...headers },
         body: body !== undefined ? (raw ? body : JSON.stringify(body)) : undefined,
@@ -80,9 +80,9 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     user: () => session?.user || null,
     onAuthChange(fn) { listeners.add(fn); return () => listeners.delete(fn); },
 
-    /** Email + password. Accounts are created by hand in Supabase; there is no public sign-up. */
+    /** Email + password, checked by our own /api/login (which answers with a Supabase session). There is no public sign-up. */
     async signInWithPassword(email, password) {
-      const d = await call('/auth/v1/token?grant_type=password', { method: 'POST', body: { email: String(email).trim().toLowerCase(), password: String(password) } });
+      const d = await call('/api/login', { method: 'POST', local: true, body: { email: String(email).trim().toLowerCase(), password: String(password) } });
       setSession(fromTokenResponse(d));
     },
 

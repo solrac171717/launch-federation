@@ -69,7 +69,7 @@ test('local store: add, update (history), remove, samples', async () => {
 function fakeFetch(routes) {
   const calls = [];
   const fn = async (url, init = {}) => {
-    const u = new URL(url); calls.push({ url: u.pathname + u.search, method: init.method || 'GET', headers: init.headers, body: init.body ? JSON.parse(init.body) : undefined });
+    const u = new URL(url, 'https://app.test'); calls.push({ url: u.pathname + u.search, method: init.method || 'GET', headers: init.headers, body: init.body ? JSON.parse(init.body) : undefined });
     for (const r of routes) if (r.test(u, init)) { const out = await r.reply(u, init, calls.length); return { ok: out.status < 400, status: out.status, text: async () => (out.body === undefined ? '' : JSON.stringify(out.body)) }; }
     return { ok: false, status: 404, text: async () => '{"message":"not found"}' };
   };
@@ -77,15 +77,36 @@ function fakeFetch(routes) {
 }
 const cfg = { url: 'https://x.supabase.co', anonKey: 'anon-key' };
 
-test('password sign-in sends the lowercased email and password, and stores the session', async () => {
-  const f = fakeFetch([{ test: u => u.pathname === '/auth/v1/token', reply: () => ({ status: 200, body: { access_token: 'AT', refresh_token: 'RT', expires_in: 3600, user: { id: 'u1', email: 'ana@example.com' } } }) }]);
+test('password sign-in goes through /api/login and sends the lowercased email and password, and stores the session', async () => {
+  const f = fakeFetch([{ test: u => u.pathname === '/api/login', reply: () => ({ status: 200, body: { access_token: 'AT', refresh_token: 'RT', expires_in: 3600, user: { id: 'u1', email: 'ana@example.com' } } }) }]);
   const st = memStorage();
   const c = createCloud({ ...cfg, storage: st, fetchImpl: f });
   await c.signInWithPassword(' Ana@Example.com ', 'secret-pw');
   const call = f.calls[0];
-  assert.equal(call.url, '/auth/v1/token?grant_type=password');
+  assert.equal(call.url, '/api/login');
   assert.equal(call.body.email, 'ana@example.com'); assert.equal(call.body.password, 'secret-pw'); assert.equal(call.headers.apikey, 'anon-key');
   assert.equal(c.user().email, 'ana@example.com');
+});
+
+test('/api/login: the owner is provisioned on first use, a wrong password or a stranger is not', async () => {
+  const { runLogin } = await import('../api/login.js');
+  const users = new Map(), env = { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'svc', SUPABASE_ANON_KEY: 'anon', ADMIN_PASSWORD: 'test-owner-pw' };
+  const ok = (body, status = 200) => ({ ok: status < 300, status, json: async () => body });
+  const fetchImpl = async (url, init) => {
+    const u = new URL(url), body = init.body ? JSON.parse(init.body) : {};
+    if (u.pathname === '/auth/v1/token') { const x = users.get(body.email); return x && x.password === body.password ? ok({ access_token: 'AT', user: { email: x.email } }) : ok({ error_code: 'invalid_credentials' }, 400); }
+    if (u.pathname === '/auth/v1/admin/users' && init.method === 'POST') { users.set(body.email, { id: 'u1', ...body }); return ok({ id: 'u1' }); }
+    return ok({}, 404);
+  };
+  const owner = 'carlosmartinezhold@gmail.com';
+  assert.equal((await runLogin({ env, fetchImpl, email: owner, password: 'nope' })).status, 400);
+  assert.equal(users.size, 0, 'a wrong password creates nothing');
+  assert.equal((await runLogin({ env, fetchImpl, email: 'stranger@x.com', password: 'test-owner-pw' })).status, 400);
+  assert.equal(users.size, 0, 'a stranger creates nothing');
+  const r = await runLogin({ env, fetchImpl, email: ' Carlosmartinezhold@Gmail.com ', password: 'test-owner-pw' });
+  assert.equal(r.status, 200); assert.equal(r.body.access_token, 'AT'); assert.equal(users.size, 1);
+  assert.equal((await runLogin({ env: { ...env, ADMIN_PASSWORD: '' }, fetchImpl: async () => ok({}, 400), email: owner, password: '' })).status, 400);
+  assert.equal((await runLogin({ env: { ...env, SUPABASE_SERVICE_ROLE_KEY: '' }, fetchImpl, email: owner, password: 'test-owner-pw' })).status, 503);
 });
 
 test('wrong credentials and rate limits become readable messages', async () => {
