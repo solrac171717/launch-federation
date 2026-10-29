@@ -353,6 +353,44 @@ await step('currency, loan calculator, sale simulator, insights, usual reminders
   const st2 = await (await fetch(`${mock.origin}/__settings`)).json();
   if (!st2.some(s => s.data.contacts[0]?.name === 'Ana Ruiz' && s.data.emergencyNote === 'Keys are with the notary' && s.data.goal.target === 1000000)) throw new Error('contacts not stored, or the goal was lost: ' + JSON.stringify(st2));
 });
+await step('map drill-down: country -> region -> city -> assets, with counts, breadcrumb and a way back', async () => {
+  await ev(`localStorage.clear()`); await signIn('fran@example.com');
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  const lines = ['name,type,location,value,cost'];
+  for (let i = 1; i <= 4; i++) lines.push(`NY House ${i},house,"New York, NY",${500000 + i},400000`);
+  for (let i = 1; i <= 3; i++) lines.push(`Austin House ${i},house,"Austin, TX",${300000 + i},250000`);
+  for (let i = 1; i <= 3; i++) lines.push(`SA House ${i},house,"San Antonio, TX",${200000 + i},150000`);
+  for (let i = 1; i <= 2; i++) lines.push(`London Flat ${i},house,"London, UK",${700000 + i},600000`);
+  lines.push('Barcelona Flat,house,"Barcelona, ES",400000,300000', 'Barcelona Car 1,car,"Barcelona, ES",40000,50000', 'Barcelona Car 2,car,"Barcelona, ES",30000,45000');
+  await tab('Map'); await click('#import-btn'); await until(`document.getElementById('modal').open`, 'import modal');
+  await setFile('#imp-file', 'portfolio.csv', lines.join('\n'), 'text/csv');
+  await until(`/Import 15 assets/.test(document.querySelector('.modal-actions .btn-primary')?.textContent || '')`, 'all 15 ready');
+  await btn('Import 15', 'document'); await until(`!document.getElementById('modal').open`, 'imported');
+  const geoBtn = t => ev(`(()=>{const b=[...document.querySelectorAll('.geo-toggle button, .geo-chips button, .geo-crumbs button, .geo-card')].filter(x=>x.offsetParent).find(x=>x.textContent.trim().startsWith(${JSON.stringify(t)})); if(!b) throw new Error('no ${t}'); b.click(); return true;})()`);
+  const cards = () => ev(`[...document.querySelectorAll('.geo-card')].map(x => x.querySelector('span').textContent + ':' + x.querySelector('em').textContent).join(',')`);
+  const crumbs = () => ev(`document.querySelector('.geo-crumbs')?.hidden ? '' : [...document.querySelectorAll('.geo-crumbs > *:not(i)')].map(x => x.textContent).join('>')`);
+  await geoBtn('Country'); await until(`document.querySelectorAll('.geo-chips button').length >= 3`, 'country chips');
+  await geoBtn('United States'); await until(`document.querySelectorAll('.geo-card').length === 2`, 'two states');
+  let c = await cards(); if (!/New York:4/.test(c) || !/Texas:6/.test(c)) throw new Error('state cards: ' + c);
+  if (!(await ev(`/United States/.test(document.getElementById('hero-value').textContent)`))) throw new Error('title should name the country');
+  await geoBtn('Texas'); await until(`document.querySelectorAll('.geo-card').length === 2 && /Texas/.test(document.querySelector('.geo-crumbs')?.textContent || '')`, 'two cities in Texas');
+  c = await cards(); if (!/Austin:3/.test(c) || !/San Antonio:3/.test(c)) throw new Error('city cards: ' + c);
+  if ((await crumbs()) !== 'World>United States>Texas') throw new Error('breadcrumb: ' + await crumbs());
+  await until(`/Texas, United States/.test(document.getElementById('hero-value').textContent) && /\\$1,\\d{3},\\d{3}/.test(document.getElementById('hero-value').textContent)`, 'value of Texas only');
+  await geoBtn('San Antonio'); await until(`document.querySelectorAll('.geo-assets button[data-id]').length === 3`, 'three assets in San Antonio');
+  if ((await crumbs()) !== 'World>United States>Texas>San Antonio') throw new Error('breadcrumb: ' + await crumbs());
+  await ev(`document.querySelector('.geo-assets button[data-id]').click()`); await until(`/SA House/.test(document.getElementById('hero-sel').textContent)`, 'asset picked in the city');
+  await geoBtn('Texas'); await until(`document.querySelectorAll('.geo-card').length === 2`, 'back to Texas cities');
+  await geoBtn('United States'); await until(`document.querySelectorAll('.geo-card').length === 2 && !/Texas/.test(document.querySelector('.geo-crumbs')?.textContent || 'x') || document.querySelector('.geo-crumbs')?.hidden`, 'back to the states');
+  // another country: Spain has autonomous communities, the UK has regions
+  await until(`!document.querySelector('.geo-crumbs') || document.querySelector('.geo-crumbs').hidden`, 'country level shows the countries again');
+  await geoBtn('Spain'); await until(`/Cataluña:3/.test([...document.querySelectorAll('.geo-card')].map(x => x.querySelector('span').textContent + ':' + x.querySelector('em').textContent).join(','))`, 'Cataluña holds 3');
+  await geoBtn('United Kingdom'); await until(`/Greater London:2/.test([...document.querySelectorAll('.geo-card')].map(x => x.querySelector('span').textContent + ':' + x.querySelector('em').textContent).join(','))`, 'Greater London holds 2');
+  await geoBtn('Spain'); await until(`document.querySelectorAll('.geo-card').length === 1`, 'one community in Spain'); await geoBtn('Cataluña'); await until(`/Barcelona:3/.test([...document.querySelectorAll('.geo-card')].map(x => x.querySelector('span').textContent + ':' + x.querySelector('em').textContent).join(','))`, 'Barcelona holds 3 (flat + 2 cars)');
+  await ev(`document.getElementById('hero-map').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await until(`document.querySelectorAll('.geo-card').length === 1 && !/Barcelona/.test(document.querySelector('.geo-card span')?.textContent || '')`, 'Escape goes one level up');
+  await geoBtn('Globe'); await until(`!document.getElementById('hero-map').classList.contains('geo-country')`, 'back to the globe');
+});
 await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
   await makeUser('cara@example.com'); await fillLogin('cara@example.com', PW);

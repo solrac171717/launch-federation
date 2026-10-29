@@ -944,3 +944,21 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .foot-links a:hover { color: var(--blue); }
 .form-note { margin: 4px 0 0; font-size: 12.5px; color: var(--text-3); text-align: center; }
 .form-note a { color: var(--blue-d, #1D4ED8); text-underline-offset: 3px; }
+
+/* drill-down: breadcrumb + cards for regions and cities */
+.geo-crumbs { flex: 0 0 100%; display: flex; align-items: center; gap: 4px; width: fit-content; max-width: 100%; padding: 4px 6px; border-radius: 999px; background: rgba(255,255,255,.88); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid #E1E9F6; box-shadow: 0 12px 26px -16px rgba(30,64,130,.5); font: 600 12.5px/1 var(--sans); color: var(--navy); overflow-x: auto; scrollbar-width: none; opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .5s ease, transform .6s cubic-bezier(.22,1,.36,1); }
+.geo-crumbs::-webkit-scrollbar { display: none; }
+.geo-country .geo-crumbs { opacity: 1; transform: none; pointer-events: auto; transition-delay: .5s; }
+.geo-crumbs[hidden] { display: none; }
+.geo-crumbs button { flex: none; border: 0; background: transparent; padding: 7px 9px; border-radius: 999px; font: inherit; color: var(--text-2); cursor: pointer; transition: background .2s ease, color .2s ease; }
+.geo-crumbs button:hover { background: #EEF3FC; color: var(--blue-d); }
+.geo-crumbs b { flex: none; padding: 7px 10px; border-radius: 999px; background: var(--navy); color: #fff; font-weight: 600; white-space: nowrap; animation: crumbIn .5s cubic-bezier(.22,1,.36,1) both; }
+.geo-crumbs i { flex: none; font-style: normal; color: var(--text-3); }
+.geo-crumbs button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@keyframes crumbIn { from { opacity: 0; transform: translateX(-8px) scale(.96); } to { opacity: 1; transform: none; } }
+.geo-assets button em { font-style: normal; font-weight: 700; font-size: 11px; min-width: 20px; text-align: center; padding: 3px 7px; border-radius: 999px; background: var(--blue); color: #fff; }
+.geo-assets button.geo-card { animation: cardIn .55s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+.geo-assets button[data-id] { animation: cardIn .55s cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes cardIn { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .geo-crumbs, .geo-crumbs b, .geo-assets button.geo-card, .geo-assets button[data-id] { animation: none !important; transition: none !important; } }
+.geo-ui.deep .geo-chips { display: none; }

@@ -10,11 +10,14 @@
     "mock": "node scripts/mock-supabase.mjs",
     "e2e": "node scripts/e2e-cloud.mjs",
     "make-map": "node scripts/make-map.mjs",
-    "make-countries": "node scripts/make-countries.mjs"
+    "make-countries": "node scripts/make-countries.mjs",
+    "make-regions": "node scripts/make-regions.mjs"
   },
   "devDependencies": {
     "d3-geo": "^3.1.1",
     "topojson-client": "^3.1.0",
+    "topojson-server": "^3.0.1",
+    "topojson-simplify": "^3.0.3",
     "world-atlas": "^2.0.2"
   },
   "dependencies": {

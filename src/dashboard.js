@@ -56,7 +56,7 @@ export function mountDashboard(opts) {
   const globe = createGlobe($('hero-map'), { assets: all(), icons: ICON, selectedId: state.sel, startLon: opts.startLon ?? -88, tilt: opts.tilt ?? 24, countryPadV: 70,
     label: opts.globeLabel || 'Rotating 3D globe of your assets', onSelect: id => select(id, true) });
   const geo = attachGeo($('hero-map'), globe, { visible: scope, all, selected: () => state.sel, lookup: find, onPick: (id, f) => select(id, f), onChange: () => { renderMap(); }, toggleAfter: $('view-title') });
-  const mapScope = () => scope().filter(a => !geo.country() || a.country === geo.country());
+  const mapScope = () => scope().filter(a => geo.inScope(a));
 
   function select(id, focus) {
     state.sel = id; globe.setSelected(id); if (focus) globe.focus(id);
@@ -128,7 +128,7 @@ export function mountDashboard(opts) {
 
   /* MAP view */
   function renderMap() {
-    const a = find(state.sel), sc = mapScope(), where = geo.country() ? (COUNTRIES[geo.country()]?.name || geo.country()) : (state.group === 'all' ? '' : GROUPS[state.group].label);
+    const a = find(state.sel), sc = mapScope(), where = geo.country() ? geo.placeName() : (state.group === 'all' ? '' : GROUPS[state.group].label);
     if (!all().length) {
       clear($('hero-sel')).append(emptyPanel('Your portfolio starts here', 'Add a property, vehicle, boat, or aircraft and it appears on the map with its value and returns.'));
       clear($('hero-value')).append(h('span', {}, 'Portfolio value'), h('b', {}, money(0)), h('em', { class: 'muted' }, 'No assets yet'));
