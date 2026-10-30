@@ -62,7 +62,7 @@ export function tone(n, eps = 0.005) {
 }
 
 export function fmtMoney(n, { compact = false } = {}) {
-  if (n == null || !Number.isFinite(n)) return '—';
+  if (n == null || !Number.isFinite(n)) return '-';
   return new Intl.NumberFormat('en-US', {
     style: 'currency', currency: 'USD',
     notation: compact ? 'compact' : 'standard',
@@ -71,14 +71,14 @@ export function fmtMoney(n, { compact = false } = {}) {
 }
 
 export function fmtPct(n, { sign = false } = {}) {
-  if (n == null || !Number.isFinite(n)) return '—';
+  if (n == null || !Number.isFinite(n)) return '-';
   const s = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 2 }).format(Math.abs(n));
   if (!sign) return n < 0 ? '−' + s : s;
   return (n > 0 ? '+' : n < 0 ? '−' : '') + s;
 }
 
 export function fmtSigned(n, opts) {
-  if (n == null || !Number.isFinite(n)) return '—';
+  if (n == null || !Number.isFinite(n)) return '-';
   return (n > 0 ? '+' : n < 0 ? '−' : '') + fmtMoney(Math.abs(n), opts);
 }
 

@@ -19,7 +19,8 @@ for (const p of ['index.html', 'app.html', 'privacy.html', 'terms.html', 'share.
   await cp(p, `dist/${p}`, { recursive: true });
 }
 
-const site = (process.env.SITE_URL || '').replace(/\/$/, '');
+// on Vercel's production build the live address is the default, so canonical, og:image and the sitemap are never missing by accident
+const site = (process.env.SITE_URL || (process.env.VERCEL_ENV === 'production' ? 'https://launchfederation.com' : '')).replace(/\/$/, '');
 let html = await readFile('dist/index.html', 'utf8');
 if (site) {
   html = html.replaceAll('%SITE_URL%', site);

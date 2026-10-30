@@ -52,7 +52,7 @@ test('formatters', () => {
   assert.equal(fmtPct(0.1234, { sign: true }), '+12.34%');
   assert.equal(fmtPct(-0.05, { sign: true }), '−5%');
   assert.equal(fmtMoney(1234.5), '$1,234.50');
-  assert.equal(fmtMoney(null), '—');
+  assert.equal(fmtMoney(null), '-');
   assert.equal(fmtSigned(-10), '−$10.00');
 });
 
