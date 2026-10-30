@@ -8,7 +8,6 @@ Marketing site and app preview for Owned Map, a global asset intelligence platfo
   CSV export. Storage is Supabase when configured, otherwise the visitor's browser (see "The app" below).
 - `src/dashboard.js` — the dashboard itself. The landing page mounts it on sample data; the app mounts it on real data.
   Shared pieces live in `src/ui.js` (formatters, cards, charts), `src/geoui.js` (Globe/Country switcher) and `src/globe.js`.
-- `api/early-access.js` — serverless endpoint that stores early-access leads.
 - `src/demo-data.js` — the *illustrative* sample portfolio used by the landing-page previews. Every figure
   (NOI, yields, totals) is computed from the same records, and `test/lead.test.js` checks they agree.
 
@@ -35,17 +34,10 @@ Nothing is uploaded and nobody signs in.
 Asset types, categories and the built-in city list are in `src/types.js` and `src/places.js`. Country outlines for the
 Country view are generated with `npm run make-countries`.
 
-## Early-access form (needs configuration)
+## Site settings
 
-The form posts to `/api/early-access`, which writes to Supabase with a server-side key. Until configured the
-endpoint answers `503` and the form tells the visitor that nothing was saved — it never fakes success.
-
-1. Run `supabase/early_access.sql` in your Supabase project (RLS is enabled; only the service role writes).
-2. Set env vars on the host (e.g. Vercel): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
-3. Set `SITE_URL` (e.g. `https://ownedmap.example.com`) for the production build so canonical/Open Graph tags and
-   `sitemap.xml` are emitted.
-
-Not included yet: rate limiting, email confirmation, a consent banner, Privacy Policy and Terms pages.
+Set `SITE_URL` (e.g. `https://ownedmap.example.com`) on the host for the production build so canonical/Open Graph tags and
+`sitemap.xml` are emitted. Vercel's free plan allows at most 12 serverless functions, so keep `api/` (files not starting with `_`) at 12 or fewer.
 
 ## Analytics
 
