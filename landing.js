@@ -274,7 +274,9 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
 /* ------------------------------------------------- how to start: the same globe, spinning with the sample assets */
 {
   const host = document.getElementById('how-globe');
-  if (host) createGlobe(host, { assets: ASSETS, icons: ICON, startLon: -96, tilt: 22, label: 'Rotating 3D globe of sample assets' });
+  // the same sample assets, placed all around the world so every continent gets a marker as it turns
+  const WORLD = [['austin', 30.27, -97.74], ['london', 51.51, -0.13], ['teterboro', 35.68, 139.69], ['lisbon', -33.87, 151.21], ['seattle', -23.55, -46.63], ['denver', 1.35, 103.82], ['scottsdale', -33.92, 18.42], ['miami', 25.2, 55.27], ['boston', 19.08, 72.88]];
+  if (host) createGlobe(host, { assets: WORLD.map(([id, lat, lon]) => ({ ...byId(id), lat, lon })), icons: ICON, startLon: -30, tilt: 18, label: 'Rotating 3D globe of sample assets around the world' });
 }
 
 /* ------------------------------------------------- header, CTA tracking, motion */
