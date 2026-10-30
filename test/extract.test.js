@@ -51,13 +51,18 @@ test('file checks in the browser', () => {
 
 /* ---- the endpoint */
 const pdf = Buffer.from('%PDF-1.4 fake').toString('base64');
-const env = { ANTHROPIC_API_KEY: 'k', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'anon', NOMINATIM_URL: 'https://geo.test' };
-const answer = (obj, stop = 'end_turn') => ({ stop_reason: stop, content: [{ type: 'text', text: JSON.stringify(obj) }] });
+const env = { OPENAI_API_KEY: 'k', OPENAI_BASE_URL: 'https://ai.test', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_ANON_KEY: 'anon', NOMINATIM_URL: 'https://geo.test' };
+const answer = obj => ({ choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(obj) } }] });
 let uid = 0;
-function fetchFor({ signedIn = true } = {}) {
+// `model(payload)` stands in for the model: it returns the chat-completions answer, or throws status 500
+function fetchFor({ signedIn = true, model = () => answer(deed) } = {}) {
   const calls = [];
-  const f = async url => {
+  const f = async (url, init) => {
     calls.push(String(url));
+    if (String(url) === 'https://ai.test/v1/chat/completions') {
+      f.sent = JSON.parse(init.body); f.auth = init.headers.authorization;
+      try { return { ok: true, json: async () => model(f.sent) }; } catch (e) { return { ok: false, status: e.status || 500, text: async () => e.message }; }
+    }
     if (String(url).includes('/auth/v1/user')) return signedIn ? { ok: true, json: async () => ({ id: 'u-' + (++uid) }) } : { ok: false, status: 401, json: async () => ({}) };
     if (String(url).startsWith('https://geo.test/search')) return { ok: true, json: async () => [{ lat: '40.4', lon: '-3.7', category: 'building', address: { house_number: '12', country_code: 'es' } }] };
     return { ok: false, status: 404, json: async () => ({}) };
@@ -67,31 +72,31 @@ function fetchFor({ signedIn = true } = {}) {
 
 test('/api/extract: needs sign-in, a real file of an allowed type, and the key being set', async () => {
   const body = { mime: 'application/pdf', data: pdf };
-  const client = { messages: { create: async () => answer(deed) } };
-  assert.equal((await runExtract({ env: { ...env, ANTHROPIC_API_KEY: '' }, fetchImpl: fetchFor(), client, token: 't', body })).status, 503);
-  assert.equal((await runExtract({ env, fetchImpl: fetchFor(), client, token: '', body })).status, 401);
-  assert.equal((await runExtract({ env, fetchImpl: fetchFor({ signedIn: false }), client, token: 'bad', body })).status, 401);
-  assert.equal((await runExtract({ env, fetchImpl: fetchFor(), client, token: 't', body: { mime: 'text/html', data: pdf } })).status, 400);
-  assert.equal((await runExtract({ env, fetchImpl: fetchFor(), client, token: 't', body: { mime: 'application/pdf', data: Buffer.from('<html>').toString('base64') } })).status, 400, 'content must match the type');
-  assert.equal((await runExtract({ env, fetchImpl: fetchFor(), client, token: 't', body: { mime: 'application/pdf', data: Buffer.alloc(3.5 * 1024 * 1024, 1).toString('base64') } })).status, 413);
+  assert.equal((await runExtract({ env: { ...env, OPENAI_API_KEY: '' }, fetchImpl: fetchFor(), token: 't', body })).status, 503);
+  assert.equal((await runExtract({ env, fetchImpl: fetchFor(), token: '', body })).status, 401);
+  assert.equal((await runExtract({ env, fetchImpl: fetchFor({ signedIn: false }), token: 'bad', body })).status, 401);
+  assert.equal((await runExtract({ env, fetchImpl: fetchFor(), token: 't', body: { mime: 'text/html', data: pdf } })).status, 400);
+  assert.equal((await runExtract({ env, fetchImpl: fetchFor(), token: 't', body: { mime: 'application/pdf', data: Buffer.from('<html>').toString('base64') } })).status, 400, 'content must match the type');
+  assert.equal((await runExtract({ env, fetchImpl: fetchFor(), token: 't', body: { mime: 'application/pdf', data: Buffer.alloc(3.5 * 1024 * 1024, 1).toString('base64') } })).status, 413);
 });
 
 test('/api/extract: sends the document to the model and returns normalized values with a map pin', async () => {
-  let sent;
-  const client = { messages: { create: async p => { sent = p; return answer(deed); } } };
   const f = fetchFor();
-  const r = await runExtract({ env, fetchImpl: f, client, token: 't', body: { mime: 'application/pdf', data: pdf } });
+  const r = await runExtract({ env, fetchImpl: f, token: 't', body: { mime: 'application/pdf', data: pdf } });
   assert.equal(r.status, 200); assert.equal(r.body.fields.cost, 450000); assert.equal(r.body.fields.lat, '40.4');
-  assert.equal(sent.model, 'claude-opus-5-5'); assert.equal(sent.messages[0].content[0].type, 'document');
-  assert.equal(sent.output_config.format.type, 'json_schema'); assert.equal(sent.tool_choice, undefined);
+  assert.equal(f.sent.model, 'gpt-4o-mini'); assert.equal(f.auth, 'Bearer k'); assert.equal(f.sent.messages[1].content[0].type, 'file');
+  assert.equal(f.sent.response_format.type, 'json_schema'); assert.equal(f.sent.response_format.json_schema.strict, true);
   assert.ok(f.calls.some(u => u.includes('geo.test') && u.includes('Calle%20Mayor')), 'address was looked up');
+  const g = fetchFor(); await runExtract({ env: { ...env, OPENAI_MODEL: 'gpt-4.1-mini' }, fetchImpl: g, token: 't', body: { mime: 'image/png', data: Buffer.from([0x89, 0x50, 1, 2]).toString('base64') } });
+  assert.equal(g.sent.model, 'gpt-4.1-mini', 'the model can be changed with OPENAI_MODEL'); assert.equal(g.sent.messages[1].content[0].type, 'image_url');
 });
 
 test('/api/extract: refusals, model errors and broken answers give safe messages', async () => {
-  const run = client => runExtract({ env, fetchImpl: fetchFor(), client, token: 't', body: { mime: 'image/png', data: Buffer.from([0x89, 0x50, 1, 2]).toString('base64') } });
-  assert.equal((await run({ messages: { create: async () => answer({}, 'refusal') } })).status, 422);
-  assert.equal((await run({ messages: { create: async () => { throw Object.assign(new Error('boom'), { status: 500 }); } } })).status, 502);
-  assert.equal((await run({ messages: { create: async () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: 'not json' }] }) } })).status, 502);
+  const run = model => runExtract({ env, fetchImpl: fetchFor({ model }), token: 't', body: { mime: 'image/png', data: Buffer.from([0x89, 0x50, 1, 2]).toString('base64') } });
+  assert.equal((await run(() => ({ choices: [{ finish_reason: 'stop', message: { refusal: 'no', content: null } }] }))).status, 422);
+  assert.equal((await run(() => { throw Object.assign(new Error('boom'), { status: 500 }); })).status, 502);
+  assert.equal((await run(() => ({ choices: [{ finish_reason: 'stop', message: { content: 'not json' } }] }))).status, 502);
+  assert.equal((await run(() => ({ choices: [] }))).status, 502);
 });
 
 test('/api/extract: a user is limited to 30 documents an hour', () => {

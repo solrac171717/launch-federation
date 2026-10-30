@@ -1,12 +1,11 @@
 // POST /api/extract: reads one uploaded document (PDF or image) and returns the facts to prefill the "Add an asset" form.
 // Only signed-in users can call it (it costs money per document), the file is read once and never stored here,
 // and the model is told to report only what the document says. The address is then looked up on OpenStreetMap (Nominatim) for exact coordinates.
-// Env: ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY). Test hooks: ANTHROPIC_BASE_URL, NOMINATIM_URL.
-import Anthropic from '@anthropic-ai/sdk';
+// Env: OPENAI_API_KEY, optional OPENAI_MODEL, SUPABASE_URL, SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY). Test hooks: OPENAI_BASE_URL, NOMINATIM_URL.
 import { EXTRACT_SCHEMA, SYSTEM_PROMPT, normalizeExtraction } from '../src/extract-core.js';
 import { COUNTRIES } from '../src/places.js';
 
-export const MODEL = 'claude-opus-5-5';
+export const MODEL = 'gpt-4o-mini'; // cheap, reads images and PDFs, supports strict JSON schemas; override with OPENAI_MODEL
 const MAX_BYTES = 3 * 1024 * 1024; // Vercel functions accept ~4.5 MB bodies and base64 adds a third
 const PER_HOUR = 30;
 const hits = new Map(); // user id -> timestamps; per server instance, a best-effort brake on cost
@@ -48,9 +47,9 @@ async function geocode({ env, fetchImpl, r }) {
   return null;
 }
 
-export async function runExtract({ env, fetchImpl = fetch, client, token, body, now = Date.now() }) {
+export async function runExtract({ env, fetchImpl = fetch, token, body, now = Date.now() }) {
   const base = String(env.SUPABASE_URL || '').replace(/\/$/, '');
-  if (!env.ANTHROPIC_API_KEY || !base) return { status: 503, body: { error: 'not_configured' } };
+  if (!env.OPENAI_API_KEY || !base) return { status: 503, body: { error: 'not_configured' } };
   if (!token) return { status: 401, body: { error: 'sign_in_required' } };
   const who = await fetchImpl(`${base}/auth/v1/user`, { headers: { apikey: env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_ROLE_KEY, authorization: `Bearer ${token}` } }).catch(() => null);
   if (!who || !who.ok) return { status: 401, body: { error: 'sign_in_required' } };
@@ -64,25 +63,29 @@ export async function runExtract({ env, fetchImpl = fetch, client, token, body, 
   if (!SIGNATURES[mime](bytes)) return { status: 400, body: { error: 'unsupported_type', message: 'That file does not look like a real ' + mime.split('/')[1].toUpperCase() + '.' } };
   if (!allowed(user.id, now)) return { status: 429, body: { error: 'rate_limited', message: 'You have read many documents in the last hour. Try again later.' } };
 
-  const anthropic = client || new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined, maxRetries: 1, timeout: 50_000 });
-  const block = mime === 'application/pdf'
-    ? { type: 'document', source: { type: 'base64', media_type: mime, data: b64 } }
-    : { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } };
-  let msg;
+  const part = mime === 'application/pdf'
+    ? { type: 'file', file: { filename: 'document.pdf', file_data: `data:${mime};base64,${b64}` } }
+    : { type: 'image_url', image_url: { url: `data:${mime};base64,${b64}`, detail: 'high' } };
+  let choice;
   try {
-    msg = await anthropic.messages.create({
-      model: MODEL, max_tokens: 2000,
-      system: SYSTEM_PROMPT,
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: EXTRACT_SCHEMA } },
-      messages: [{ role: 'user', content: [block, { type: 'text', text: 'Extract the asset facts from this document.' }] }],
+    const res = await fetchImpl(`${String(env.OPENAI_BASE_URL || 'https://api.openai.com').replace(/\/$/, '')}/v1/chat/completions`, {
+      method: 'POST', signal: AbortSignal.timeout(50_000),
+      headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: env.OPENAI_MODEL || MODEL, max_completion_tokens: 2000,
+        response_format: { type: 'json_schema', json_schema: { name: 'asset_facts', strict: true, schema: EXTRACT_SCHEMA } },
+        messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: [part, { type: 'text', text: 'Extract the asset facts from this document.' }] }],
+      }),
     });
+    if (!res.ok) throw Object.assign(new Error((await res.text().catch(() => '')).slice(0, 300)), { status: res.status });
+    choice = (await res.json()).choices?.[0];
   } catch (e) {
     console.error('extract model error', e?.status, e?.message);
     return { status: 502, body: { error: 'model_unavailable', message: 'We could not read this document right now. Try again, or enter the details by hand.' } };
   }
-  if (msg.stop_reason === 'refusal') return { status: 422, body: { error: 'declined', message: 'This document could not be read. Enter the details by hand.' } };
+  if (choice?.message?.refusal || choice?.finish_reason === 'content_filter') return { status: 422, body: { error: 'declined', message: 'This document could not be read. Enter the details by hand.' } };
   let raw;
-  try { raw = JSON.parse((msg.content.find(c => c.type === 'text') || {}).text || ''); } catch { return { status: 502, body: { error: 'bad_answer', message: 'We could not understand the result. Try again, or enter the details by hand.' } }; }
+  try { raw = JSON.parse(choice?.message?.content || ''); } catch { return { status: 502, body: { error: 'bad_answer', message: 'We could not understand the result. Try again, or enter the details by hand.' } }; }
 
   const geo = (raw.addressLine || raw.city) ? await geocode({ env, fetchImpl, r: raw }) : null;
   return { status: 200, body: normalizeExtraction(raw, geo) };

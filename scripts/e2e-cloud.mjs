@@ -291,7 +291,7 @@ await step('document autofill: a deed fills the form, the pin and the numbers ca
   const ex = await (await fetch(`${mock.origin}/__extras`)).json();
   if (!ex.docs.some(d => d.name === 'deed.pdf' && d.asset_id === saved.id)) throw new Error('deed was not kept with the asset');
   const log = await (await fetch(`${mock.origin}/__log`)).json();
-  if (!log.some(l => l[0] === 'model' && l[1] === 'claude-opus-5-5' && l[2] === 'document')) throw new Error('model was not asked with a document');
+  if (!log.some(l => l[0] === 'model' && l[1] === 'gpt-4o-mini' && l[2] === 'file')) throw new Error('model was not asked with a document');
 });
 await step('currency, loan calculator, sale simulator, insights, usual reminders, VIN and emergency contacts', async () => {
   await ev(`localStorage.clear()`); await signIn('erin@example.com');

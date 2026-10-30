@@ -87,7 +87,7 @@ Run `supabase/migrations/20261030000000_ownership_sharing.sql` once (after the e
 
 ## Document autofill (v4)
 
-`Add an asset` has an "Upload an invoice, deed or contract" box. The PDF or photo goes to `POST /api/extract`, which checks the user is signed in, sends the file to Claude (`claude-opus-5-5`, structured output, no storage), looks the address up on OpenStreetMap Nominatim for exact coordinates, and returns values for the form. Everything is editable; fields filled from the document are highlighted; amounts in a currency other than USD are not converted, only reported. The feature appears only when `ANTHROPIC_API_KEY` is set in Vercel (the build writes `extractor: true` into `assets/config.js`). Limits: 3 MB per PDF (photos are shrunk in the browser), 30 documents per user per hour per server instance.
+`Add an asset` has an "Upload an invoice, deed or contract" box. The PDF or photo goes to `POST /api/extract`, which checks the user is signed in, sends the file to OpenAI (`gpt-4o-mini` by default, change it with `OPENAI_MODEL`; structured output, no storage), looks the address up on OpenStreetMap Nominatim for exact coordinates, and returns values for the form. Everything is editable; fields filled from the document are highlighted; amounts in a currency other than USD are not converted, only reported. The feature appears only when `OPENAI_API_KEY` is set in Vercel (the build writes `extractor: true` into `assets/config.js`). Limits: 3 MB per PDF (photos are shrunk in the browser), 30 documents per user per hour per server instance.
 
 ## v4: currencies, loans, insights, usual reminders, VIN, emergency sheet
 

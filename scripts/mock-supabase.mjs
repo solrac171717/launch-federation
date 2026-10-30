@@ -165,13 +165,13 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         const mod = await import('../api/invite.js'); return mod.default(req, res);
       }
       if (path === '/api/extract') { // the real handler, with a stand-in for the model and for the map lookup
-        Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_ANON_KEY: 'mock-anon-key', ANTHROPIC_API_KEY: 'mock-key', ANTHROPIC_BASE_URL: origin, NOMINATIM_URL: `${origin}/__nominatim` });
+        Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_ANON_KEY: 'mock-anon-key', OPENAI_API_KEY: 'mock-key', OPENAI_BASE_URL: origin, NOMINATIM_URL: `${origin}/__nominatim` });
         const mod = await import('../api/extract.js'); return mod.default(req, res);
       }
-      if (path === '/v1/messages' && req.method === 'POST') { // pretend model: reads "a deed"
-        const b = await readBody(req); log.push(['model', b.model, b.messages?.[0]?.content?.[0]?.type]);
-        return json(res, 200, { id: 'msg_mock', type: 'message', role: 'assistant', model: b.model, stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 10, output_tokens: 10 },
-          content: [{ type: 'text', text: JSON.stringify({ documentKind: 'purchase_deed', assetType: 'house', name: 'Lakeview Cottage', addressLine: '12 Calle Mayor', city: 'Madrid', region: 'Madrid', postalCode: '28013', countryCode: 'ES', currency: 'USD', purchasePrice: 640000, currentValue: null, outstandingDebt: 250000, monthlyDebtPayment: 1900, monthlyRent: null, acquiredOn: '2020-06-01', ownershipPercent: null, ownerName: 'Ana Test', details: 'Registry 77-A', confidence: 'high' }) }] });
+      if (path === '/v1/chat/completions' && req.method === 'POST') { // pretend model: reads "a deed"
+        const b = await readBody(req); log.push(['model', b.model, b.messages?.[1]?.content?.[0]?.type]);
+        return json(res, 200, { id: 'chatcmpl_mock', object: 'chat.completion', model: b.model, usage: { prompt_tokens: 10, completion_tokens: 10 },
+          choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify({ documentKind: 'purchase_deed', assetType: 'house', name: 'Lakeview Cottage', addressLine: '12 Calle Mayor', city: 'Madrid', region: 'Madrid', postalCode: '28013', countryCode: 'ES', currency: 'USD', purchasePrice: 640000, currentValue: null, outstandingDebt: 250000, monthlyDebtPayment: 1900, monthlyRent: null, acquiredOn: '2020-06-01', ownershipPercent: null, ownerName: 'Ana Test', details: 'Registry 77-A', confidence: 'high' }) } }] });
       }
       if (path === '/__nominatim/search') return json(res, 200, [{ lat: '40.4168', lon: '-3.7038', category: 'building', address: { house_number: '12', country_code: 'es' } }]);
       if (path === '/api/vin') { // the real handler, with a stand-in for the NHTSA database
