@@ -547,6 +547,68 @@ await step('trusted person: a private link that opens only after the owner is aw
   if ((await (await fetch(`${mock.origin}/__heirs`)).json()).length !== 0) throw new Error('row not removed');
   await openLink(link2); if (!(await ev(`/does not work/.test(document.getElementById('boot').textContent)`))) throw new Error('a removed link must stop working');
 });
+await step('billing: limits stop extra assets without a plan; the free trial starts through checkout; a bigger plan, the portal and a cancelled plan behave; the super admin is never limited', async () => {
+  const U = 'billing.u@example.com';
+  await ev(`localStorage.clear()`); await signIn(U);
+  const importRows = async names => {
+    const csv = ['name,type,location,value,cost', ...names.map(n => `${n},house,"Madrid, ES",100000,90000`)].join('\n');
+    await tab('Map'); await click('#import-btn'); await until(`document.getElementById('modal').open`, 'import modal');
+    await setFile('#imp-file', 'b.csv', csv, 'text/csv');
+    await until(`/Import ${names.length} asset/.test(document.querySelector('.modal-actions .btn-primary')?.textContent || '')`, 'ready to import');
+    await btn(`Import ${names.length}`, 'document');
+    await until(`!document.getElementById('modal').open || /plan has no room/.test(document.querySelector('#modal .imp-out + .err, #modal .err')?.textContent || '')`, 'import result');
+    const blocked = await ev(`document.getElementById('modal').open && /plan has no room/.test(document.getElementById('modal').textContent)`);
+    if (await ev(`document.getElementById('modal').open`)) await ev(`document.getElementById('modal').close()`);
+    return blocked ? 'blocked' : 'ok';
+  };
+  const mbtn = t => ev(`(()=>{const b=[...document.querySelectorAll('#modal button')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(t)})); if(!b) throw new Error('no ${t}'); b.click(); return true;})()`);
+  const subs = async () => (await fetch(`${mock.origin}/__subs`)).json();
+  const slide = n => ev(`(()=>{const r=document.getElementById('bl-range'); r.value=${n}; r.dispatchEvent(new Event('input'));})()`);
+
+  if ((await importRows(['A1'])) !== 'ok') throw new Error('limits must be off until they are switched on');
+  await fetch(`${mock.origin}/__enforce?on=1`);
+  if ((await importRows(['A2'])) !== 'blocked') throw new Error('no plan, limits on: adding must be refused');
+  await until(`/No plan yet/.test(document.getElementById('plan-btn').textContent)`, 'plan button says no plan');
+
+  // the free trial for 5 assets, through (pretend) Stripe checkout
+  await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan screen');
+  await slide(5); await until(`/\\$77 a month/.test(document.getElementById('bl-price').textContent)`, 'price follows the slider ($47 + 2 x $15)');
+  await mbtn('Start 14-day free trial');
+  await until(`/Trial/.test(document.getElementById('plan-btn')?.textContent || '')`, 'trial started after coming back from checkout', 20000);
+  const [row] = await subs();
+  if (row.status !== 'trialing' || row.assets_allowed !== 5) throw new Error('plan not saved from the webhook: ' + JSON.stringify(row));
+  const sent = (await (await fetch(`${mock.origin}/__log`)).json()).find(l => l[0] === 'stripe-checkout');
+  if (!sent || !/ownedmap_base_monthly","1"/.test(sent[1]) || !/ownedmap_extra_asset_monthly","2"/.test(sent[1]) || !/"trial":"14"/.test(sent[1])) throw new Error('checkout was not what was chosen: ' + (sent && sent[1]));
+
+  // inside the plan, and the edge of it
+  if ((await importRows(['A2', 'A3'])) !== 'ok') throw new Error('1 + 2 assets fit a 5-asset plan');
+  if ((await importRows(['A4', 'A5', 'A6'])) !== 'blocked') throw new Error('3 + 3 assets do not fit a 5-asset plan');
+  const total = (await rows()).filter(r => /^A\d$/.test(r.name)).length; if (total !== 3) throw new Error('a refused import must add nothing, found ' + total);
+
+  // a bigger plan
+  await click('#plan-btn'); await until(`document.getElementById('bl-range') && /Using 3 of 5/.test(document.getElementById('modal').textContent)`, 'usage shown');
+  await slide(8); await mbtn('Update plan'); await until(`/Plan updated/.test(document.getElementById('toast').textContent)`, 'plan updated');
+  if ((await subs())[0].assets_allowed !== 8) throw new Error('the change did not reach the plan');
+  if ((await importRows(['A4', 'A5', 'A6'])) !== 'ok') throw new Error('the bigger plan should have room');
+
+  // the customer portal (Stripe hosts it)
+  await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan screen again'); await mbtn('Add a card');
+  await until(`/__stripe_portal/.test(location.href)`, 'portal opened', 10000);
+
+  // the plan ends: nothing is deleted, nothing more can be added
+  await fetch(`${mock.origin}/__stripe_cancel?email=${encodeURIComponent(U)}`);
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'dashboard after the plan ended');
+  await until(`/No active plan/.test(document.getElementById('plan-btn').textContent)`, 'plan button says ended');
+  if ((await rows()).filter(r => /^A\d$/.test(r.name)).length !== 6) throw new Error('assets must stay when a plan ends');
+  if ((await importRows(['Z1'])) !== 'blocked') throw new Error('an ended plan cannot add');
+
+  // the super admin is never limited
+  await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth'); await fillLogin(OWNER, OWNER_PW);
+  await until(`!document.getElementById('shell').hidden`, 'owner dashboard'); await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  await until(`/Super admin/.test(document.getElementById('plan-btn').textContent)`, 'super admin label');
+  if ((await importRows(['S1', 'S2', 'S3', 'S4', 'S5'])) !== 'ok') throw new Error('the super admin has no limit');
+  await fetch(`${mock.origin}/__enforce?on=0`);
+});
 await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
   await makeUser('cara@example.com'); await fillLogin('cara@example.com', PW);

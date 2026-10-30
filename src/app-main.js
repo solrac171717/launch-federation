@@ -22,6 +22,8 @@ import { createTools } from './app-tools.js';
 import { isVin, cleanVin } from './vin.js';
 import { showInvite } from './app-invite.js';
 import { createHeirUi } from './app-heir.js';
+import { createBillingUi } from './app-billing.js';
+import { isSuperadmin } from './plan.js';
 import { createMembersUi, loadShared, pickAccount, savedAccount, saveAccount, inviteTokenOf, accessFor, ROLES } from './app-members.js';
 
 document.documentElement.classList.add('js');
@@ -82,6 +84,7 @@ function renderFoot() {
     f.append(h('span', { class: 'sf-user', title: cloud.user()?.email || '' }, cloud.user()?.email || 'Signed in'),
       ...(plan.key === 'superadmin' ? [h('span', { class: 'sf-plan', title: plan.note }, `${plan.label} · unlimited`)] : []),
       h('span', { class: 'sf-sync' }, 'Synced to your account'),
+      ...(CONFIG.billing && account.mine ? [h('button', { type: 'button', class: 'mini-btn', id: 'plan-btn', title: 'Plan and billing', onclick: () => billingUi.open() }, `Plan: ${billingUi.label()}`)] : []),
       h('button', { type: 'button', class: 'mini-btn', onclick: signOut }, 'Sign out'));
   } else {
     f.append(h('span', { class: 'sf-sync' }, 'Saved on this device only'));
@@ -611,6 +614,7 @@ function openWelcome({ step = 1, picked = [], assetId = null } = {}) {
 const shareUi = createShareUi({ cloud, openModal, modal, toast, run, message });
 const membersUi = createMembersUi({ cloud, openModal, modal, toast, run, message });
 const heirUi = createHeirUi({ cloud, openModal, modal, toast, run, message });
+const billingUi = createBillingUi({ cloud, openModal, modal, toast, run, message, used: () => raw.filter(r => !r.isSample).length, superadmin: () => isSuperadmin(cloud.user()?.email) });
 const settingsFacade = {
   get: async () => settings,
   save: async patch => {
@@ -667,6 +671,11 @@ async function start() {
   try { [docs, rems] = await Promise.all([extras.listDocs(), extras.listReminders()]); } catch (e) { console.error('extras unavailable', e); docs = []; rems = []; toast('Documents and reminders could not be loaded.', 'err'); }
   settingsApi = cloud.configured ? createCloudSettings(cloud) : createLocalSettings();
   try { settings = await settingsApi.get(); } catch (e) { console.error('settings unavailable', e); settingsReady = false; }
+  if (cloud.configured && CONFIG.billing && account.mine) {
+    await billingUi.load();
+    const back = new URLSearchParams(location.search).get('billing');
+    if (back) { history.replaceState(null, '', location.pathname); if (back === 'success') billingUi.waitForPlan().then(ok => { renderFoot(); toast(ok ? 'Thank you! Your plan is active.' : 'Payment received. Your plan will show up in a moment: reload if it does not.'); }); else toast('No changes were made to your plan.'); }
+  }
   recompute(); show('shell'); renderFoot();
   // a visit of the owner closes the trusted person's sheet again; and tells the owner if it was opened since their last visit
   if (cloud.configured && account.mine) { const before = await heirUi.touch(); if (before?.openedAt && Date.parse(before.openedAt) > Date.parse(before.lastSeenAt)) heirNote = before; }

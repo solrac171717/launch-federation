@@ -142,3 +142,16 @@ for the chosen time, or when the owner presses "Release it now". Every visit of 
 - `api/heir-check.js` (daily cron, 13:30 UTC) emails the owner 14 days before it opens and tells the trusted person once that it is open (never with the link). It needs the same email variables as the reminders: `RESEND_API_KEY`, `REMINDER_FROM`, `CRON_SECRET`. Without them the feature still works, but nobody is emailed.
 - The owner sees a banner if the sheet was opened since their last visit.
 - Apply the migration once. It is not a will and does not transfer ownership; the screen says so, and it asks for an explicit confirmation before creating the link. Have a lawyer review how it fits with local rules before selling it.
+
+## Plans and billing (Stripe)
+
+Price (the one on the website, in `src/billing-core.js`): $47 a month with 3 assets, plus $15 for each extra asset, up to 50. A 14-day free trial that needs no card (one per person; set `PLAN.trialDays = 0` to remove it).
+Stripe is called directly over HTTPS (no SDK). Environment variables on Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and optionally `SITE_URL` and `STRIPE_PORTAL_CONFIG`.
+
+- **No setup in Stripe is needed for the products.** The first time someone starts checkout, `api/billing.js` finds or creates the product and the two prices by lookup key (`ownedmap_base_monthly`, `ownedmap_extra_asset_monthly`), in whichever mode (test or live) the key belongs to.
+- **Webhook:** in Stripe (Developers, Webhooks) the endpoint is `https://<your site>/api/stripe-webhook` with the events `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`. Its signing secret is `STRIPE_WEBHOOK_SECRET`. Test and live mode each have their own endpoint and secret.
+- **Customer portal:** enable it once in Stripe (Settings, Billing, Customer portal) in each mode. It is where people update the card, see invoices and cancel.
+- **Database:** `supabase/migrations/20261103000000_billing.sql` adds `subscriptions` (read-only for users; only the server writes it), the switch `billing_switch` and the rule that stops adding assets beyond the plan (a trigger on `assets`, checked per statement so a CSV import cannot slip through).
+- **The limits are OFF until you switch them on:** `update public.billing_switch set enforce = true;`. Until then nobody is limited. The super admin is never limited. To give someone free access: insert a `subscriptions` row with status `comped` (the SQL is at the end of the migration).
+- **What a plan does and does not do:** nothing is ever deleted when a plan ends or shrinks; the person can still see everything and cannot add more. The "Plan" button in the sidebar only appears when both Stripe variables exist at build time.
+- To try it without money: use a `sk_test_` key and the card `4242 4242 4242 4242`. The e2e test uses a pretend Stripe (`scripts/mock-supabase.mjs`) and a signed pretend webhook.

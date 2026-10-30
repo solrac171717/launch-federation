@@ -41,6 +41,9 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
 
   function friendly(status, code, msg) {
     if (code === 'invalid_credentials') return 'Incorrect email or password.';
+    if (/plan_limit/.test(msg)) return 'Your plan has no room for more assets. Open Plan and billing (bottom left) to add more.';
+    if (msg === 'already_subscribed') return 'You already have a plan. Use Update plan to change it.';
+    if (msg === 'not_configured' && status === 503) return 'Billing is not set up on this site yet.';
     if (code === 'over_email_send_rate_limit' || status === 429) return 'Too many attempts. Wait a few minutes and try again.';
     if (code === 'validation_failed' || /valid email/i.test(msg)) return 'Enter a valid email address.';
     if (status === 401 || status === 403) return 'Your session has expired. Please sign in again.';
@@ -115,6 +118,9 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
 
     /** Reads a document with our /api/extract (signed-in users only). `payload` is { mime, data (base64) }. */
     async extract(payload) { return authed(t => call('/api/extract', { method: 'POST', local: true, body: payload, token: t })); },
+
+    /** Plan and billing actions (checkout, change, portal), answered by /api/billing with the user's own session. */
+    async billing(body) { return authed(t => call('/api/billing', { method: 'POST', local: true, body, token: t })); },
 
     /** The household invitation endpoint. With `signedIn` the user's own session proves who is joining. */
     async invite(body, { signedIn = false } = {}) {

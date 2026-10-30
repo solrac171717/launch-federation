@@ -278,3 +278,9 @@ input[type=file]::file-selector-button:hover { background: #fff; border-color: #
 .heir-note { font-size: 13px; color: var(--text-3, #778195); }
 #heir-frame { width: 100%; min-height: 80vh; border: 1px solid var(--line, #E5EAF1); border-radius: 14px; background: #fff; }
 .hr-status { margin: 16px 0 20px; }
+#plan-btn { width: 100%; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bl-pick { display: grid; gap: 6px; margin: 14px 0 8px; }
+.bl-pick input[type=range] { width: 100%; accent-color: var(--blue, #2563EB); }
+.bl-sum { font-size: 1.05rem; color: var(--navy); } .bl-sum b { font-weight: 700; }
+.bl-line { font-weight: 600; color: var(--navy); }
+.bl-line.past_due { color: #B91C1C; }
