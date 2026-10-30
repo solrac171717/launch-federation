@@ -4,7 +4,6 @@ import {
   ASSETS, CATEGORIES, WESTLAKE_MONTHS, WESTLAKE_INCOME, WESTLAKE_EXPENSES,
   WESTLAKE_VALUATIONS, portfolio, byId,
 } from './src/demo-data.js';
-import { validateLead } from './src/lead.js';
 import { createGlobe } from './src/globe.js';
 import { attachGeo } from './src/geoui.js';
 import { mountDashboard } from './src/dashboard.js';
@@ -273,56 +272,6 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
   pick('pdf');
 }
 
-/* --------------------------------------------------------------- form */
-{
-  const form = document.getElementById('ea-form'), status = document.getElementById('ea-status'), btn = document.getElementById('ea-submit');
-  let started = false, inflight = false;
-  form.addEventListener('focusin', () => { if (!started) { started = true; analytics.track('early_access_form_start'); } });
-
-  const showErrors = errors => {
-    ['email', 'consent'].forEach(k => {
-      document.getElementById('e-' + k).textContent = errors[k] || '';
-      const n = form.elements[k];
-      if (errors[k]) n.setAttribute('aria-invalid', 'true'); else n.removeAttribute('aria-invalid');
-    });
-    const first = ['email', 'consent'].find(k => errors[k]);
-    if (first) form.elements[first].focus();
-  };
-  const setBusy = on => { inflight = on; btn.disabled = on; btn.setAttribute('aria-busy', String(on)); btn.classList.toggle('busy', on); btn.querySelector('.lbl').textContent = on ? 'Submitting…' : 'Start for Free'; };
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    if (inflight) return;
-    status.textContent = ''; status.className = 'form-status';
-    const fd = new FormData(form);
-    const raw = { email: fd.get('email'), consent: fd.get('consent') === 'on', website: fd.get('website'), source: 'landing' };
-    const v = validateLead(raw);
-    showErrors(v.errors);
-    if (!v.ok) { analytics.track('early_access_form_error', { reason: 'validation' }); return; }
-    setBusy(true);
-    analytics.track('early_access_form_submit');
-    try {
-      const r = await fetch('/api/early-access', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(raw) });
-      const data = await r.json().catch(() => ({}));
-      if (r.ok && data.ok) {
-        analytics.track('early_access_form_success');
-        form.replaceChildren(h('div', { class: 'done', tabindex: -1, role: 'status' }, h('div', { class: 'tick', 'aria-hidden': 'true' }, '✓'), h('h3', {}, 'You’re on the list.'),
-          h('p', {}, 'We’ve recorded your request and will email you when Owned Map opens.')));
-        form.querySelector('.done').focus();
-        return;
-      }
-      if (r.status === 422 && data.errors) { showErrors(data.errors); analytics.track('early_access_form_error', { reason: 'validation' }); return; }
-      status.textContent = r.status === 503 ? 'Early-access sign-up isn’t available yet because the server isn’t configured. Nothing was saved. Please try again later.'
-        : 'We couldn’t save your request. Nothing was submitted. Please try again in a moment.';
-      status.classList.add('bad');
-      analytics.track('early_access_form_error', { reason: String(r.status) });
-    } catch {
-      status.textContent = 'We couldn’t reach the server. Check your connection and try again. Nothing was submitted.'; status.classList.add('bad');
-      analytics.track('early_access_form_error', { reason: 'network' });
-    } finally { if (form.contains(btn)) setBusy(false); }
-  });
-}
-
 /* ------------------------------------------------- document autofill demo */
 {
   const root = document.getElementById('af-demo');
@@ -337,7 +286,6 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
   document.addEventListener('click', e => {
     const c = e.target.closest('[data-cta]');
     if (c) analytics.track(c.dataset.cta === 'primary' ? 'primary_cta_click' : 'secondary_cta_click', { where: c.dataset.where || '' });
-    if (c && c.getAttribute('href') === '#early-access') setTimeout(() => document.getElementById('f-email')?.focus({ preventScroll: true }), reduceMotion ? 0 : 600);
   });
   const targets = document.querySelectorAll('.sec-head, .globe-stage, .fin, .collection, .reports, .quote-card, .af-demo');
   if (!reduceMotion && 'IntersectionObserver' in window) {
@@ -357,7 +305,6 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
       if (open) analytics.track('faq_open', { q: btn.textContent.trim() });
     });
   });
-  document.querySelector('[data-focus-email]')?.addEventListener('click', () => setTimeout(() => document.getElementById('f-email')?.focus({ preventScroll: true }), 700));
 }
 
 /* ------------------------------------------------------------- pricing */
