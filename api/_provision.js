@@ -23,12 +23,15 @@ export async function provisionFromSession({ env, sb, stripe, fetchImpl = fetch,
     if (!userId) throw new StripeError('Could not create the account.', 502, 'create_failed');
   }
 
-  const prev = await sb(`/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=status`);
+  const prev = await sb(`/rest/v1/subscriptions?user_id=eq.${encodeURIComponent(userId)}&select=status,stripe_subscription_id`);
   const had = prev.ok ? (await prev.json())[0] : null;
   const sub = await stripe('GET', `/v1/subscriptions/${encodeURIComponent(session.subscription)}`);
-  // somebody else typing this email at checkout must not replace the plan of a person who already has one
-  if (!(had && LIVE.includes(had.status))) await saveSubscription(sb, subscriptionRow(sub, userId, at));
+  // somebody who already has a live plan (or who typed another person's email) must not replace it, and must not be billed twice: the new
+  // subscription is cancelled at once (it is only a trial, nothing has been charged yet). Running this again finds it already cancelled.
+  const duplicate = Boolean(had && LIVE.includes(had.status) && had.stripe_subscription_id !== sub.id);
+  if (duplicate) { if (LIVE.includes(sub.status)) await stripe('DELETE', `/v1/subscriptions/${encodeURIComponent(sub.id)}`); }
+  else await saveSubscription(sb, subscriptionRow(sub, userId, at));
 
   await sb('/rest/v1/checkout_claims?on_conflict=session_id', { method: 'POST', body: JSON.stringify({ session_id: session.id, user_id: userId, claimable: created }), headers: { prefer: 'resolution=ignore-duplicates,return=minimal' } });
-  return { userId, email, created };
+  return { userId, email, created, duplicate };
 }

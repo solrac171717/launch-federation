@@ -23,12 +23,12 @@ export async function runWelcome({ env, fetchImpl = fetch, action, sessionId, pa
   try {
     const session = await stripe('GET', `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`);
     if (session.status !== 'complete' || session.mode !== 'subscription' || now - Number(session.created) > 86400) return NOT_FOUND;
-    const { userId, email } = await provisionFromSession({ env, sb, stripe, fetchImpl, session, at: now });
+    const { userId, email, duplicate } = await provisionFromSession({ env, sb, stripe, fetchImpl, session, at: now });
     const claimRow = async () => { const r = await sb(`/rest/v1/checkout_claims?session_id=eq.${encodeURIComponent(sessionId)}&select=claimable,claimed_at`); return r.ok ? (await r.json())[0] : null; };
     const claim = await claimRow();
     const canChoose = Boolean(claim?.claimable && !claim?.claimed_at);
 
-    if (action === 'preview') return { status: 200, body: { email, canChoosePassword: canChoose, claimed: Boolean(claim?.claimed_at) } };
+    if (action === 'preview') return { status: 200, body: { email, canChoosePassword: canChoose, claimed: Boolean(claim?.claimed_at), duplicate } };
     if (action !== 'claim') return { status: 400, body: { error: 'bad_request' } };
     if (!canChoose) return { status: 409, body: { error: claim?.claimed_at ? 'already_claimed' : 'account_exists' } };
     const pw = String(password || '');

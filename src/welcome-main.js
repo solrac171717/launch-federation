@@ -4,7 +4,7 @@ import { CONFIG } from '../assets/config.js';
 import { h } from './dom.js';
 import { createCloud } from './cloud.js';
 
-const PASSWORD_MIN = 10;
+const PASSWORD_MIN = 10, SUPPORT = 'adftblyt@gmail.com';
 const card = document.getElementById('invite-card');
 const cloud = createCloud({ url: CONFIG.supabaseUrl, anonKey: CONFIG.supabaseAnonKey });
 const logo = h('a', { class: 'logo', href: 'index.html', 'aria-label': 'Owned Map website' }, h('span', { class: 'lmark', style: '--s:34px', 'aria-hidden': 'true' }, h('img', { src: 'assets/logo-o.png', alt: '', width: 192, height: 192 })), h('span', {}, 'OWNED MAP'));
@@ -24,11 +24,16 @@ async function start() {
   try { if (sessionId) sessionStorage.setItem(KEY, sessionId); else sessionId = sessionStorage.getItem(KEY); } catch { /* private mode: reloading the page loses it */ }
   if (!sessionId) return say('This page needs a checkout', 'Start your free trial from the website.', signIn('Go to sign in'));
   history.replaceState(null, '', location.pathname); // the session id does not stay in the address bar or the history
-  let info; // the payment can take a few seconds to reach us: try a few times before giving up
-  for (let i = 0; i < 6; i++) {
-    try { info = await api({ action: 'preview', sessionId }); break; }
-    catch (e) { if (e.status === 404 && i < 5) { await new Promise(r => setTimeout(r, 1500)); continue; } if (e.status === 404) return say('We could not confirm this checkout', 'The link may be old. If you completed the payment, sign in with the email you used, or ask for a new password on the sign-in page.', signIn('Go to sign in')); return say('Something went wrong', 'Please reload this page in a moment.'); }
+  let info; // the payment can take a few seconds to reach us, and a server hiccup can happen: try a few times before giving up
+  for (let i = 0; i < 6 && !info; i++) {
+    try { info = await api({ action: 'preview', sessionId }); }
+    catch (e) {
+      if (i < 5) { await new Promise(r => setTimeout(r, 1500)); continue; }
+      if (e.status === 404) return say('We could not confirm this checkout', 'The link may be old. If you completed the payment, sign in with the email you used, or ask for a new password on the sign-in page.', signIn('Go to sign in'));
+      return say('We are finishing your account', `Your payment went through, but your account is taking longer than usual to open. Reload this page in a minute. If it still does not open, write to ${SUPPORT} and we will open it for you; you are not charged until your trial ends.`, signIn('Go to sign in'));
+    }
   }
+  if (info.duplicate) return say('You already have a plan', `${info.email} already has an account with a plan, so we cancelled this second trial and you will not be charged for it. Sign in with your usual password, or use “Forgot your password?” on the sign-in page.`, signIn('Go to sign in'));
   if (!info.canChoosePassword) {
     return say(info.claimed ? 'Your account is ready' : 'Your trial has started', info.claimed ? `Sign in with ${info.email} and the password you chose.` : `${info.email} already has an account, and your plan is now on it. Sign in with your usual password, or use “Forgot your password?” on the sign-in page.`, signIn('Go to sign in'));
   }
@@ -44,7 +49,11 @@ async function start() {
     if (pw.value.length < PASSWORD_MIN) { err.textContent = `Use at least ${PASSWORD_MIN} characters.`; pw.focus(); return; }
     if (pw.value !== pw2.value) { err.textContent = 'The two passwords are different.'; pw2.focus(); return; }
     btn.disabled = true; btn.classList.add('busy'); btn.querySelector('.lbl').textContent = 'Opening your account…';
-    try { await api({ action: 'claim', sessionId, password: pw.value }); await cloud.signInWithPassword(info.email, pw.value); location.replace('app.html'); }
+    try {
+      await api({ action: 'claim', sessionId, password: pw.value });
+      try { await cloud.signInWithPassword(info.email, pw.value); } catch { /* the password is set; the sign-in page takes it from here */ }
+      location.replace('app.html');
+    }
     catch (x) {
       err.textContent = x.code === 'already_claimed' ? 'This account already has a password. Sign in instead.' : (x.message === 'failed' || /^[a-z_]+$/.test(x.message || '') ? 'Could not set the password. Please try again.' : x.message);
       btn.disabled = false; btn.classList.remove('busy'); btn.querySelector('.lbl').textContent = 'Open my account';

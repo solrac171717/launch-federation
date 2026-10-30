@@ -61,7 +61,6 @@ export async function ensurePrices(stripe) {
 }
 
 const iso = s => (s ? new Date(Number(s) * 1000).toISOString() : null);
-/** A Stripe subscription -> the row we store. */
 /**
  * The customer portal needs a configuration in the Stripe account (Settings, Billing, Customer portal). When the account has none yet, Stripe refuses
  * to open it; this finds ours (by metadata) or creates it, so nobody has to set it up by hand: card, invoices, cancel at the end of the period.
@@ -84,6 +83,7 @@ export async function ensurePortalConfig(stripe, site) {
   });
 }
 
+/** A Stripe subscription -> the row we store. */
 export function subscriptionRow(sub, userId, eventAt = 0) {
   const items = sub.items?.data || [];
   const end = sub.current_period_end ?? items[0]?.current_period_end;

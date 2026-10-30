@@ -13,7 +13,7 @@ const NOW = 1_800_000_500;
 
 /** A fake Stripe + Supabase for the checkout-first flow. `existing` maps email -> user id; `rows` maps user id -> its subscription row. */
 function shop({ existing = {}, session = {}, rows = {} } = {}) {
-  const calls = [], created = [], saved = [], claims = new Map(), passwords = [], subRows = new Map(Object.entries(rows));
+  const calls = [], created = [], saved = [], cancelled = [], claims = new Map(), passwords = [], subRows = new Map(Object.entries(rows));
   const SID = 'cs_test_abc123def456';
   const sess = { id: SID, status: 'complete', mode: 'subscription', subscription: 'sub_9', customer: 'cus_9', customer_details: { email: 'Buyer@X.test' }, created: 1_800_000_000, ...session };
   const sub = { id: 'sub_9', customer: 'cus_9', status: 'trialing', trial_end: 1_800_700_000, items: { data: [{ quantity: 1, price: { lookup_key: PLAN.keys.base }, current_period_end: 1_802_000_000 }, { quantity: 2, price: { lookup_key: PLAN.keys.extra } }] } };
@@ -24,7 +24,7 @@ function shop({ existing = {}, session = {}, rows = {} } = {}) {
     calls.push({ path: u.pathname, method, body, form });
     if (u.hostname === 'stripe.test') {
       if (u.pathname === `/v1/checkout/sessions/${SID}`) return json(sess);
-      if (u.pathname === '/v1/subscriptions/sub_9') return json(sub);
+      if (u.pathname === '/v1/subscriptions/sub_9') { if (method === 'DELETE') { cancelled.push('sub_9'); sub.status = 'canceled'; } return json(sub); }
       if (u.pathname === '/v1/checkout/sessions' && method === 'POST') return json({ id: 'cs_test_new', url: 'https://checkout.stripe.test/c/pay' });
       if (u.pathname === '/v1/prices') return json({ data: PRICES });
       return json({}, 404);
@@ -46,7 +46,7 @@ function shop({ existing = {}, session = {}, rows = {} } = {}) {
     return json({}, 404);
   };
   const sb = (path, init = {}) => fetchImpl(`https://x.supabase.co${path}`, init);
-  return { fetchImpl, sb, calls, created, saved, claims, passwords, SID };
+  return { fetchImpl, sb, calls, created, saved, cancelled, claims, passwords, SID };
 }
 const provision = async s => { const stripe = stripeClient({ env: SENV, fetchImpl: s.fetchImpl }); return provisionFromSession({ env: SENV, sb: s.sb, stripe, fetchImpl: s.fetchImpl, session: await stripe('GET', `/v1/checkout/sessions/${s.SID}`), at: NOW }); };
 
@@ -86,6 +86,16 @@ test('provision: an email that already has an account is never claimable, and it
   assert.equal(r.created, false); assert.equal(s.created.length, 0); assert.equal(s.claims.get(s.SID).claimable, false);
   assert.equal(s.saved.length, 0, 'typing a stranger\'s email at checkout must not overwrite the stranger\'s plan');
 });
+test('provision: a second trial for somebody who already has a live plan is cancelled so nobody is billed twice, and running it again is harmless', async () => {
+  const s = shop({ existing: { 'buyer@x.test': 'u-old' }, rows: { 'u-old': { user_id: 'u-old', status: 'trialing', stripe_subscription_id: 'sub_first' } } });
+  const r = await provision(s);
+  assert.equal(r.duplicate, true); assert.deepEqual(s.cancelled, ['sub_9']); assert.equal(s.saved.length, 0, 'the first plan stays as it was');
+  await provision(s); assert.deepEqual(s.cancelled, ['sub_9'], 'already cancelled: not cancelled twice');
+});
+test('provision: the same subscription arriving twice (webhook and page) is not a duplicate and is never cancelled', async () => {
+  const s = shop({ existing: { 'buyer@x.test': 'u-old' }, rows: { 'u-old': { user_id: 'u-old', status: 'trialing', stripe_subscription_id: 'sub_9' } } });
+  const r = await provision(s); assert.equal(r.duplicate, false); assert.equal(s.cancelled.length, 0);
+});
 test('session ids have the shape of Stripe ones only', () => {
   assert.ok(SESSION_ID.test('cs_test_abc123def456') && SESSION_ID.test('cs_live_a1B2c3D4e5'));
   assert.ok(!SESSION_ID.test('cs_x') && !SESSION_ID.test('../etc/passwd') && !SESSION_ID.test('cs_test_'));
@@ -94,7 +104,7 @@ test('session ids have the shape of Stripe ones only', () => {
 test('welcome: the payer chooses the first password once, and only within a day', async () => {
   const s = shop();
   const go = (extra = {}, now = NOW) => runWelcome({ env: SENV, fetchImpl: s.fetchImpl, sessionId: s.SID, now, ...extra });
-  assert.deepEqual((await go({ action: 'preview' })).body, { email: 'buyer@x.test', canChoosePassword: true, claimed: false });
+  assert.deepEqual((await go({ action: 'preview' })).body, { email: 'buyer@x.test', canChoosePassword: true, claimed: false, duplicate: false });
   assert.equal((await go({ action: 'claim', password: 'short' })).body.error, 'weak_password'); assert.equal(s.passwords.length, 0);
   assert.equal((await go({ action: 'claim', password: 'a-good-password' })).status, 200); assert.deepEqual(s.passwords, ['a-good-password']);
   const again = await go({ action: 'claim', password: 'another-password' });
