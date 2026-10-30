@@ -271,6 +271,12 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
   pick('pdf');
 }
 
+/* ------------------------------------------------- how to start: the same globe, spinning with the sample assets */
+{
+  const host = document.getElementById('how-globe');
+  if (host) createGlobe(host, { assets: ASSETS, icons: ICON, startLon: -96, tilt: 22, label: 'Rotating 3D globe of sample assets' });
+}
+
 /* ------------------------------------------------- header, CTA tracking, motion */
 {
   const header = document.querySelector('.site-header');

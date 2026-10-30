@@ -1006,15 +1006,10 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .df-row span { color: var(--text-3); }
 .df-row em { font-style: normal; font-weight: 600; color: var(--navy); background: #EAF2FF; border-radius: 6px; padding: 3px 7px; white-space: nowrap; }
 
-/* 3 · map + chart */
-.mp { position: relative; width: 100%; max-width: 270px; height: 148px; border-radius: 14px; background: #fff; border: 1px solid var(--line); box-shadow: 0 16px 30px -20px rgba(11,23,54,.4); overflow: hidden; background-image: radial-gradient(#D6E2F7 1.200px, transparent 1.600px); background-size: 14px 14px; }
-.pin { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.2); }
-.pin::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--blue); opacity: 0; }
-.pin.p1 { left: 22%; top: 20%; } .pin.p2 { left: 58%; top: 14%; background: #0EA5E9; } .pin.p3 { left: 80%; top: 34%; background: #6366F1; }
-.mp-chart { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 62px; }
-.mp-area { fill: rgba(37,99,235,.12); }
-.mp-line { fill: none; stroke: var(--blue); stroke-width: 2.500; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; vector-effect: non-scaling-stroke; }
-.mp-chip { position: absolute; left: 10px; bottom: 10px; font: 600 10.5px/1 var(--sans); color: var(--blue-d); background: #fff; border: 1px solid #CFE0FB; border-radius: 999px; padding: 5px 9px; }
+/* 3 · the globe */
+.how-art.art3 { padding: 0; }
+.how-globe { position: relative; width: 100%; height: 100%; }
+.how-globe .globe-canvas { position: absolute; inset: 0; }
 
 /* motion: starts when the section scrolls into view; without it (or with reduced motion) everything shows its final state */
 @keyframes how-in { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
@@ -1027,10 +1022,6 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 @keyframes how-row2 { 0%, 42% { opacity: 0; transform: translateX(-8px); } 50%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 @keyframes how-row3 { 0%, 50% { opacity: 0; transform: translateX(-8px); } 58%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 @keyframes how-row4 { 0%, 58% { opacity: 0; transform: translateX(-8px); } 66%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; } }
-@keyframes how-draw { 0%, 6% { stroke-dashoffset: 1; } 55%, 92% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 1; } }
-@keyframes how-area { 0%, 6% { opacity: 0; } 55%, 92% { opacity: 1; } 100% { opacity: 0; } }
-@keyframes how-drop { 0%, 4% { transform: translateY(-26px); opacity: 0; } 12%, 94% { transform: none; opacity: 1; } 100% { opacity: 0; } }
-@keyframes how-ping { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(2.600); opacity: 0; } }
 .how-steps.in .how-step { animation: how-in .7s cubic-bezier(.22,1,.36,1) backwards; }
 .how-steps.in .how-step:nth-child(2) { animation-delay: .14s; } .how-steps.in .how-step:nth-child(3) { animation-delay: .28s; }
 .how-steps.in .mc-badge { animation: how-pop 7s .5s infinite; transform-origin: left center; }
@@ -1040,11 +1031,6 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .how-steps.in .dc-scan { animation: how-scan 7s .8s infinite cubic-bezier(.45,.05,.3,1); }
 .how-steps.in .df-row.r1 { animation: how-row1 7s .8s infinite; } .how-steps.in .df-row.r2 { animation: how-row2 7s .8s infinite; }
 .how-steps.in .df-row.r3 { animation: how-row3 7s .8s infinite; } .how-steps.in .df-row.r4 { animation: how-row4 7s .8s infinite; }
-.how-steps.in .mp-line { animation: how-draw 7s 1.100s infinite ease-in-out; }
-.how-steps.in .mp-area, .how-steps.in .mp-chip { animation: how-area 7s 1.100s infinite; }
-.how-steps.in .pin { animation: how-drop 7s 1.100s infinite cubic-bezier(.3,1.5,.5,1); }
-.how-steps.in .pin.p2 { animation-delay: 1.300s; } .how-steps.in .pin.p3 { animation-delay: 1.500s; }
-.how-steps.in .pin::after { animation: how-ping 2.200s 1.800s infinite ease-out; }
 @media (max-width: 960px) {
   .how-steps { grid-template-columns: minmax(0, 1fr); max-width: 460px; gap: 30px; }
   .how-step:not(:last-child)::after { top: auto; bottom: -27px; right: calc(50% - 12px); transform: rotate(90deg); }
