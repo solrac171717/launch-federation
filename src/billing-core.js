@@ -3,7 +3,7 @@
 export const PLAN = {
   name: 'Owned Map', currency: 'usd', interval: 'month',
   baseCents: 4700, included: 3, extraCents: 1500, maxAssets: 50,
-  trialDays: 14,                                   // free, no card; 0 turns the trial off
+  trialDays: 7,                                    // free, but a card is required (charged when the trial ends); 0 turns the trial off
   keys: { base: 'ownedmap_base_monthly', extra: 'ownedmap_extra_asset_monthly' }, // Stripe lookup keys: the prices are found (or created) by these
 };
 

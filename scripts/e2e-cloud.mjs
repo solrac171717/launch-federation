@@ -573,12 +573,12 @@ await step('billing: limits stop extra assets without a plan; the free trial sta
   // the free trial for 5 assets, through (pretend) Stripe checkout
   await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan screen');
   await slide(5); await until(`/\\$77 a month/.test(document.getElementById('bl-price').textContent)`, 'price follows the slider ($47 + 2 x $15)');
-  await mbtn('Start 14-day free trial');
+  await mbtn('Start 7-day free trial');
   await until(`/Trial/.test(document.getElementById('plan-btn')?.textContent || '')`, 'trial started after coming back from checkout', 20000);
   const [row] = await subs();
   if (row.status !== 'trialing' || row.assets_allowed !== 5) throw new Error('plan not saved from the webhook: ' + JSON.stringify(row));
   const sent = (await (await fetch(`${mock.origin}/__log`)).json()).find(l => l[0] === 'stripe-checkout');
-  if (!sent || !/ownedmap_base_monthly","1"/.test(sent[1]) || !/ownedmap_extra_asset_monthly","2"/.test(sent[1]) || !/"trial":"14"/.test(sent[1])) throw new Error('checkout was not what was chosen: ' + (sent && sent[1]));
+  if (!sent || !/ownedmap_base_monthly","1"/.test(sent[1]) || !/ownedmap_extra_asset_monthly","2"/.test(sent[1]) || !/"trial":"7"/.test(sent[1])) throw new Error('checkout was not what was chosen: ' + (sent && sent[1]));
 
   // inside the plan, and the edge of it
   if ((await importRows(['A2', 'A3'])) !== 'ok') throw new Error('1 + 2 assets fit a 5-asset plan');
@@ -592,7 +592,7 @@ await step('billing: limits stop extra assets without a plan; the free trial sta
   if ((await importRows(['A4', 'A5', 'A6'])) !== 'ok') throw new Error('the bigger plan should have room');
 
   // the customer portal (Stripe hosts it)
-  await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan screen again'); await mbtn('Add a card');
+  await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan screen again'); await mbtn('Manage payment or cancel');
   await until(`/__stripe_portal/.test(location.href)`, 'portal opened', 10000);
 
   // the plan ends: nothing is deleted, nothing more can be added

@@ -107,7 +107,8 @@ test('checkout: base plan plus the extras, the user in the metadata, a free tria
   assert.equal(f.mode, 'subscription'); assert.equal(f.client_reference_id, 'u1'); assert.equal(f.customer, 'cus_new');
   assert.equal(f['line_items[0][price]'], 'price_b'); assert.equal(f['line_items[0][quantity]'], '1'); assert.equal(f['line_items[1][price]'], 'price_e'); assert.equal(f['line_items[1][quantity]'], '5');
   assert.equal(f['subscription_data[metadata][user_id]'], 'u1'); assert.equal(f['subscription_data[trial_period_days]'], String(PLAN.trialDays));
-  assert.equal(f['subscription_data[trial_settings][end_behavior][missing_payment_method]'], 'cancel'); assert.equal(f.payment_method_collection, 'if_required');
+  assert.ok(!Object.keys(f).some(k => k.includes('trial_settings')), 'no "cancel without a card" rule: the card is taken up front'); assert.equal(f.payment_method_collection, 'always');
+  assert.equal(PLAN.trialDays, 7);
   assert.equal(f.success_url, 'https://site.test/app.html?billing=success');
 });
 test('with exactly the included assets there is no extra line, and a returning customer is not given a second trial', async () => {

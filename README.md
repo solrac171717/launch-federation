@@ -145,7 +145,7 @@ for the chosen time, or when the owner presses "Release it now". Every visit of 
 
 ## Plans and billing (Stripe)
 
-Price (the one on the website, in `src/billing-core.js`): $47 a month with 3 assets, plus $15 for each extra asset, up to 50. A 14-day free trial that needs no card (one per person; set `PLAN.trialDays = 0` to remove it).
+Price (the one on the website, in `src/billing-core.js`): $47 a month with 3 assets, plus $15 for each extra asset, up to 50. A 7-day free trial that needs a card (Stripe takes it at checkout and charges it when the trial ends unless the person cancels first; one trial per person; set `PLAN.trialDays = 0` to remove it).
 Stripe is called directly over HTTPS (no SDK). Environment variables on Vercel: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and optionally `SITE_URL` and `STRIPE_PORTAL_CONFIG`.
 
 - **No setup in Stripe is needed for the products.** The first time someone starts checkout, `api/billing.js` finds or creates the product and the two prices by lookup key (`ownedmap_base_monthly`, `ownedmap_extra_asset_monthly`), in whichever mode (test or live) the key belongs to.

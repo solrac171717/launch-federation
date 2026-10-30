@@ -1,5 +1,5 @@
 // POST /api/billing: what a signed-in user can do about their plan. The body says which: { action, assets }.
-//   checkout  -> a Stripe Checkout page for the chosen number of assets (free trial first, no card, when the person has not had one)
+//   checkout  -> a Stripe Checkout page for the chosen number of assets (a free trial first, with a card, when the person has not had one)
 //   change    -> change the number of assets on an existing subscription (prorated by Stripe)
 //   portal    -> Stripe's customer portal: card, invoices, cancel
 // The prices are found, or created the first time, by lookup key (see ensurePrices). The subscription row itself is written by the webhook
@@ -45,8 +45,8 @@ export async function runBilling({ env, fetchImpl = fetch, token, body, siteUrl 
         mode: 'subscription', customer, client_reference_id: user.id, allow_promotion_codes: true,
         line_items: [{ price: prices.base, quantity: 1 }, ...(extra ? [{ price: prices.extra, quantity: extra }] : [])],
         success_url: `${site}/app.html?billing=success`, cancel_url: `${site}/app.html?billing=cancel`,
-        payment_method_collection: 'if_required',
-        subscription_data: { metadata: { user_id: user.id }, ...(trial ? { trial_period_days: PLAN.trialDays, trial_settings: { end_behavior: { missing_payment_method: 'cancel' } } } : {}) },
+        payment_method_collection: 'always', // the trial needs a card: it is charged when the trial ends, unless the person cancels first
+        subscription_data: { metadata: { user_id: user.id }, ...(trial ? { trial_period_days: PLAN.trialDays } : {}) },
       });
       return { status: 200, body: { url: session.url } };
     }

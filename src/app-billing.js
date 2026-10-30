@@ -33,14 +33,14 @@ export function createBillingUi(ctx) {
       h('p', { class: 'bl-sum' }, count, ' assets · ', price), h('p', { class: 'hint' }, `${usd(PLAN.baseCents)} includes ${PLAN.included} assets, then ${usd(PLAN.extraCents)} for each extra one. Up to ${PLAN.maxAssets}.`));
     const err = h('p', { class: 'err form-err', role: 'alert' });
     const btn = (text, fn, kind = 'btn btn-primary btn-sm') => { const b = h('button', { type: 'button', class: kind }, h('span', { class: 'lbl' }, text), h('span', { class: 'spin', 'aria-hidden': 'true' })); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('busy'); try { await fn(); } finally { b.disabled = false; b.classList.remove('busy'); } }); return b; };
-    const portal = btn(v.state === 'trial' ? 'Add a card' : 'Manage payment and invoices', async () => { const r = await go({ action: 'portal' }, 'Could not open the billing page'); if (r?.url) location.href = r.url; }, 'btn btn-dark btn-sm');
+    const portal = btn(v.state === 'trial' ? 'Manage payment or cancel' : 'Manage payment and invoices', async () => { const r = await go({ action: 'portal' }, 'Could not open the billing page'); if (r?.url) location.href = r.url; }, 'btn btn-dark btn-sm');
     let body;
 
     if (v.state === 'comped') {
       body = h('p', { class: 'modal-text' }, 'Your account has unlimited access. There is nothing to pay.');
     } else if (v.state === 'none' || v.state === 'ended') {
       const trial = v.trialAvailable;
-      body = h('div', {}, h('p', { class: 'modal-text' }, v.state === 'ended' ? 'Your plan has ended. Your assets are all still here and you can still look at them; to add more, choose a plan again.' : trial ? `Try it free for ${PLAN.trialDays} days. No card needed to start.` : 'Choose how many assets you want to track.'), picker, err,
+      body = h('div', {}, h('p', { class: 'modal-text' }, v.state === 'ended' ? 'Your plan has ended. Your assets are all still here and you can still look at them; to add more, choose a plan again.' : trial ? `Try it free for ${PLAN.trialDays} days. A card is needed to start; you are charged ${usd(priceCents(cleanAssets(slider.value)))} a month only when the trial ends, and you can cancel before then.` : 'Choose how many assets you want to track.'), picker, err,
         h('div', { class: 'modal-actions' }, btn(trial ? `Start ${PLAN.trialDays}-day free trial` : 'Subscribe', async () => { err.textContent = ''; const r = await go({ action: 'checkout', assets: cleanAssets(slider.value) }, 'Could not start checkout'); if (r?.url) location.href = r.url; })));
     } else {
       const changed = () => cleanAssets(slider.value) !== v.allowed;
@@ -50,7 +50,7 @@ export function createBillingUi(ctx) {
         if (r?.ok) { await load(); toast('Plan updated. Stripe adjusts the next invoice for the difference.'); open(); }
       });
       body = h('div', {},
-        h('p', { class: `bl-line ${v.state}` }, v.state === 'trial' ? `Free trial: ${v.trialDaysLeft} day${v.trialDaysLeft === 1 ? '' : 's'} left, until ${v.renews}. Add a card before then to keep your plan.` : v.state === 'past_due' ? 'Your last payment failed. Stripe will try again; update your card to avoid losing access.' : v.cancelAtEnd ? `Your plan ends on ${v.renews}. You keep access until then.` : `Active. Next payment on ${v.renews}.`),
+        h('p', { class: `bl-line ${v.state}` }, v.state === 'trial' ? `Free trial: ${v.trialDaysLeft} day${v.trialDaysLeft === 1 ? '' : 's'} left. Your card is charged on ${v.renews} unless you cancel before then.` : v.state === 'past_due' ? 'Your last payment failed. Stripe will try again; update your card to avoid losing access.' : v.cancelAtEnd ? `Your plan ends on ${v.renews}. You keep access until then.` : `Active. Next payment on ${v.renews}.`),
         h('p', { class: 'hint' }, `Using ${v.used} of ${v.allowed} assets.`), picker, err,
         h('div', { class: 'modal-actions' }, portal, update));
     }
