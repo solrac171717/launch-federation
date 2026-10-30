@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /app.html
 Disallow: /heir.html
+Disallow: /welcome.html
 Disallow: /share.html
 Disallow: /api/

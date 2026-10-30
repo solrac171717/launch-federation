@@ -19,7 +19,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
   const members = [];            // account_members: who may open whose account
   const heirs = [];              // emergency_access: one trusted person per user
   // billing: our subscriptions table, the on/off switch for limits, and a pretend Stripe (everything it knows lives in these maps)
-  const subs = []; let enforce = false;
+  const subs = [], claims = []; let enforce = false, buyer = 'buyer@example.com';
   const stripe = { customers: new Map(), products: [], prices: [], sessions: new Map(), subs: new Map(), n: 0 };
   const sid = p => `${p}_${++stripe.n}`;
   const parseForm = text => { // a=1&b[0][c]=2 -> { a: '1', b: [{ c: '2' }] }
@@ -70,6 +70,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
   const matches = (row, params) => {
     for (const [k, v] of params) {
       if (['select', 'order', 'limit'].includes(k)) continue;
+      if (v === 'is.null') { if (row[k] != null) return false; continue; }
       const m = /^eq\.(.*)$/.exec(v); if (!m) continue;
       if (String(row[k]) !== m[1]) return false;
     }
@@ -83,7 +84,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/__link') { // the "email": the magic link the user would receive
         const email = url.searchParams.get('email'); const u = users.get(email);
         if (!u) return json(res, 404, { message: 'no link sent' });
-        const t = issue(u); return json(res, 200, { url: `${origin}/app.html#access_token=${t.access_token}&refresh_token=${t.refresh_token}&expires_in=3600&expires_at=${t.expires_at}&token_type=bearer&type=magiclink` });
+        const t = issue(u); return json(res, 200, { url: `${origin}/app.html#access_token=${t.access_token}&refresh_token=${t.refresh_token}&expires_in=3600&expires_at=${t.expires_at}&token_type=bearer&type=${url.searchParams.get('type') || 'magiclink'}` });
       }
       if (path === '/__user') { // an account created by hand in the Supabase dashboard
         const email = url.searchParams.get('email'), password = url.searchParams.get('password');
@@ -96,17 +97,33 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/__members') return json(res, 200, members);
       if (path === '/__heirs') return json(res, 200, heirs);
       if (path === '/__subs') return json(res, 200, subs);
+      if (path === '/__claims') return json(res, 200, claims);
+      if (path === '/__buyer') { buyer = url.searchParams.get('email') || buyer; return json(res, 200, { buyer }); }
+      if (path === '/api/start') { setBillingEnv(); const mod = await import('../api/start.js'); return mod.default(req, res); }
+      if (path === '/api/welcome') { setBillingEnv(); const mod = await import('../api/welcome.js'); return mod.default(req, res); }
+      if (path === '/rest/v1/rpc/user_id_by_email') { // service only, like the real function
+        const user = bearer(req); if (!user?.service) return json(res, 403, { code: '42501', message: 'permission denied for function user_id_by_email' });
+        const b = await readBody(req); return json(res, 200, users.get(String(b?.mail || '').toLowerCase())?.id || null);
+      }
+      if (path === '/rest/v1/checkout_claims') { // service only
+        const user = bearer(req); if (!user?.service) return json(res, 403, { code: '42501', message: 'permission denied for table checkout_claims' });
+        const want = /return=representation/.test(req.headers.prefer || '');
+        if (req.method === 'GET') return json(res, 200, claims.filter(r => matches(r, url.searchParams)));
+        if (req.method === 'POST') { const b = await readBody(req); if (!claims.some(r => r.session_id === b.session_id)) claims.push({ claimed_at: null, created_at: new Date().toISOString(), ...b }); return json(res, 201); }
+        if (req.method === 'PATCH') { const b = await readBody(req); const rows = claims.filter(r => matches(r, url.searchParams)); rows.forEach(r => Object.assign(r, b)); return json(res, 200, want ? rows : undefined); }
+      }
       if (path === '/__enforce') { enforce = url.searchParams.get('on') === '1'; return json(res, 200, { enforce }); }
       if (path === '/api/billing') { setBillingEnv(); const mod = await import('../api/billing.js'); return mod.default(req, res); }
       if (path === '/api/stripe-webhook') { setBillingEnv(); const mod = await import('../api/stripe-webhook.js'); return mod.default(req, res); }
       if (path === '/__stripe_pay') { // the customer pays (or starts the trial) on the page Stripe would host, then comes back
         const s = stripe.sessions.get(url.searchParams.get('session')); if (!s) return json(res, 404, {});
+        s.customer ||= sid('cus'); s.paid = true; s.paidBy = (url.searchParams.get('email') || buyer).toLowerCase(); s.mode ||= 'subscription';
         const trial = Number(s.subscription_data?.trial_period_days) || 0, sub = { id: sid('sub'), customer: s.customer, status: trial ? 'trialing' : 'active', metadata: s.subscription_data?.metadata || {}, trial_end: trial ? Math.floor(Date.now() / 1000) + trial * 86400 : null, cancel_at_period_end: false,
           items: (s.line_items || []).map(l => ({ id: sid('si'), quantity: Number(l.quantity), price: priceById(l.price), current_period_end: Math.floor(Date.now() / 1000) + 30 * 86400 })) };
         stripe.subs.set(sub.id, sub); s.subscription = sub.id;
-        await hook(origin, 'checkout.session.completed', { id: s.id, mode: 'subscription', subscription: sub.id, client_reference_id: s.client_reference_id, customer: s.customer });
+        await hook(origin, 'checkout.session.completed', { id: s.id, mode: 'subscription', subscription: sub.id, client_reference_id: s.client_reference_id, customer: s.customer, customer_details: { email: s.paidBy } });
         await hook(origin, 'customer.subscription.created', subJson(sub));
-        res.writeHead(302, { location: s.success_url }); return res.end();
+        res.writeHead(302, { location: String(s.success_url).replace('{CHECKOUT_SESSION_ID}', s.id) }); return res.end();
       }
       if (path === '/__stripe_cancel') { // the subscription of this email ends (a cancellation, or a trial that ran out)
         const u = users.get(url.searchParams.get('email')); const sub = [...stripe.subs.values()].find(x => x.metadata?.user_id === u?.id); if (!sub) return json(res, 404, {});
@@ -121,7 +138,10 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         if (sp === 'products') { const p = { id: sid('prod'), ...b }; stripe.products.push(p); return json(res, 200, p); }
         if (sp === 'prices' && req.method === 'GET') { const want = url.searchParams.getAll('lookup_keys[0]').concat(url.searchParams.getAll('lookup_keys[1]')); return json(res, 200, { data: stripe.prices.filter(p => p.active && want.includes(p.lookup_key)) }); }
         if (sp === 'prices') { for (const p of stripe.prices) if (p.lookup_key === b.lookup_key) { p.active = false; p.lookup_key = null; } const p = { id: sid('price'), active: true, lookup_key: b.lookup_key, unit_amount: Number(b.unit_amount), recurring: b.recurring, product: b.product }; stripe.prices.push(p); return json(res, 200, p); }
-        if (sp === 'checkout/sessions') { const s = { id: sid('cs'), ...b }; stripe.sessions.set(s.id, s); log.push(['stripe-checkout', JSON.stringify({ items: (b.line_items || []).map(l => [priceById(l.price)?.lookup_key, l.quantity]), trial: b.subscription_data?.trial_period_days || null })]); return json(res, 200, { id: s.id, url: `${origin}/__stripe_pay?session=${s.id}` }); }
+        if (sp === 'checkout/sessions' && req.method === 'GET') return json(res, 404, {});
+        const getSession = /^checkout\/sessions\/(.+)$/.exec(sp);
+        if (getSession) { const s = stripe.sessions.get(getSession[1]); return s ? json(res, 200, { id: s.id, status: s.paid ? 'complete' : 'open', mode: s.mode, subscription: s.subscription || null, customer: s.customer || null, client_reference_id: s.client_reference_id || null, customer_details: s.paid ? { email: s.paidBy } : null, created: Math.floor(s.createdAt / 1000) }) : json(res, 404, { error: { message: 'No such checkout.session' } }); }
+        if (sp === 'checkout/sessions') { const s = { id: 'cs_test_' + randomUUID().replace(/-/g, '').slice(0, 24), createdAt: Date.now(), ...b }; stripe.sessions.set(s.id, s); log.push(['stripe-checkout', JSON.stringify({ items: (b.line_items || []).map(l => [priceById(l.price)?.lookup_key, l.quantity]), trial: b.subscription_data?.trial_period_days || null })]); return json(res, 200, { id: s.id, url: `${origin}/__stripe_pay?session=${s.id}` }); }
         if (sp === 'billing_portal/sessions') return json(res, 200, { url: `${origin}/__stripe_portal` });
         const m = /^subscriptions\/(.+)$/.exec(sp);
         if (m) {
@@ -192,6 +212,8 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         if (!users.has(email)) users.set(email, { id: randomUUID(), email });
         log.push(['otp', email, url.searchParams.get('redirect_to')]); return json(res, 200, {});
       }
+      if (path === '/auth/v1/user' && req.method === 'PUT') { const u = bearer(req); if (!u) return json(res, 401, { msg: 'invalid JWT' }); const b = await readBody(req); const mine = [...users.values()].find(x => x.id === u.id); if (!mine || !b?.password || String(b.password).length < 6) return json(res, 422, { error_code: 'weak_password', msg: 'Password should be at least 6 characters.' }); mine.password = b.password; log.push(['password-updated', mine.email]); return json(res, 200, { id: mine.id, email: mine.email }); }
+      if (path === '/auth/v1/recover' && req.method === 'POST') { const b = await readBody(req); log.push(['recover', String(b?.email || ''), url.searchParams.get('redirect_to')]); return json(res, 200, {}); } // same answer whether or not the email has an account
       if (path === '/auth/v1/user') { const u = bearer(req); return u ? json(res, 200, u) : json(res, 401, { msg: 'invalid JWT' }); }
       if (path === '/auth/v1/token' && req.method === 'POST') {
         const b = await readBody(req);

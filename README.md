@@ -155,3 +155,16 @@ Stripe is called directly over HTTPS (no SDK). Environment variables on Vercel: 
 - **The limits are OFF until you switch them on:** `update public.billing_switch set enforce = true;`. Until then nobody is limited. The super admin is never limited. To give someone free access: insert a `subscriptions` row with status `comped` (the SQL is at the end of the migration).
 - **What a plan does and does not do:** nothing is ever deleted when a plan ends or shrinks; the person can still see everything and cannot add more. The "Plan" button in the sidebar only appears when both Stripe variables exist at build time.
 - To try it without money: use a `sk_test_` key and the card `4242 4242 4242 4242`. The e2e test uses a pretend Stripe (`scripts/mock-supabase.mjs`) and a signed pretend webhook.
+
+## Start for Free: checkout first, no sign-up form
+
+Every "Start for Free" button on the website is a link to `/api/start` (the one in the pricing card adds `?assets=N` from its slider). There is no account at that point:
+
+1. `api/start.js` creates a Stripe Checkout session (the chosen number of assets, a 7-day trial, the card required, and a notice that the card is charged when the trial ends) and redirects to it. It is rate limited per IP.
+2. The visitor types email and card on Stripe's page and starts the trial.
+3. Stripe's `checkout.session.completed` event reaches `api/stripe-webhook.js`. With no `client_reference_id` (nobody was signed in) it calls `provisionFromSession` (`api/_provision.js`): find the user by that email, or create one (email confirmed, a random password nobody knows), attach the subscription, and record the checkout in `checkout_claims`.
+4. Stripe sends the payer to `welcome.html?session_id=...`. `api/welcome.js` re-reads that session from Stripe (the id is the proof of being the payer), runs the same provisioning (so it does not matter which of the two arrives first) and lets the payer choose the first password **once, within 24 hours, and only for an account that this checkout created**. Then they are signed in.
+- An email that already had an account is never opened this way (it could belong to somebody else): the plan is attached to it (unless it already has a live plan, which is never replaced) and the page says to sign in or use "Forgot your password?".
+- **Forgot your password** (sign-in page): Supabase emails a reset link (`/auth/v1/recover`); it opens `app.html` on a "choose a new password" screen. The answer is the same whether or not the email has an account. The link goes through Supabase's own email, so the redirect URL `https://<your site>/app.html` must be allowed under Authentication, URL configuration.
+- Apply `supabase/migrations/20261104000000_checkout_first.sql` once (function `user_id_by_email`, table `checkout_claims`, both server-only).
+- Known limit: a free trial is "one per person" only for people who sign in first; someone paying from the website with a different email and card gets another trial. Stripe Radar and the card checks are the guard against abuse.

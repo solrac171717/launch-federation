@@ -122,7 +122,7 @@ test('magic-link return: session is read from the URL hash, saved, and the URL c
   let cleaned = null; const history = { replaceState: (_a, _b, url) => { cleaned = url; } };
   const st = memStorage();
   const c = createCloud({ ...cfg, storage: st, fetchImpl: f, location: loc, history });
-  assert.deepEqual(await c.consumeRedirect(), { signedIn: true });
+  assert.deepEqual(await c.consumeRedirect(), { signedIn: true, recovery: false });
   assert.equal(c.user().email, 'ana@example.com'); assert.equal(cleaned, '/app.html');
   assert.equal(JSON.parse(st.getItem('atlas.session.v1')).refresh_token, 'RT');
   const again = createCloud({ ...cfg, storage: st, fetchImpl: f, location: { hash: '', pathname: '/', search: '' }, history });

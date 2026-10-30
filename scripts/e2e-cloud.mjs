@@ -109,7 +109,7 @@ await step('edit after the access token expired: client refreshes once and the v
 });
 const extrasState = async () => (await fetch(`${mock.origin}/__extras`)).json();
 const setFile = (sel, name, text, type = 'text/plain') => ev(`(()=>{const i=document.querySelector(${JSON.stringify(sel)}); const dt=new DataTransfer(); dt.items.add(new File([${JSON.stringify(text)}], ${JSON.stringify(name)}, {type:${JSON.stringify(type)}})); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}));})()`);
-const tab = name => ev(`[...document.querySelectorAll('.view-tabs button')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(name)})).click()`);
+const tab = async name => { await until(`[...document.querySelectorAll('.view-tabs button')].some(b=>b.textContent.trim().startsWith(${JSON.stringify(name)}))`, 'the ' + name + ' tab'); return ev(`[...document.querySelectorAll('.view-tabs button')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(name)})).click()`); };
 const btn = (txt, root = 'document') => ev(`(()=>{const b=[...${root}.querySelectorAll('button')].find(b=>b.textContent.trim().startsWith(${JSON.stringify(txt)})); if(!b) throw new Error('no button ${txt}'); b.click(); return true;})()`);
 
 await step('debt: an asset with a mortgage shows net worth after debt on the map', async () => {
@@ -608,6 +608,57 @@ await step('billing: limits stop extra assets without a plan; the free trial sta
   await until(`/Super admin/.test(document.getElementById('plan-btn').textContent)`, 'super admin label');
   if ((await importRows(['S1', 'S2', 'S3', 'S4', 'S5'])) !== 'ok') throw new Error('the super admin has no limit');
   await fetch(`${mock.origin}/__enforce?on=0`);
+});
+await step('start for free: the button opens Stripe checkout with no account, paying creates the account, the payer chooses a password once and lands in the app on a trial; an existing email is never opened', async () => {
+  const NEW = 'newbuyer@example.com', OLD = 'existing.buyer@example.com';
+  await ev(`localStorage.clear()`); await fetch(`${mock.origin}/__buyer?email=${NEW}`);
+  await goto(`${mock.origin}/api/start?assets=5`);
+  await until(`document.getElementById('wl-form')`, 'welcome page after checkout', 15000);
+  const sent = (await (await fetch(`${mock.origin}/__log`)).json()).filter(l => l[0] === 'stripe-checkout').at(-1);
+  if (!sent || !/"trial":"7"/.test(sent[1]) || !/ownedmap_extra_asset_monthly","2"/.test(sent[1])) throw new Error('checkout was not 5 assets with a 7-day trial: ' + (sent && sent[1]));
+  if (!(await ev(`document.getElementById('wl-email').value === ${JSON.stringify(NEW)}`))) throw new Error('the email typed at checkout should be shown');
+  if (/session_id/.test(await ev(`location.href`))) throw new Error('the checkout id must not stay in the address bar');
+  const [claim] = await (await fetch(`${mock.origin}/__claims`)).json();
+  const [sub] = (await (await fetch(`${mock.origin}/__subs`)).json()).filter(r => r.status === 'trialing');
+  if (!claim || !claim.claimable || !sub || sub.assets_allowed !== 5) throw new Error('account and plan were not prepared: ' + JSON.stringify({ claim, sub }));
+  await ev(`(()=>{document.getElementById('wl-pw').value='short'; document.getElementById('wl-pw2').value='short'; document.getElementById('wl-form').requestSubmit();})()`);
+  await until(`/at least 10/.test(document.querySelector('#wl-form .err').textContent)`, 'weak password refused');
+  await ev(`(()=>{document.getElementById('wl-pw').value='buyer-password-1'; document.getElementById('wl-pw2').value='buyer-password-1'; document.getElementById('wl-form').requestSubmit();})()`);
+  await until(`(document.getElementById('shell') && !document.getElementById('shell').hidden)`, 'dashboard after choosing the password', 15000);
+  await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  await until(`/Trial/.test(document.getElementById('plan-btn')?.textContent || '')`, 'the new account is on a trial');
+  // the one chance to choose a password is gone: nobody can replay the page
+  const replay = await fetch(`${mock.origin}/api/welcome`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'claim', sessionId: claim.session_id, password: 'attacker-password-1' }) });
+  if (replay.status !== 409) throw new Error('the password could be chosen twice: ' + replay.status);
+
+  // somebody pays with the email of an account that already exists: the plan goes to it, but its password is not offered to the payer
+  await ev(`localStorage.clear()`); await makeUser(OLD); await fetch(`${mock.origin}/__buyer?email=${OLD}`);
+  await goto(`${mock.origin}/api/start`);
+  await until(`/already has an account/.test(document.getElementById('invite-card')?.textContent || '')`, 'existing account is told to sign in', 15000);
+  if (await ev(`!!document.getElementById('wl-form')`)) throw new Error('an existing account must not be offered a password form');
+  const claims = await (await fetch(`${mock.origin}/__claims`)).json();
+  if (claims.at(-1).claimable !== false) throw new Error('claim must not be claimable');
+});
+await step('forgot password: the sign-in page asks for a reset email, the link opens a new-password screen, and the new password works', async () => {
+  const F = 'forgot.u@example.com';
+  await ev(`localStorage.clear()`); await makeUser(F);
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
+  await click('#auth-forgot'); await until(`/Type your email above first/.test(document.getElementById('auth-err').textContent)`, 'asks for the email first');
+  await ev(`document.getElementById('auth-email').value=${JSON.stringify(F)}`); await click('#auth-forgot');
+  await until(`/we sent a link/.test(document.getElementById('auth-err').textContent)`, 'same answer for everybody');
+  const rec = (await (await fetch(`${mock.origin}/__log`)).json()).filter(l => l[0] === 'recover').at(-1);
+  if (!rec || rec[1] !== F || !/\/app\.html$/.test(rec[2])) throw new Error('the reset email was not requested for the right address: ' + JSON.stringify(rec));
+  await ev(`document.getElementById('auth-email').value='nobody.here@example.com'`); await click('#auth-forgot');
+  await until(`/we sent a link/.test(document.getElementById('auth-err').textContent)`, 'an unknown email gets the same answer');
+  const { url } = await (await fetch(`${mock.origin}/__link?email=${encodeURIComponent(F)}&type=recovery`)).json();
+  await goto(url); await until(`document.getElementById('np-pw')`, 'new-password screen');
+  await ev(`(()=>{document.getElementById('np-pw').value='short'; document.getElementById('np-pw2').value='short'; document.querySelector('#invite-card form').requestSubmit();})()`);
+  await until(`/at least 10/.test(document.getElementById('invite-err').textContent)`, 'weak password refused');
+  await ev(`(()=>{document.getElementById('np-pw').value='brand-new-password-9'; document.getElementById('np-pw2').value='brand-new-password-9'; document.querySelector('#invite-card form').requestSubmit();})()`);
+  await until(`(document.getElementById('shell') && !document.getElementById('shell').hidden)`, 'signed in after resetting', 15000);
+  await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');
+  await fillLogin(F, PW); await until(`/Incorrect email or password/.test(document.getElementById('auth-err').textContent)`, 'the old password no longer works');
+  await fillLogin(F, 'brand-new-password-9'); await until(`!document.getElementById('shell').hidden`, 'the new password works');
 });
 await step('first-minute guide: a new user is guided through what they own, the first asset and reminders', async () => {
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth');

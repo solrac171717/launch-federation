@@ -105,8 +105,13 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
       const user = await call('/auth/v1/user', { token: at });
       setSession({ access_token: at, refresh_token: rt, expires_at: Number(p.get('expires_at')) || Math.floor(now() / 1000) + (Number(p.get('expires_in')) || 3600), user });
       clean();
-      return { signedIn: true };
+      return { signedIn: true, recovery: p.get('type') === 'recovery' };
     },
+
+    /** Asks Supabase to email a link that lets the person choose a new password. The answer never says whether the email has an account. */
+    async recover(email, redirectTo) { return call(`/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, { method: 'POST', body: { email: String(email).trim().toLowerCase() } }); },
+    /** Sets a new password for the signed-in user (after following the link of a reset email). */
+    async updatePassword(password) { return authed(t => call('/auth/v1/user', { method: 'PUT', body: { password: String(password) }, token: t })); },
 
     async signOut() {
       const s = session; setSession(null);

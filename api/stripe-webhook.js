@@ -4,6 +4,7 @@
 // The signature is checked against the RAW body, so the body is not parsed here. Anything that fails answers an error, so Stripe retries.
 // Env: STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 import { stripeClient, verifySignature, subscriptionRow, supabaseClient, saveSubscription } from './_stripe.js';
+import { provisionFromSession } from './_provision.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -30,8 +31,13 @@ export async function runWebhook({ env, fetchImpl = fetch, raw, signature, now =
   };
 
   if (event.type === 'checkout.session.completed') {
-    if (obj.mode !== 'subscription' || !obj.subscription || !obj.client_reference_id) return { status: 200, body: { received: true, ignored: true } };
-    const sub = await stripeClient({ env, fetchImpl })('GET', `/v1/subscriptions/${encodeURIComponent(obj.subscription)}`);
+    if (obj.mode !== 'subscription' || !obj.subscription) return { status: 200, body: { received: true, ignored: true } };
+    const stripe = stripeClient({ env, fetchImpl });
+    if (!obj.client_reference_id) { // someone who paid from the website without an account: the account is made from the email typed at checkout
+      await provisionFromSession({ env, sb, stripe, fetchImpl, session: obj, at });
+      return { status: 200, body: { received: true, provisioned: true } };
+    }
+    const sub = await stripe('GET', `/v1/subscriptions/${encodeURIComponent(obj.subscription)}`);
     await saveSubscription(sb, subscriptionRow(sub, obj.client_reference_id, at));
     return { status: 200, body: { received: true } };
   }

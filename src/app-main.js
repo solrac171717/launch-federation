@@ -21,6 +21,7 @@ import { createLocalSettings, createCloudSettings, cleanSettings } from './setti
 import { createTools } from './app-tools.js';
 import { isVin, cleanVin } from './vin.js';
 import { showInvite } from './app-invite.js';
+import { showSetPassword } from './app-password.js';
 import { createHeirUi } from './app-heir.js';
 import { createBillingUi } from './app-billing.js';
 import { isSuperadmin } from './plan.js';
@@ -53,6 +54,13 @@ function showAuth(error) {
   const form = $('auth-form'), email = $('auth-email'), pass = $('auth-password'), err = $('auth-err'), btn = $('auth-submit');
   err.textContent = error || '';
   if (form.dataset.bound) return; form.dataset.bound = '1';
+  $('auth-forgot').addEventListener('click', async () => {
+    const v = email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) { err.textContent = 'Type your email above first, then press this again.'; email.focus(); return; }
+    err.textContent = '';
+    try { await cloud.recover(v, `${location.origin}/app.html`); err.textContent = 'If that email has an account, we sent a link to choose a new password. It can take a minute.'; }
+    catch (x) { err.textContent = message(x); }
+  });
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const v = email.value.trim();
@@ -654,6 +662,7 @@ async function start() {
       const invite = inviteTokenOf(location.hash);
       if (invite) return showInvite({ cloud, token: invite, show, done: () => location.replace('app.html') });
       const r = await cloud.consumeRedirect().catch(e => ({ error: e.message }));
+      if (r?.recovery && cloud.session()) return showSetPassword({ cloud, show, done: () => location.replace('app.html') });
       if (!cloud.session()) return showAuth(r && r.error);
       const me = cloud.user();
       shared = await loadShared(cloud);

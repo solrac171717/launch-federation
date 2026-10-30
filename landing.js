@@ -319,6 +319,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
     const paint = v => { total.textContent = USD0.format(Math.round(v)); };
     const update = () => {
       const n = +range.value, p = price(n);
+      const go = document.querySelector('.px-btn'); if (go) go.setAttribute('href', n === INCLUDED ? '/api/start' : `/api/start?assets=${n}`); // the button opens checkout for the number of assets on the slider
       const pct = ((n - range.min) / (range.max - range.min)) * 100; range.style.setProperty('--p', `${pct}%`);
       const bub = document.getElementById('px-bubble'); bub.style.setProperty('--q', pct.toFixed(2)); bub.textContent = String(n);
       range.setAttribute('aria-valuetext', `${n} assets, ${USD0.format(p)} per month`);
