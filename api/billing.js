@@ -5,7 +5,7 @@
 // The prices are found, or created the first time, by lookup key (see ensurePrices). The subscription row itself is written by the webhook
 // (and right after a change), never by the browser. Env: STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY (optional), SITE_URL (optional).
 import { PLAN, cleanAssets, extraQty, LIVE } from '../src/billing-core.js';
-import { stripeClient, ensurePrices, subscriptionRow, supabaseClient, saveSubscription, StripeError } from './_stripe.js';
+import { stripeClient, ensurePrices, ensurePortalConfig, subscriptionRow, supabaseClient, saveSubscription, StripeError } from './_stripe.js';
 
 const send = (res, status, body) => {
   res.statusCode = status;
@@ -65,7 +65,13 @@ export async function runBilling({ env, fetchImpl = fetch, token, body, siteUrl 
 
     if (action === 'portal') {
       if (!cur?.stripe_customer_id) return fail(404, 'no_customer');
-      const s = await stripe('POST', '/v1/billing_portal/sessions', { customer: cur.stripe_customer_id, return_url: `${site}/app.html`, ...(env.STRIPE_PORTAL_CONFIG ? { configuration: env.STRIPE_PORTAL_CONFIG } : {}) });
+      const open = configuration => stripe('POST', '/v1/billing_portal/sessions', { customer: cur.stripe_customer_id, return_url: `${site}/app.html`, ...(configuration ? { configuration } : {}) });
+      let s;
+      try { s = await open(env.STRIPE_PORTAL_CONFIG); }
+      catch (e) { // an account that never set up its portal: make ours once, then open it
+        if (!(e instanceof StripeError) || env.STRIPE_PORTAL_CONFIG || !/configuration/i.test(e.message)) throw e;
+        s = await open((await ensurePortalConfig(stripe, site)).id);
+      }
       return { status: 200, body: { url: s.url } };
     }
     return fail(400, 'bad_request');

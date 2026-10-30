@@ -62,6 +62,28 @@ export async function ensurePrices(stripe) {
 
 const iso = s => (s ? new Date(Number(s) * 1000).toISOString() : null);
 /** A Stripe subscription -> the row we store. */
+/**
+ * The customer portal needs a configuration in the Stripe account (Settings, Billing, Customer portal). When the account has none yet, Stripe refuses
+ * to open it; this finds ours (by metadata) or creates it, so nobody has to set it up by hand: card, invoices, cancel at the end of the period.
+ * Changing the number of assets is done inside the app, not in the portal.
+ */
+export async function ensurePortalConfig(stripe, site) {
+  const list = await stripe('GET', '/v1/billing_portal/configurations', { active: true, limit: 20 });
+  const mine = (list?.data || []).find(x => x?.metadata?.app === 'owned-map');
+  if (mine) return mine;
+  return stripe('POST', '/v1/billing_portal/configurations', {
+    metadata: { app: 'owned-map' },
+    business_profile: { headline: 'Manage your Owned Map plan', privacy_policy_url: `${site}/privacy.html`, terms_of_service_url: `${site}/terms.html` },
+    default_return_url: `${site}/app.html`,
+    features: {
+      customer_update: { enabled: true, allowed_updates: ['email'] },
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_cancel: { enabled: true, mode: 'at_period_end', cancellation_reason: { enabled: true, options: ['too_expensive', 'missing_features', 'switched_service', 'unused', 'other'] } },
+    },
+  });
+}
+
 export function subscriptionRow(sub, userId, eventAt = 0) {
   const items = sub.items?.data || [];
   const end = sub.current_period_end ?? items[0]?.current_period_end;

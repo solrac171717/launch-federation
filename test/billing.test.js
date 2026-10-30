@@ -71,7 +71,9 @@ function world({ subRow = null, user = { id: 'u1', email: 'a@x.test' }, prices =
       if (p === '/v1/prices') { const pr = { id: `price_${form.lookup_key}`, lookup_key: form.lookup_key, active: true }; state.prices.push(pr); return json(pr); }
       if (p === '/v1/customers') return json({ id: 'cus_new' });
       if (p === '/v1/checkout/sessions') return json({ id: 'cs_1', url: 'https://checkout.test/cs_1' });
-      if (p === '/v1/billing_portal/sessions') return json({ url: 'https://portal.test/x' });
+      if (p === '/v1/billing_portal/configurations' && method === 'GET') return json({ data: state.portalCfg ? [state.portalCfg] : [] });
+      if (p === '/v1/billing_portal/configurations') { state.portalCfg = { id: 'bpc_1', metadata: { app: 'owned-map' } }; return json(state.portalCfg); }
+      if (p === '/v1/billing_portal/sessions') return state.needPortalCfg && !form.configuration ? json({ error: { message: 'No configuration provided and your live mode default configuration has not been created.' } }, false, 400) : json({ url: 'https://portal.test/x' });
       const m = /^\/v1\/subscriptions\/(.+)$/.exec(p);
       if (m) { if (method === 'POST') { const it = Object.keys(form).filter(k => k.startsWith('items[0]')); state.lastUpdate = { it: Object.fromEntries(it.map(k => [k, form[k]])), proration: form.proration_behavior }; const s = state.subs.get(m[1]); if (form['items[0][deleted]']) s.items.data = s.items.data.filter(x => x.id !== form['items[0][id]']); else if (form['items[0][id]']) s.items.data.find(x => x.id === form['items[0][id]']).quantity = Number(form['items[0][quantity]']); else s.items.data.push({ id: 'si_new', quantity: Number(form['items[0][quantity]']), price: { lookup_key: PLAN.keys.extra } }); } return json(state.subs.get(m[1])); }
       return json({}, false, 404);
@@ -196,4 +198,13 @@ test('ensurePrices keeps what exists and only creates what is missing', async ()
   const call = stripeClient({ env: ENV, fetchImpl: w.fetchImpl }), got = await ensurePrices(call);
   assert.equal(got.base, 'price_b'); assert.equal(got.extra, `price_${PLAN.keys.extra}`);
   assert.ok(!w.calls.some(c => c.p === '/v1/products' && c.method === 'POST'), 'the product is reused'); assert.equal(w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').length, 1);
+});
+test('the portal: an account with no portal configuration gets ours created once, with cancel and invoices, then it opens', async () => {
+  const w = world({ prices: PRICES, subRow: { user_id: 'u1', stripe_customer_id: 'cus_1', status: 'trialing' } }); w.state.needPortalCfg = true;
+  assert.equal((await run(w, { action: 'portal' })).body.url, 'https://portal.test/x');
+  const made = w.calls.find(c => c.p === '/v1/billing_portal/configurations' && c.method === 'POST').form;
+  assert.equal(made['features[subscription_cancel][enabled]'], 'true'); assert.equal(made['features[subscription_cancel][mode]'], 'at_period_end'); assert.equal(made['features[invoice_history][enabled]'], 'true');
+  assert.equal(w.calls.at(-1).form.configuration, 'bpc_1');
+  await run(w, { action: 'portal' });
+  assert.equal(w.calls.filter(c => c.p === '/v1/billing_portal/configurations' && c.method === 'POST').length, 1, 'the second time it is found, not made again');
 });
