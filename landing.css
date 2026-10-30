@@ -1018,3 +1018,4 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 }
 .hero-link { margin-top: 18px; font-size: 14.5px; font-weight: 500; color: var(--text-2); text-decoration: none; border-bottom: 1px solid #C9D6EE; padding-bottom: 2px; transition: color .15s, border-color .15s; }
 .hero-link:hover { color: var(--blue-d); border-color: var(--blue); }
+.cta-trial { margin-top: 12px; font-size: 13.5px; color: var(--text-3); letter-spacing: .01em; }

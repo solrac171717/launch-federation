@@ -288,7 +288,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
     const first = ['email', 'consent'].find(k => errors[k]);
     if (first) form.elements[first].focus();
   };
-  const setBusy = on => { inflight = on; btn.disabled = on; btn.setAttribute('aria-busy', String(on)); btn.classList.toggle('busy', on); btn.querySelector('.lbl').textContent = on ? 'Submitting…' : 'Get early access'; };
+  const setBusy = on => { inflight = on; btn.disabled = on; btn.setAttribute('aria-busy', String(on)); btn.classList.toggle('busy', on); btn.querySelector('.lbl').textContent = on ? 'Submitting…' : 'Start for Free'; };
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
