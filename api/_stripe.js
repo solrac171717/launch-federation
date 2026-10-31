@@ -45,18 +45,33 @@ export function verifySignature(raw, header, secret, now = Math.floor(Date.now()
 /** For tests and the local mock: a header that verifySignature accepts. */
 export const signPayload = (raw, secret, t = Math.floor(Date.now() / 1000)) => `t=${t},v1=${createHmac('sha256', secret).update(`${t}.${raw}`).digest('hex')}`;
 
+const PRODUCT_DESCRIPTION = 'Owned Map: track your assets on one map. 3 assets included, extra assets billed monthly.';
+
+/** Puts the Owned Map name, description and logo on the product and prices already in Stripe (what Checkout, invoices and receipts show). Safe to run again. */
+export async function brandStripe(stripe, site) {
+  const products = await stripe('GET', '/v1/products', { active: true, limit: 100 });
+  const product = (products.data || []).find(p => p.metadata?.app === 'owned-map');
+  if (!product) return { product: null, prices: 0 };
+  await stripe('POST', `/v1/products/${product.id}`, { name: PLAN.name, description: PRODUCT_DESCRIPTION, images: [`${String(site).replace(/\/$/, '')}/assets/logo-o.png`] });
+  const prices = await stripe('GET', '/v1/prices', { product: product.id, limit: 20 });
+  const names = { [PLAN.keys.base]: `Owned Map, ${PLAN.included} assets`, [PLAN.keys.extra]: 'Owned Map, extra asset' };
+  let n = 0;
+  for (const pr of prices.data || []) if (names[pr.lookup_key]) { await stripe('POST', `/v1/prices/${pr.id}`, { nickname: names[pr.lookup_key] }); n++; }
+  return { product: product.id, prices: n };
+}
+
 /** The two prices of the plan, found by lookup key; created (with their product) the first time, in whichever mode the key belongs to. */
-export async function ensurePrices(stripe) {
+export async function ensurePrices(stripe, site = '') {
   const want = [PLAN.keys.base, PLAN.keys.extra];
   const found = await stripe('GET', '/v1/prices', { lookup_keys: want, active: true, limit: 10 });
   const byKey = Object.fromEntries((found.data || []).map(p => [p.lookup_key, p.id]));
   if (want.every(k => byKey[k])) return { base: byKey[PLAN.keys.base], extra: byKey[PLAN.keys.extra] };
   const products = await stripe('GET', '/v1/products', { active: true, limit: 100 });
   let product = (products.data || []).find(p => p.metadata?.app === 'owned-map')?.id;
-  if (!product) product = (await stripe('POST', '/v1/products', { name: PLAN.name, description: 'Track your assets on one map. 3 assets included, extra assets billed monthly.', metadata: { app: 'owned-map' } })).id;
+  if (!product) product = (await stripe('POST', '/v1/products', { name: PLAN.name, description: PRODUCT_DESCRIPTION, ...(site ? { images: [`${site}/assets/logo-o.png`] } : {}), metadata: { app: 'owned-map' } })).id;
   const make = (key, cents, nickname) => stripe('POST', '/v1/prices', { product, currency: PLAN.currency, unit_amount: cents, recurring: { interval: PLAN.interval }, lookup_key: key, transfer_lookup_key: true, nickname, metadata: { app: 'owned-map' } });
-  if (!byKey[PLAN.keys.base]) byKey[PLAN.keys.base] = (await make(PLAN.keys.base, PLAN.baseCents, `Base plan, ${PLAN.included} assets`)).id;
-  if (!byKey[PLAN.keys.extra]) byKey[PLAN.keys.extra] = (await make(PLAN.keys.extra, PLAN.extraCents, 'Extra asset')).id;
+  if (!byKey[PLAN.keys.base]) byKey[PLAN.keys.base] = (await make(PLAN.keys.base, PLAN.baseCents, `Owned Map, ${PLAN.included} assets`)).id;
+  if (!byKey[PLAN.keys.extra]) byKey[PLAN.keys.extra] = (await make(PLAN.keys.extra, PLAN.extraCents, 'Owned Map, extra asset')).id;
   return { base: byKey[PLAN.keys.base], extra: byKey[PLAN.keys.extra] };
 }
 

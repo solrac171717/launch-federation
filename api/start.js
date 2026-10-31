@@ -23,13 +23,13 @@ export async function runStart({ env, fetchImpl = fetch, assets, siteUrl }) {
   const site = String(siteUrl || env.SITE_URL || '').replace(/\/$/, '');
   const n = cleanAssets(assets ?? PLAN.included) ?? PLAN.included, extra = extraQty(n);
   try {
-    const prices = await ensurePrices(stripe);
+    const prices = await ensurePrices(stripe, site);
     const session = await stripe('POST', '/v1/checkout/sessions', {
       mode: 'subscription', allow_promotion_codes: true, payment_method_collection: 'always', billing_address_collection: 'auto',
       line_items: [{ price: prices.base, quantity: 1 }, ...(extra ? [{ price: prices.extra, quantity: extra }] : [])],
       success_url: `${site}/welcome.html?session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${site}/`,
       metadata: { source: 'landing', assets: String(n) },
-      subscription_data: { metadata: { source: 'landing' }, ...(PLAN.trialDays > 0 ? { trial_period_days: PLAN.trialDays } : {}) },
+      subscription_data: { description: 'Owned Map', metadata: { source: 'landing' }, ...(PLAN.trialDays > 0 ? { trial_period_days: PLAN.trialDays } : {}) },
       custom_text: { submit: { message: `${PLAN.trialDays > 0 ? `After your ${PLAN.trialDays}-day free trial your card is charged ${usd(priceCents(n))} a month unless you cancel before it ends. ` : ''}By continuing you agree to the [Terms](${site}/terms.html) and the [Privacy Policy](${site}/privacy.html).` } },
     });
     return { status: 303, location: session.url };
