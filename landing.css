@@ -1050,3 +1050,6 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .hero-copy .lead { max-width: 46ch; }
 .px-price .px-then { font-size: 1.15rem; color: var(--text-3); line-height: 1.25; }
 .px-price .px-then strong { color: #0A0F1F; font-weight: 600; font-variant-numeric: tabular-nums; }
+.foot-brand { display: grid; gap: 8px; justify-items: start; }
+.foot-brand .foot-tag { margin: 0; max-width: 34ch; color: var(--text-2); line-height: 1.4; }
+.foot .foot-mail { color: var(--blue-d); font-weight: 500; }
