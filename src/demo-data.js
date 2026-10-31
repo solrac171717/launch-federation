@@ -10,7 +10,7 @@ export { CATEGORIES, COUNTRIES };
 export const CITIES = {
   austin: [30.27, -97.74], miami: [25.76, -80.19], chicago: [41.88, -87.63], seattle: [47.61, -122.33],
   denver: [39.74, -104.99], nashville: [36.16, -86.78], teterboro: [40.85, -74.06],
-  lisbon: [38.72, -9.14], london: [51.51, -0.13], scottsdale: [33.49, -111.93], boston: [42.36, -71.06],
+  sttropez: [43.27, 6.64], sydney: [-33.87, 151.21], london: [51.51, -0.13], scottsdale: [33.49, -111.93], boston: [42.36, -71.06],
   columbus: [39.96, -83.0], moab: [38.57, -109.55], sturgis: [44.41, -103.51], newport: [41.49, -71.31], keywest: [24.56, -81.78],
 };
 
@@ -60,15 +60,17 @@ const RAW = [
     value: 86000, cost: 79000, gross: 0, expenses: 5400, status: 'Moored' },
   { id: 'keywest', name: 'Wave Runner 130', place: 'Key West, FL', category: 'vessel', kind: 'Jet ski',
     value: 11200, cost: 12800, gross: 0, expenses: 600, status: 'Stored' },
-  { id: 'lisbon', name: 'Sea Atlas 52', place: 'Lisbon, PT', category: 'vessel', kind: 'Motor yacht',
+  { id: 'sttropez', name: 'Sea Atlas 52', place: 'Saint-Tropez, FR', category: 'vessel', kind: 'Motor yacht',
     value: 1120000, cost: 980000, gross: 0, expenses: 38500, status: 'Moored' },
+  { id: 'sydney', name: 'Bondi Beach House', place: 'Sydney, AU', category: 'residential', kind: 'Beachfront house',
+    value: 2400000, cost: 1900000, gross: 96000, expenses: 24000, debt: 1100000, debtPayment: 6500, status: 'Occupied' },
 ];
 
 export const VALUATION_DATE = 'Sep 30, 2026';
 
 const TYPE_OF = { austin: 'house', miami: 'house', chicago: 'house', london: 'office', seattle: 'land', denver: 'equipment', scottsdale: 'car', nashville: 'truck',
-  teterboro: 'aircraft', lisbon: 'yacht', boston: 'parking', columbus: 'warehouse', moab: 'rv', sturgis: 'motorcycle', newport: 'sailboat', keywest: 'jetski' };
-const COUNTRY_OF = { london: 'GB', lisbon: 'PT' };
+  teterboro: 'aircraft', sttropez: 'yacht', sydney: 'house', boston: 'parking', columbus: 'warehouse', moab: 'rv', sturgis: 'motorcycle', newport: 'sailboat', keywest: 'jetski' };
+const COUNTRY_OF = { london: 'GB', sttropez: 'FR', sydney: 'AU' };
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const MONTH_NUM = Object.fromEntries(MON.map((m, i) => [m, String(i + 1).padStart(2, '0')]));

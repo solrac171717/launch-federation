@@ -74,10 +74,10 @@ await step('empty account shows the empty state with both actions', async () => 
   await until(`document.body.textContent.includes('Add your first asset')`, 'empty state');
   await until(`document.body.textContent.includes('Load sample data')`, 'sample button');
 });
-await step('"Load sample data" stores 16 sample rows for this user and shows the banner', async () => {
+await step('"Load sample data" stores 17 sample rows for this user and shows the banner', async () => {
   await ev(`[...document.querySelectorAll('button')].find(b=>/Load sample data/.test(b.textContent)).click()`);
   await until(`!document.getElementById('app-banner').hidden`, 'sample banner');
-  const r = await rows(); if (r.length !== 16 || !r.every(x => x.is_sample)) throw new Error('rows: ' + r.length);
+  const r = await rows(); if (r.length !== 17 || !r.every(x => x.is_sample)) throw new Error('rows: ' + r.length);
 });
 await step('add an asset through the form (validation first, then save)', async () => {
   await click('#add-asset-btn'); await until(`document.getElementById('modal').open`, 'modal');

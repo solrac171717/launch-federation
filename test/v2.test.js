@@ -26,7 +26,7 @@ test('debt gives equity, loan-to-value and a portfolio net worth', () => {
   assert.equal(portfolio([]).netWorth, 0); assert.equal(portfolio([]).ltv, null);
 });
 test('sample portfolio carries illustrative debt and reconciles', () => {
-  const p = portfolio(ASSETS); assert.equal(p.value, 11372700); assert.equal(p.debt, 4480000); assert.equal(p.netWorth, p.value - p.debt);
+  const p = portfolio(ASSETS); assert.equal(p.value, 13772700); assert.equal(p.debt, 5580000); assert.equal(p.netWorth, p.value - p.debt);
 });
 test('debt must be a non-negative number', () => {
   const base = { type: 'house', name: 'x', place: 'Austin, TX', value: '10', cost: '10', status: 'Occupied' };
@@ -81,9 +81,9 @@ test('xlsx is a valid zip with the required parts, numbers stay numbers, text is
 });
 test('the portfolio workbook and PDF report reconcile with portfolio()', () => {
   const x = new TextDecoder().decode(buildExcel(ASSETS, { today: '2026-10-28', sample: true }));
-  assert.match(x, /Net worth \(value minus debt\)/); assert.match(x, /<v>6892700<\/v>/); assert.match(x, /Illustrative sample data/);
+  assert.match(x, /Net worth \(value minus debt\)/); assert.match(x, /<v>8192700<\/v>/); assert.match(x, /Illustrative sample data/);
   const html = reportHtml(ASSETS, { today: '2026-10-28', sample: true, owner: 'a@b.co' });
-  assert.match(html, /\$6,892,700/); assert.match(html, /Illustrative sample data/); assert.match(html, /a@b\.co/); assert.ok(!html.includes('—'));
+  assert.match(html, /\$8,192,700/); assert.match(html, /Illustrative sample data/); assert.match(html, /a@b\.co/); assert.ok(!html.includes('—'));
   assert.match(reportHtml([], { today: '2026-10-28' }), /\$0/);
 });
 

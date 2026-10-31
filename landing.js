@@ -192,7 +192,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
     return h('li', { class: 'col-card ' + size, style: `--i:${i}` }, img,
       h('div', { class: 'col-meta' }, h('div', {}, h('b', {}, a.name), h('span', {}, a.place)), h('div', { class: 'col-val' }, h('b', {}, compact(a.value)), Delta(a.appreciation, fmtPct(a.appreciationPct, { sign: true })))));
   };
-  clear(document.getElementById('collection')).append(...[['austin', 'residential', 'lg'], ['scottsdale', 'car', ''], ['nashville', 'truck', ''], ['lisbon', 'vessel', ''], ['teterboro', 'aircraft', '']].map(card));
+  clear(document.getElementById('collection')).append(...[['austin', 'residential', 'lg'], ['scottsdale', 'car', ''], ['nashville', 'truck', ''], ['sttropez', 'vessel', ''], ['teterboro', 'aircraft', '']].map(card));
   const more = [['seattle', 'land', ''], ['london', 'commercial', ''], ['boston', 'parking', ''], ['columbus', 'industrial', ''], ['denver', 'excavator', ''], ['moab', 'rv', ''], ['sturgis', 'moto', ''], ['newport', 'sail', ''], ['keywest', 'jetski', '']];
   clear(document.getElementById('collection-more')).append(...more.map(card));
   const btn = document.getElementById('more-btn'), wrap = document.getElementById('more-wrap'), label = btn.querySelector('span');
@@ -275,7 +275,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
 {
   const host = document.getElementById('how-globe');
   // the same sample assets, placed all around the world so every continent gets a marker as it turns
-  const WORLD = [['austin', 30.27, -97.74], ['london', 51.51, -0.13], ['teterboro', 35.68, 139.69], ['lisbon', -33.87, 151.21], ['seattle', -23.55, -46.63], ['denver', 1.35, 103.82], ['scottsdale', -33.92, 18.42], ['miami', 25.2, 55.27], ['boston', 19.08, 72.88]];
+  const WORLD = [['austin', 30.27, -97.74], ['london', 51.51, -0.13], ['teterboro', 35.68, 139.69], ['sttropez', 43.27, 6.64], ['sydney', -33.87, 151.21], ['seattle', -23.55, -46.63], ['denver', 1.35, 103.82], ['scottsdale', -33.92, 18.42], ['miami', 25.2, 55.27], ['boston', 19.08, 72.88]];
   if (host) createGlobe(host, { assets: WORLD.map(([id, lat, lon]) => ({ ...byId(id), lat, lon })), icons: ICON, startLon: -30, tilt: 18, label: 'Rotating 3D globe of sample assets around the world' });
 }
 

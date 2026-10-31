@@ -36,7 +36,7 @@ export const ICON = {
 };
 export const icon = (key, size = 22) => s('svg', { viewBox: '0 0 24 24', width: size, height: size, class: 'ico', 'aria-hidden': 'true' }, s('path', { d: ICON[key] }));
 export const ASSET_IMG = { austin: 'house', miami: 'house', chicago: 'house', london: 'commercial', seattle: 'land', scottsdale: 'porsche', nashville: 'truck', teterboro: 'jet',
-  lisbon: 'yacht', denver: 'excavator', boston: 'parking', columbus: 'industrial', moab: 'rv', sturgis: 'moto', newport: 'sail', keywest: 'jetski' };
+  sttropez: 'yacht', sydney: 'house', denver: 'excavator', boston: 'parking', columbus: 'industrial', moab: 'rv', sturgis: 'moto', newport: 'sail', keywest: 'jetski' };
 /** 3D illustration of the asset (by its type, or by id for the sample portfolio), otherwise the category icon. */
 export const thumb = (a, size = 22) => {
   const img = (a.type && TYPE_BY_KEY[a.type]?.img) || ASSET_IMG[a.id];

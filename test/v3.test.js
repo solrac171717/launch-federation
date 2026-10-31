@@ -61,7 +61,7 @@ test('portfolio timeline: assets join when acquired, debt uses the recorded bala
   assert.deepEqual([t.at(-1).value, t.at(-1).debt, t.at(-1).net], [400, 100, 300]);
   assert.deepEqual(portfolioTimeline([], { today: '2026-01-01' }), []);
   assert.ok(portfolioTimeline(ASSETS, { today: '2026-10-28', maxPoints: 12 }).length <= 12);
-  const s = portfolioTimeline(ASSETS, { today: '2026-10-28' }); assert.equal(s.at(-1).net, 6892700); assert.ok(s[0].net < s.at(-1).net, 'the sample portfolio grows');
+  const s = portfolioTimeline(ASSETS, { today: '2026-10-28' }); assert.equal(s.at(-1).net, 8192700); assert.ok(s[0].net < s.at(-1).net, 'the sample portfolio grows');
 });
 test('sample histories are storable and consistent with the sample totals', () => {
   for (const a of ASSETS) { assert.equal(a.history.at(-1).v, a.fullValue); assert.ok(a.history.length >= 2); assert.ok(a.series.length === a.history.length); }

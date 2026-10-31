@@ -59,7 +59,7 @@ test('local store: add, update (history), remove, samples', async () => {
   const b = await s.update(a.id, { ...validateAsset(good).value, value: 720000 });
   assert.equal(b.value, 720000); assert.equal(b.history.at(-1).v, 720000);
   await s.addMany(sampleRows('2026-10-28'));
-  assert.equal((await s.list()).length, 17);
+  assert.equal((await s.list()).length, 18);
   await s.removeSample(); assert.equal((await s.list()).length, 1);
   await s.remove(a.id); assert.equal((await s.list()).length, 0);
   await assert.rejects(() => s.update('nope', {}), /no longer exists/);
