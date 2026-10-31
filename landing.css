@@ -1048,3 +1048,5 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .proof, .proof b { color: #0A0A0F; }
 .device { margin-top: clamp(24px, 3vw, 48px); }
 .hero-copy .lead { max-width: 46ch; }
+.px-price .px-then { font-size: 1.15rem; color: var(--text-3); line-height: 1.25; }
+.px-price .px-then strong { color: #0A0F1F; font-weight: 600; font-variant-numeric: tabular-nums; }
