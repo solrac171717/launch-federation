@@ -4,7 +4,7 @@ import { CONFIG } from '../assets/config.js';
 import { h } from './dom.js';
 import { createCloud } from './cloud.js';
 
-const PASSWORD_MIN = 10, SUPPORT = 'adftblyt@gmail.com';
+const PASSWORD_MIN = 10, SUPPORT = 'support@ownedmap.com';
 const card = document.getElementById('invite-card');
 const cloud = createCloud({ url: CONFIG.supabaseUrl, anonKey: CONFIG.supabaseAnonKey });
 const logo = h('a', { class: 'logo', href: 'index.html', 'aria-label': 'Owned Map website' }, h('span', { class: 'lmark', style: '--s:34px', 'aria-hidden': 'true' }, h('img', { src: 'assets/logo-o.png', alt: '', width: 192, height: 192 })), h('span', {}, 'OWNED MAP'));
