@@ -267,7 +267,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
   };
   seg.append(h('button', { type: 'button', 'data-k': 'pdf', onclick: () => pick('pdf') }, 'PDF summary'), h('button', { type: 'button', 'data-k': 'xlsx', onclick: () => pick('xlsx') }, 'Spreadsheet'));
   pdf.addEventListener('click', () => pick('pdf')); sheet.addEventListener('click', () => pick('xlsx'));
-  host.append(seg, stage, h('p', { class: 'fine' }, 'Preview of the report layouts with sample data. From the Reports tab you can export a PDF report, an Excel workbook (.xlsx) or a CSV file.'));
+  host.append(seg, stage);
   pick('pdf');
 }
 
