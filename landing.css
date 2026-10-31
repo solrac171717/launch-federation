@@ -1039,9 +1039,3 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .hero-link:hover { color: var(--blue-d); border-color: var(--blue); }
 .cta-trial { margin-top: 12px; font-size: 13.5px; color: var(--text-3); letter-spacing: .01em; }
 .btn-xl, .hero-copy .btn-xl { padding: 22px 56px; font-size: 19px; width: min(480px, calc(100vw - 48px)); flex: 0 0 auto; border-radius: 16px; }
-
-.px-iv { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 44px; }
-.px-iv button { font: 600 13px/1 var(--sans); padding: 9px 14px; border-radius: 999px; border: 1px solid #DCE7FA; background: #F5F8FE; color: var(--navy); cursor: pointer; transition: background-color .3s, border-color .3s, color .3s; }
-.px-iv button:hover { background: #fff; border-color: #93B4F5; }
-.px-iv button[aria-pressed="true"] { background: #2563EB; border-color: #2563EB; color: #fff; }
-.px-iv button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }

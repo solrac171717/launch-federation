@@ -1,44 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PLAN, priceCents, quote, priceKey, priceDefs, cleanAssets, cleanInterval, usd, priceText, allowedFromItems, billingView } from '../src/billing-core.js';
+import { PLAN, priceCents, extraQty, cleanAssets, usd, allowedFromItems, billingView } from '../src/billing-core.js';
 import { formEncode, verifySignature, signPayload, ensurePrices, subscriptionRow, stripeClient } from '../api/_stripe.js';
 import { runBilling } from '../api/billing.js';
 import { runWebhook } from '../api/stripe-webhook.js';
 
 /* ----------------------------------------------------------------- the plan */
-const OWN = priceKey('owner', 'month'), FAM = priceKey('family', 'month'), EXT = priceKey('extra', 'month');
-test('the plan is chosen from the number of assets: Owner to 10, Family to 40, $9 for each one beyond what the plan includes', () => {
-  assert.equal(priceCents(1), 4700); assert.equal(priceCents(10), 4700);
-  assert.equal(priceCents(11), 4700 + 900); assert.equal(priceCents(18), 11900, 'Owner plus 8 extras costs the same as Family: the smaller plan stays');
-  assert.equal(quote(18).tier, 'owner'); assert.equal(quote(19).tier, 'family'); assert.equal(priceCents(19), 11900);
-  assert.equal(priceCents(40), 11900); assert.equal(priceCents(41), 11900 + 900); assert.equal(priceCents(100), 11900 + 60 * 900);
-  assert.deepEqual([quote(5).allowed, quote(25).allowed, quote(45).allowed], [10, 40, 45], 'the plan covers at least what was asked');
+test('the price is the one on the website: $47 with 3 assets, then $15 for each extra', () => {
+  assert.equal(priceCents(1), 4700); assert.equal(priceCents(3), 4700);
+  assert.equal(priceCents(4), 6200); assert.equal(priceCents(10), 4700 + 7 * 1500); assert.equal(priceCents(50), 4700 + 47 * 1500);
   assert.equal(usd(4700), '$47'); assert.equal(usd(6250), '$62.50');
 });
-test('yearly is ten months for twelve, on every plan and on the extra assets', () => {
-  for (const t of PLAN.tiers) assert.equal(t.cents.year, t.cents.month * 10);
-  assert.equal(PLAN.extra.cents.year, PLAN.extra.cents.month * 10);
-  assert.equal(priceCents(10, 'year'), 47000); assert.equal(priceCents(25, 'year'), 119000); assert.equal(priceCents(45, 'year'), 119000 + 5 * 9000);
-  assert.equal(quote(10, 'year').monthlyCents, 3917); assert.equal(priceText(10, 'year'), '$470 a year'); assert.equal(priceText(10), '$47 a month');
-  assert.equal(cleanInterval('year'), 'year'); assert.equal(cleanInterval('weekly'), 'month'); assert.equal(cleanInterval(undefined), 'month');
+test('what a person types is clamped to what the plan allows', () => {
+  assert.equal(cleanAssets('7'), 7); assert.equal(cleanAssets(0), 3); assert.equal(cleanAssets(999), 50); assert.equal(cleanAssets('abc'), null); assert.equal(cleanAssets(7.6), 8);
+  assert.equal(extraQty(3), 0); assert.equal(extraQty(10), 7);
 });
-test('every price the plans need is defined once, with a unique lookup key and the right interval', () => {
-  const defs = priceDefs();
-  assert.equal(defs.length, 6); assert.equal(new Set(defs.map(d => d.key)).size, 6);
-  assert.deepEqual(defs.filter(d => d.interval === 'year').map(d => [d.kind, d.cents]), [['owner', 47000], ['family', 119000], ['extra', 9000]]);
-  assert.ok(defs.every(d => /^ownedmap_v2_(owner|family|extra)_(month|year)$/.test(d.key)));
-});
-test('what a person types is clamped to what the plans allow', () => {
-  assert.equal(cleanAssets('7'), 7); assert.equal(cleanAssets(0), 1); assert.equal(cleanAssets(999), 100); assert.equal(cleanAssets('abc'), null); assert.equal(cleanAssets(7.6), 8);
-});
-test('assets paid for come from the plan plus the extra items, in either period, and only from ours', () => {
-  assert.equal(allowedFromItems([{ lookup_key: OWN, quantity: 1 }]), 10);
-  assert.equal(allowedFromItems([{ lookup_key: OWN, quantity: 1 }, { lookup_key: EXT, quantity: 7 }]), 17);
-  assert.equal(allowedFromItems([{ lookup_key: FAM, quantity: 1 }]), 40);
-  assert.equal(allowedFromItems([{ lookup_key: priceKey('family', 'year'), quantity: 1 }, { lookup_key: priceKey('extra', 'year'), quantity: 5 }]), 45);
-  assert.equal(allowedFromItems([{ lookup_key: EXT, quantity: 7 }]), 0, 'extras without a plan give nothing');
+test('assets paid for come from the base plan plus the extra items, and only from ours', () => {
+  const b = PLAN.keys.base, e = PLAN.keys.extra;
+  assert.equal(allowedFromItems([{ lookup_key: b, quantity: 1 }]), 3);
+  assert.equal(allowedFromItems([{ lookup_key: b, quantity: 1 }, { lookup_key: e, quantity: 7 }]), 10);
+  assert.equal(allowedFromItems([{ lookup_key: e, quantity: 7 }]), 0, 'extras without the base plan give nothing');
   assert.equal(allowedFromItems([{ lookup_key: 'something_else', quantity: 5 }]), 0);
-  assert.equal(allowedFromItems([{ lookup_key: 'ownedmap_base_monthly', quantity: 1 }, { lookup_key: 'ownedmap_extra_asset_monthly', quantity: 2 }]), 5, 'the first version of the plan still counts');
 });
 test('the screen state: none, trial, active, past due, ending, ended, unlimited', () => {
   const now = Date.parse('2026-11-10T00:00:00Z'), row = over => ({ status: 'active', assets_allowed: 5, current_period_end: '2026-12-01T00:00:00Z', trial_end: null, cancel_at_period_end: false, ...over });
@@ -68,9 +50,9 @@ test('webhook signatures: valid, tampered, wrong secret, too old, missing', () =
   assert.equal(verifySignature(raw, `${good},v1=00`, secret, now), true, 'any matching v1 is enough (Stripe rotates secrets)');
 });
 test('a subscription becomes our row, with the right number of assets and dates', () => {
-  const sub = { id: 'sub_1', customer: 'cus_1', status: 'trialing', trial_end: 1_800_000_000, cancel_at_period_end: false, items: { data: [{ quantity: 1, price: { lookup_key: OWN }, current_period_end: 1_802_000_000 }, { quantity: 2, price: { lookup_key: EXT } }] } };
+  const sub = { id: 'sub_1', customer: 'cus_1', status: 'trialing', trial_end: 1_800_000_000, cancel_at_period_end: false, items: { data: [{ quantity: 1, price: { lookup_key: PLAN.keys.base }, current_period_end: 1_802_000_000 }, { quantity: 2, price: { lookup_key: PLAN.keys.extra } }] } };
   const row = subscriptionRow(sub, 'u1', 123);
-  assert.equal(row.assets_allowed, 12); assert.equal(row.status, 'trialing'); assert.equal(row.stripe_customer_id, 'cus_1');
+  assert.equal(row.assets_allowed, 5); assert.equal(row.status, 'trialing'); assert.equal(row.stripe_customer_id, 'cus_1');
   assert.equal(row.trial_end, new Date(1_800_000_000_000).toISOString()); assert.equal(row.current_period_end, new Date(1_802_000_000_000).toISOString()); assert.equal(row.last_event_at, 123);
 });
 
@@ -86,26 +68,14 @@ function world({ subRow = null, user = { id: 'u1', email: 'a@x.test' }, prices =
       if (p === '/v1/prices' && method === 'GET') return json({ data: state.prices.filter(x => x.active) });
       if (p === '/v1/products' && method === 'GET') return json({ data: state.products });
       if (p === '/v1/products') { const pr = { id: 'prod_1', metadata: { app: 'owned-map' } }; state.products.push(pr); return json(pr); }
-      if (p === '/v1/prices') { const pr = { id: `price_${form.lookup_key}`, lookup_key: form.lookup_key, active: true }; state.prices.push(pr); state.priceForms = [...(state.priceForms || []), form]; return json(pr); }
+      if (p === '/v1/prices') { const pr = { id: `price_${form.lookup_key}`, lookup_key: form.lookup_key, active: true }; state.prices.push(pr); return json(pr); }
       if (p === '/v1/customers') return json({ id: 'cus_new' });
       if (p === '/v1/checkout/sessions') return json({ id: 'cs_1', url: 'https://checkout.test/cs_1' });
       if (p === '/v1/billing_portal/configurations' && method === 'GET') return json({ data: state.portalCfg ? [state.portalCfg] : [] });
       if (p === '/v1/billing_portal/configurations') { state.portalCfg = { id: 'bpc_1', metadata: { app: 'owned-map' } }; return json(state.portalCfg); }
       if (p === '/v1/billing_portal/sessions') return state.needPortalCfg && !form.configuration ? json({ error: { message: 'No configuration provided and your live mode default configuration has not been created.' } }, false, 400) : json({ url: 'https://portal.test/x' });
       const m = /^\/v1\/subscriptions\/(.+)$/.exec(p);
-      if (m) {
-        if (method === 'POST') {
-          const s = state.subs.get(m[1]), ops = []; for (let i = 0; form[`items[${i}][id]`] !== undefined || form[`items[${i}][price]`] !== undefined; i++) ops.push({ id: form[`items[${i}][id]`], price: form[`items[${i}][price]`], quantity: form[`items[${i}][quantity]`], deleted: form[`items[${i}][deleted]`] });
-          state.lastUpdate = { ops, proration: form.proration_behavior };
-          const keyOf = id => id.replace(/^price_/, '');
-          for (const o of ops) {
-            if (o.id && o.deleted) s.items.data = s.items.data.filter(x => x.id !== o.id);
-            else if (o.id) { const it = s.items.data.find(x => x.id === o.id); if (o.price) it.price = { lookup_key: keyOf(o.price) }; if (o.quantity !== undefined) it.quantity = Number(o.quantity); }
-            else s.items.data.push({ id: `si_${keyOf(o.price)}`, quantity: Number(o.quantity), price: { lookup_key: keyOf(o.price) } });
-          }
-        }
-        return json(state.subs.get(m[1]));
-      }
+      if (m) { if (method === 'POST') { const it = Object.keys(form).filter(k => k.startsWith('items[0]')); state.lastUpdate = { it: Object.fromEntries(it.map(k => [k, form[k]])), proration: form.proration_behavior }; const s = state.subs.get(m[1]); if (form['items[0][deleted]']) s.items.data = s.items.data.filter(x => x.id !== form['items[0][id]']); else if (form['items[0][id]']) s.items.data.find(x => x.id === form['items[0][id]']).quantity = Number(form['items[0][quantity]']); else s.items.data.push({ id: 'si_new', quantity: Number(form['items[0][quantity]']), price: { lookup_key: PLAN.keys.extra } }); } return json(state.subs.get(m[1])); }
       return json({}, false, 404);
     }
     if (u.pathname === '/auth/v1/user') return init.headers.authorization === 'Bearer good' ? json(user) : json({}, false, 401);
@@ -118,45 +88,32 @@ function world({ subRow = null, user = { id: 'u1', email: 'a@x.test' }, prices =
   return { fetchImpl, calls, saved, state };
 }
 const ENV = { STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_API_BASE: 'https://stripe.test', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'srv', SITE_URL: 'https://site.test' };
-const PRICES = priceDefs().map(d => ({ id: `price_${d.key}`, lookup_key: d.key, active: true }));
+const PRICES = [{ id: 'price_b', lookup_key: PLAN.keys.base, active: true }, { id: 'price_e', lookup_key: PLAN.keys.extra, active: true }];
 const run = (w, body, token = 'good') => runBilling({ env: ENV, fetchImpl: w.fetchImpl, token, body });
 
-test('the first checkout creates the product and all six prices; the next ones reuse them', async () => {
+test('the first checkout creates the product and both prices; the next ones reuse them', async () => {
   const w = world();
   await run(w, { action: 'checkout', assets: 5 });
-  assert.deepEqual(w.calls.filter(c => c.method === 'POST' && /products/.test(c.p)).map(c => c.p), ['/v1/products']);
+  assert.deepEqual(w.calls.filter(c => c.method === 'POST' && /prices|products/.test(c.p)).map(c => c.p), ['/v1/products', '/v1/prices', '/v1/prices']);
   const made = w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').map(c => [c.form.lookup_key, c.form.unit_amount, c.form.currency, c.form['recurring[interval]']]);
-  assert.deepEqual(made, [
-    ['ownedmap_v2_owner_month', '4700', 'usd', 'month'], ['ownedmap_v2_family_month', '11900', 'usd', 'month'], ['ownedmap_v2_extra_month', '900', 'usd', 'month'],
-    ['ownedmap_v2_owner_year', '47000', 'usd', 'year'], ['ownedmap_v2_family_year', '119000', 'usd', 'year'], ['ownedmap_v2_extra_year', '9000', 'usd', 'year'],
-  ]);
+  assert.deepEqual(made, [[PLAN.keys.base, '4700', 'usd', 'month'], [PLAN.keys.extra, '1500', 'usd', 'month']]);
   const w2 = world({ prices: PRICES });
   await run(w2, { action: 'checkout', assets: 5 });
   assert.ok(!w2.calls.some(c => c.method === 'POST' && /prices|products/.test(c.p)));
 });
-test('checkout: the plan that covers the assets, plus extras only past what it includes, the user in the metadata, a free trial, and a card up front', async () => {
+test('checkout: base plan plus the extras, the user in the metadata, a free trial, and no card needed', async () => {
   const w = world({ prices: PRICES });
-  const r = await run(w, { action: 'checkout', assets: 14 });
+  const r = await run(w, { action: 'checkout', assets: 8 });
   assert.equal(r.status, 200); assert.equal(r.body.url, 'https://checkout.test/cs_1');
   const f = w.calls.find(c => c.p === '/v1/checkout/sessions').form;
   assert.equal(f.mode, 'subscription'); assert.equal(f.client_reference_id, 'u1'); assert.equal(f.customer, 'cus_new');
-  assert.equal(f['line_items[0][price]'], `price_${OWN}`); assert.equal(f['line_items[0][quantity]'], '1'); assert.equal(f['line_items[1][price]'], `price_${EXT}`); assert.equal(f['line_items[1][quantity]'], '4');
+  assert.equal(f['line_items[0][price]'], 'price_b'); assert.equal(f['line_items[0][quantity]'], '1'); assert.equal(f['line_items[1][price]'], 'price_e'); assert.equal(f['line_items[1][quantity]'], '5');
   assert.equal(f['subscription_data[metadata][user_id]'], 'u1'); assert.equal(f['subscription_data[trial_period_days]'], String(PLAN.trialDays));
   assert.ok(!Object.keys(f).some(k => k.includes('trial_settings')), 'no "cancel without a card" rule: the card is taken up front'); assert.equal(f.payment_method_collection, 'always');
   assert.equal(PLAN.trialDays, 7);
   assert.equal(f.success_url, 'https://site.test/app.html?billing=success');
 });
-test('checkout: 25 assets is the Family plan alone, and yearly uses the yearly prices', async () => {
-  const w = world({ prices: PRICES });
-  await run(w, { action: 'checkout', assets: 25 });
-  let f = w.calls.find(c => c.p === '/v1/checkout/sessions').form;
-  assert.equal(f['line_items[0][price]'], `price_${FAM}`); assert.ok(!('line_items[1][price]' in f));
-  const y = world({ prices: PRICES });
-  await run(y, { action: 'checkout', assets: 45, interval: 'year' });
-  f = y.calls.find(c => c.p === '/v1/checkout/sessions').form;
-  assert.equal(f['line_items[0][price]'], 'price_ownedmap_v2_family_year'); assert.equal(f['line_items[1][price]'], 'price_ownedmap_v2_extra_year'); assert.equal(f['line_items[1][quantity]'], '5');
-});
-test('with assets inside the plan there is no extra line, and a returning customer is not given a second trial', async () => {
+test('with exactly the included assets there is no extra line, and a returning customer is not given a second trial', async () => {
   const w = world({ prices: PRICES, subRow: { user_id: 'u1', stripe_customer_id: 'cus_old', status: 'canceled', trial_end: '2026-01-01T00:00:00Z' } });
   await run(w, { action: 'checkout', assets: 3 });
   const f = w.calls.find(c => c.p === '/v1/checkout/sessions').form;
@@ -176,33 +133,18 @@ test('only a signed-in user, with a sane request, gets anything', async () => {
   assert.equal((await runBilling({ env: {}, fetchImpl: w.fetchImpl, token: 'good', body: {} })).status, 503);
   assert.ok(!w.calls.some(c => c.p === '/v1/checkout/sessions'));
 });
-test('changing the number of assets moves between plans and extras, prorated, and saves the result', async () => {
-  const sub = (plan, extra, ek = EXT) => ({ id: 'sub_1', customer: 'cus_1', status: 'active', metadata: { user_id: 'u1' }, items: { data: [{ id: 'si_b', quantity: 1, price: { lookup_key: plan } }, ...(extra ? [{ id: 'si_e', quantity: extra, price: { lookup_key: ek } }] : [])] } });
-  const row = { user_id: 'u1', stripe_customer_id: 'cus_1', stripe_subscription_id: 'sub_1', status: 'active', assets_allowed: 10 };
-  const world1 = s0 => { const w = world({ prices: PRICES, subRow: row }); w.state.subs.set('sub_1', s0); return w; };
-  let w = world1(sub(OWN, 0)), r = await run(w, { action: 'change', assets: 15 });
-  assert.equal(r.body.assetsAllowed, 15); assert.deepEqual(w.state.lastUpdate.ops, [{ id: undefined, price: `price_${EXT}`, quantity: '5', deleted: undefined }]); assert.equal(w.state.lastUpdate.proration, 'create_prorations');
-  w = world1(sub(OWN, 5)); r = await run(w, { action: 'change', assets: 12 });
-  assert.equal(r.body.assetsAllowed, 12); assert.deepEqual(w.state.lastUpdate.ops, [{ id: 'si_e', price: undefined, quantity: '2', deleted: undefined }]);
-  w = world1(sub(OWN, 5)); r = await run(w, { action: 'change', assets: 30 });
-  assert.equal(r.body.assetsAllowed, 40); assert.equal(r.body.tier, 'family');
-  assert.deepEqual(w.state.lastUpdate.ops, [{ id: 'si_b', price: `price_${FAM}`, quantity: '1', deleted: undefined }, { id: 'si_e', price: undefined, quantity: undefined, deleted: 'true' }], 'the plan item changes price and the extras are dropped');
-  w = world1(sub(FAM, 0)); r = await run(w, { action: 'change', assets: 4 });
-  assert.equal(r.body.assetsAllowed, 10); assert.equal(w.state.lastUpdate.ops[0].price, `price_${OWN}`); assert.equal(w.state.lastUpdate.ops.length, 1);
-  w = world1(sub(OWN, 0)); r = await run(w, { action: 'change', assets: 10 }); assert.equal(r.body.assetsAllowed, 10); assert.equal(w.state.lastUpdate, undefined, 'nothing to change, nothing sent');
+test('changing the number of assets adds, updates or removes only the extra item, prorated, and saves the result', async () => {
+  const sub = (extra) => ({ id: 'sub_1', customer: 'cus_1', status: 'active', metadata: { user_id: 'u1' }, items: { data: [{ id: 'si_b', quantity: 1, price: { lookup_key: PLAN.keys.base } }, ...(extra ? [{ id: 'si_e', quantity: extra, price: { lookup_key: PLAN.keys.extra } }] : [])] } });
+  const row = { user_id: 'u1', stripe_customer_id: 'cus_1', stripe_subscription_id: 'sub_1', status: 'active', assets_allowed: 3 };
+  let w = world({ prices: PRICES, subRow: row }); w.state.subs.set('sub_1', sub(0));
+  let r = await run(w, { action: 'change', assets: 10 });
+  assert.equal(r.body.assetsAllowed, 10); assert.equal(w.state.lastUpdate.it['items[0][price]'], 'price_e'); assert.equal(w.state.lastUpdate.it['items[0][quantity]'], '7'); assert.equal(w.state.lastUpdate.proration, 'create_prorations');
+  w = world({ prices: PRICES, subRow: row }); w.state.subs.set('sub_1', sub(7));
+  r = await run(w, { action: 'change', assets: 6 }); assert.equal(r.body.assetsAllowed, 6); assert.equal(w.state.lastUpdate.it['items[0][id]'], 'si_e'); assert.equal(w.state.lastUpdate.it['items[0][quantity]'], '3');
+  w = world({ prices: PRICES, subRow: row }); w.state.subs.set('sub_1', sub(7));
+  r = await run(w, { action: 'change', assets: 3 }); assert.equal(r.body.assetsAllowed, 3); assert.equal(w.state.lastUpdate.it['items[0][deleted]'], 'true');
   w = world({ prices: PRICES, subRow: { ...row, status: 'canceled' } });
   assert.equal((await run(w, { action: 'change', assets: 6 })).status, 409);
-});
-test('a plan can move from monthly to yearly, and the current period can be read back', async () => {
-  const row = { user_id: 'u1', stripe_customer_id: 'cus_1', stripe_subscription_id: 'sub_1', status: 'active', assets_allowed: 12 };
-  const w = world({ prices: PRICES, subRow: row });
-  w.state.subs.set('sub_1', { id: 'sub_1', customer: 'cus_1', status: 'active', metadata: { user_id: 'u1' }, items: { data: [{ id: 'si_b', quantity: 1, price: { lookup_key: OWN } }, { id: 'si_e', quantity: 2, price: { lookup_key: EXT } }] } });
-  assert.deepEqual((await run(w, { action: 'plan' })).body, { interval: 'month', tier: 'owner', assetsAllowed: 12 });
-  const r = await run(w, { action: 'change', assets: 12, interval: 'year' });
-  assert.equal(r.body.interval, 'year'); assert.equal(r.body.assetsAllowed, 12);
-  assert.deepEqual(w.state.lastUpdate.ops.map(o => [o.id, o.price]), [['si_b', 'price_ownedmap_v2_owner_year'], ['si_e', 'price_ownedmap_v2_extra_year']]);
-  assert.equal((await run(w, { action: 'plan' })).body.interval, 'year');
-  assert.equal((await run(world({ prices: PRICES }), { action: 'plan' })).status, 409);
 });
 test('the portal needs a customer; a Stripe error is passed on in plain words and not as a crash', async () => {
   let w = world({ prices: PRICES, subRow: { user_id: 'u1', stripe_customer_id: 'cus_1', status: 'active' } });
@@ -215,7 +157,7 @@ test('the portal needs a customer; a Stripe error is passed on in plain words an
 /* ----------------------------------------------------------------- the webhook */
 const WH = { ...ENV, STRIPE_WEBHOOK_SECRET: 'whsec_t' };
 const event = (type, object, created = 1_800_000_100) => JSON.stringify({ id: 'evt_1', type, created, data: { object } });
-const subObj = (over = {}) => ({ id: 'sub_1', customer: 'cus_1', status: 'active', metadata: { user_id: 'u1' }, cancel_at_period_end: false, items: { data: [{ quantity: 1, price: { lookup_key: OWN }, current_period_end: 1_802_000_000 }, { quantity: 4, price: { lookup_key: EXT } }] }, ...over });
+const subObj = (over = {}) => ({ id: 'sub_1', customer: 'cus_1', status: 'active', metadata: { user_id: 'u1' }, cancel_at_period_end: false, items: { data: [{ quantity: 1, price: { lookup_key: PLAN.keys.base }, current_period_end: 1_802_000_000 }, { quantity: 4, price: { lookup_key: PLAN.keys.extra } }] }, ...over });
 const hit = (w, raw, secret = 'whsec_t', now = 1_800_000_100) => runWebhook({ env: WH, fetchImpl: w.fetchImpl, raw, signature: signPayload(raw, secret, now), now });
 
 test('webhook: a bad signature is refused and nothing is saved', async () => {
@@ -226,7 +168,7 @@ test('webhook: a bad signature is refused and nothing is saved', async () => {
 test('webhook: a subscription event saves the plan for the user named in its metadata', async () => {
   const w = world();
   const r = await hit(w, event('customer.subscription.updated', subObj()));
-  assert.equal(r.status, 200); assert.equal(w.saved[0].user_id, 'u1'); assert.equal(w.saved[0].assets_allowed, 14); assert.equal(w.saved[0].status, 'active'); assert.equal(w.saved[0].stripe_subscription_id, 'sub_1');
+  assert.equal(r.status, 200); assert.equal(w.saved[0].user_id, 'u1'); assert.equal(w.saved[0].assets_allowed, 7); assert.equal(w.saved[0].status, 'active'); assert.equal(w.saved[0].stripe_subscription_id, 'sub_1');
 });
 test('webhook: a deleted subscription becomes canceled; one that is not ours is ignored', async () => {
   let w = world(); await hit(w, event('customer.subscription.deleted', subObj({ status: 'active' }))); assert.equal(w.saved[0].status, 'canceled');
@@ -240,7 +182,7 @@ test('webhook: without metadata the stored customer identifies the user', async 
 test('webhook: checkout completed fetches the subscription and links it to the user who paid', async () => {
   const w = world(); w.state.subs.set('sub_1', subObj({ metadata: {} }));
   const r = await hit(w, event('checkout.session.completed', { id: 'cs_1', mode: 'subscription', subscription: 'sub_1', client_reference_id: 'u7', customer: 'cus_1' }));
-  assert.equal(r.status, 200); assert.equal(w.saved[0].user_id, 'u7'); assert.equal(w.saved[0].assets_allowed, 14);
+  assert.equal(r.status, 200); assert.equal(w.saved[0].user_id, 'u7'); assert.equal(w.saved[0].assets_allowed, 7);
 });
 test('webhook: an older event never overwrites a newer one (Stripe does not promise order)', async () => {
   const w = world({ subRow: { user_id: 'u1', last_event_at: 1_800_000_500 } });
@@ -252,11 +194,10 @@ test('webhook: other events are acknowledged and ignored', async () => {
 });
 test('the client refuses to run without a key', () => { assert.throws(() => stripeClient({ env: {} }), /not configured/); });
 test('ensurePrices keeps what exists and only creates what is missing', async () => {
-  const w = world({ prices: [PRICES[0], PRICES[2]] }); w.state.products.push({ id: 'prod_9', metadata: { app: 'owned-map' } });
+  const w = world({ prices: [PRICES[0]] }); w.state.products.push({ id: 'prod_9', metadata: { app: 'owned-map' } });
   const call = stripeClient({ env: ENV, fetchImpl: w.fetchImpl }), got = await ensurePrices(call);
-  assert.equal(got[OWN], `price_${OWN}`); assert.equal(got[priceKey('family', 'year')], `price_${priceKey('family', 'year')}`);
-  assert.equal(Object.keys(got).length, 6);
-  assert.ok(!w.calls.some(c => c.p === '/v1/products' && c.method === 'POST'), 'the product is reused'); assert.equal(w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').length, 4);
+  assert.equal(got.base, 'price_b'); assert.equal(got.extra, `price_${PLAN.keys.extra}`);
+  assert.ok(!w.calls.some(c => c.p === '/v1/products' && c.method === 'POST'), 'the product is reused'); assert.equal(w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').length, 1);
 });
 test('the portal: an account with no portal configuration gets ours created once, with cancel and invoices, then it opens', async () => {
   const w = world({ prices: PRICES, subRow: { user_id: 'u1', stripe_customer_id: 'cus_1', status: 'trialing' } }); w.state.needPortalCfg = true;

@@ -1,7 +1,7 @@
 // "Plan and billing": start the free trial or subscribe, change how many assets the plan covers, and open Stripe's portal for card, invoices and cancelling.
 // What the plan allows is decided by the database (src/billing-core.js has the rules; the migration enforces them). This file is only the screen.
 import { h } from './dom.js';
-import { PLAN, cleanAssets, quote, usd, priceText, billingView } from './billing-core.js';
+import { PLAN, cleanAssets, priceCents, usd, billingView } from './billing-core.js';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -23,28 +23,14 @@ export function createBillingUi(ctx) {
 
   const go = async (body, label2) => run(label2, async () => cloud.billing(body));
 
-  async function open() {
-    const v = view(), live = ['trial', 'active', 'past_due'].includes(v.state);
-    let current = 'month'; // the billing period of a plan that already exists
-    if (live) { try { current = (await cloud.billing({ action: 'plan' })).interval || 'month'; } catch { /* shown as monthly */ } }
-    let iv = current;
-    const slider = h('input', { id: 'bl-range', type: 'range', min: 1, max: PLAN.maxAssets, step: 1, value: live ? Math.max(1, v.allowed) : PLAN.tiers[0].included, 'aria-label': 'Number of assets' });
-    const count = h('b', { id: 'bl-count' }), price = h('b', { id: 'bl-price' }), planLine = h('p', { class: 'hint', id: 'bl-plan' });
-    const ivBtn = (value, text) => h('button', { type: 'button', class: 'bl-iv', 'data-iv': value, 'aria-pressed': String(iv === value) }, text);
-    const ivMonth = ivBtn('month', 'Monthly'), ivYear = ivBtn('year', 'Yearly · 2 months free');
-    const paint = () => {
-      const n = cleanAssets(slider.value), q = quote(n, iv);
-      count.textContent = String(n); price.textContent = priceText(n, iv);
-      planLine.textContent = `${q.name} plan · covers up to ${q.allowed} assets${iv === 'year' ? ` · about ${usd(q.monthlyCents)} a month` : ''}`;
-      for (const b of [ivMonth, ivYear]) b.setAttribute('aria-pressed', String(b.dataset.iv === iv));
-    };
-    for (const b of [ivMonth, ivYear]) b.addEventListener('click', () => { iv = b.dataset.iv; paint(); });
+  function open() {
+    const v = view();
+    const slider = h('input', { id: 'bl-range', type: 'range', min: PLAN.included, max: PLAN.maxAssets, step: 1, value: v.state === 'trial' || v.state === 'active' || v.state === 'past_due' ? Math.max(PLAN.included, v.allowed) : PLAN.included, 'aria-label': 'Number of assets' });
+    const count = h('b', { id: 'bl-count' }), price = h('b', { id: 'bl-price' });
+    const paint = () => { const n = cleanAssets(slider.value); count.textContent = String(n); price.textContent = `${usd(priceCents(n))} a month`; };
     slider.addEventListener('input', paint); paint();
-    const o = PLAN.tiers[0], f = PLAN.tiers[1];
     const picker = h('div', { class: 'bl-pick' }, h('label', { for: 'bl-range' }, 'How many assets do you want to track?'), slider,
-      h('div', { class: 'bl-ivs', role: 'group', 'aria-label': 'Billing period' }, ivMonth, ivYear),
-      h('p', { class: 'bl-sum' }, count, ' assets · ', price), planLine,
-      h('p', { class: 'hint' }, `${o.name} ${usd(o.cents.month)} a month covers ${o.included} assets, ${f.name} ${usd(f.cents.month)} covers ${f.included}, then ${usd(PLAN.extra.cents.month)} a month for each extra one. Every feature is in every plan. Up to ${PLAN.maxAssets}.`));
+      h('p', { class: 'bl-sum' }, count, ' assets · ', price), h('p', { class: 'hint' }, `${usd(PLAN.baseCents)} includes ${PLAN.included} assets, then ${usd(PLAN.extraCents)} for each extra one. Up to ${PLAN.maxAssets}.`));
     const err = h('p', { class: 'err form-err', role: 'alert' });
     const btn = (text, fn, kind = 'btn btn-primary btn-sm') => { const b = h('button', { type: 'button', class: kind }, h('span', { class: 'lbl' }, text), h('span', { class: 'spin', 'aria-hidden': 'true' })); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('busy'); try { await fn(); } finally { b.disabled = false; b.classList.remove('busy'); } }); return b; };
     const portal = btn(v.state === 'trial' ? 'Manage payment or cancel' : 'Manage payment and invoices', async () => { const r = await go({ action: 'portal' }, 'Could not open the billing page'); if (r?.url) location.href = r.url; }, 'btn btn-dark btn-sm');
@@ -54,13 +40,13 @@ export function createBillingUi(ctx) {
       body = h('p', { class: 'modal-text' }, 'Your account has unlimited access. There is nothing to pay.');
     } else if (v.state === 'none' || v.state === 'ended') {
       const trial = v.trialAvailable;
-      body = h('div', {}, h('p', { class: 'modal-text' }, v.state === 'ended' ? 'Your plan has ended. Your assets are all still here and you can still look at them; to add more, choose a plan again.' : trial ? `Try it free for ${PLAN.trialDays} days. A card is needed to start; you are charged ${priceText(cleanAssets(slider.value), iv)} only when the trial ends, and you can cancel before then.` : 'Choose how many assets you want to track.'), picker, err,
-        h('div', { class: 'modal-actions' }, btn(trial ? `Start ${PLAN.trialDays}-day free trial` : 'Subscribe', async () => { err.textContent = ''; const r = await go({ action: 'checkout', assets: cleanAssets(slider.value), interval: iv }, 'Could not start checkout'); if (r?.url) location.href = r.url; })));
+      body = h('div', {}, h('p', { class: 'modal-text' }, v.state === 'ended' ? 'Your plan has ended. Your assets are all still here and you can still look at them; to add more, choose a plan again.' : trial ? `Try it free for ${PLAN.trialDays} days. A card is needed to start; you are charged ${usd(priceCents(cleanAssets(slider.value)))} a month only when the trial ends, and you can cancel before then.` : 'Choose how many assets you want to track.'), picker, err,
+        h('div', { class: 'modal-actions' }, btn(trial ? `Start ${PLAN.trialDays}-day free trial` : 'Subscribe', async () => { err.textContent = ''; const r = await go({ action: 'checkout', assets: cleanAssets(slider.value) }, 'Could not start checkout'); if (r?.url) location.href = r.url; })));
     } else {
-      const changed = () => quote(slider.value, iv).allowed !== v.allowed || iv !== current;
+      const changed = () => cleanAssets(slider.value) !== v.allowed;
       const update = btn('Update plan', async () => {
         if (!changed()) { toast('That is already your plan.'); return; }
-        const r = await go({ action: 'change', assets: cleanAssets(slider.value), interval: iv }, 'Could not change the plan');
+        const r = await go({ action: 'change', assets: cleanAssets(slider.value) }, 'Could not change the plan');
         if (r?.ok) { await load(); toast('Plan updated. Stripe adjusts the next invoice for the difference.'); open(); }
       });
       body = h('div', {},

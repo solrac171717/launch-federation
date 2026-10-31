@@ -9,7 +9,6 @@
     "start": "node scripts/serve.mjs",
     "mock": "node scripts/mock-supabase.mjs",
     "e2e": "node scripts/e2e-cloud.mjs",
-    "stripe:setup": "node scripts/setup-stripe.mjs",
     "make-map": "node scripts/make-map.mjs",
     "make-countries": "node scripts/make-countries.mjs",
     "make-regions": "node scripts/make-regions.mjs"

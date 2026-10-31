@@ -1,12 +1,11 @@
-// POST /api/billing: what a signed-in user can do about their plan. The body says which: { action, assets, interval }.
+// POST /api/billing: what a signed-in user can do about their plan. The body says which: { action, assets }.
 //   checkout  -> a Stripe Checkout page for the chosen number of assets (a free trial first, with a card, when the person has not had one)
-//   change    -> change the number of assets (and optionally monthly/yearly) on an existing subscription (prorated by Stripe)
-//   plan      -> which plan and billing period the current subscription is on
+//   change    -> change the number of assets on an existing subscription (prorated by Stripe)
 //   portal    -> Stripe's customer portal: card, invoices, cancel
 // The prices are found, or created the first time, by lookup key (see ensurePrices). The subscription row itself is written by the webhook
 // (and right after a change), never by the browser. Env: STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY (optional), SITE_URL (optional).
-import { PLAN, cleanAssets, cleanInterval, describeKey, priceKey, LIVE } from '../src/billing-core.js';
-import { stripeClient, ensurePrices, planItems, ensurePortalConfig, subscriptionRow, supabaseClient, saveSubscription, StripeError } from './_stripe.js';
+import { PLAN, cleanAssets, extraQty, LIVE } from '../src/billing-core.js';
+import { stripeClient, ensurePrices, ensurePortalConfig, subscriptionRow, supabaseClient, saveSubscription, StripeError } from './_stripe.js';
 
 const send = (res, status, body) => {
   res.statusCode = status;
@@ -40,11 +39,11 @@ export async function runBilling({ env, fetchImpl = fetch, token, body, siteUrl 
         const saved = await sb('/rest/v1/subscriptions?on_conflict=user_id', { method: 'POST', body: JSON.stringify({ user_id: user.id, stripe_customer_id: customer, status: 'none', assets_allowed: 0 }), headers: { prefer: 'resolution=merge-duplicates,return=minimal' } });
         if (!saved.ok) return fail(502, 'save_failed');
       }
-      const { items } = planItems(await ensurePrices(stripe), assets, cleanInterval(body.interval));
+      const prices = await ensurePrices(stripe), extra = extraQty(assets);
       const trial = PLAN.trialDays > 0 && !cur?.trial_end; // one free trial per person
       const session = await stripe('POST', '/v1/checkout/sessions', {
         mode: 'subscription', customer, client_reference_id: user.id, allow_promotion_codes: true,
-        line_items: items,
+        line_items: [{ price: prices.base, quantity: 1 }, ...(extra ? [{ price: prices.extra, quantity: extra }] : [])],
         success_url: `${site}/app.html?billing=success`, cancel_url: `${site}/app.html?billing=cancel`,
         payment_method_collection: 'always', // the trial needs a card: it is charged when the trial ends, unless the person cancels first
         subscription_data: { metadata: { user_id: user.id }, ...(trial ? { trial_period_days: PLAN.trialDays } : {}) },
@@ -52,27 +51,16 @@ export async function runBilling({ env, fetchImpl = fetch, token, body, siteUrl 
       return { status: 200, body: { url: session.url } };
     }
 
-    if (action === 'plan' || action === 'change') {
+    if (action === 'change') {
+      const assets = cleanAssets(body.assets); if (assets === null) return fail(400, 'bad_assets');
       if (!cur?.stripe_subscription_id || !LIVE.includes(cur.status)) return fail(409, 'no_subscription');
       const sub = await stripe('GET', `/v1/subscriptions/${encodeURIComponent(cur.stripe_subscription_id)}`);
-      const lines = (sub.items?.data || []).map(i => ({ item: i, d: describeKey(i.price?.lookup_key) })), baseLine = lines.find(l => l.d?.base), extraLine = lines.find(l => l.d?.extra);
-      const interval = baseLine?.d.interval || 'month';
-      if (action === 'plan') return { status: 200, body: { interval, tier: baseLine?.d.tier || null, assetsAllowed: cur.assets_allowed } };
-
-      const assets = cleanAssets(body.assets); if (assets === null) return fail(400, 'bad_assets');
-      const want = planItems(await ensurePrices(stripe), assets, body.interval ? cleanInterval(body.interval) : interval), changes = [];
-      const [wantBase, wantExtra] = want.items, wantBaseKey = priceKey(want.quote.tier, want.quote.interval), wantExtraKey = priceKey('extra', want.quote.interval);
-      if (baseLine) { if (baseLine.item.price.lookup_key !== wantBaseKey) changes.push({ id: baseLine.item.id, price: wantBase.price, quantity: 1 }); }
-      else changes.push({ price: wantBase.price, quantity: 1 });
-      if (wantExtra) {
-        if (!extraLine) changes.push({ price: wantExtra.price, quantity: wantExtra.quantity });
-        else if (extraLine.item.price.lookup_key !== wantExtraKey) changes.push({ id: extraLine.item.id, price: wantExtra.price, quantity: wantExtra.quantity });
-        else if (Number(extraLine.item.quantity) !== wantExtra.quantity) changes.push({ id: extraLine.item.id, quantity: wantExtra.quantity });
-      } else if (extraLine) changes.push({ id: extraLine.item.id, deleted: true });
-      const updated = changes.length ? await stripe('POST', `/v1/subscriptions/${encodeURIComponent(sub.id)}`, { items: changes, proration_behavior: 'create_prorations' }) : sub;
+      const prices = await ensurePrices(stripe), want = extraQty(assets), have = (sub.items?.data || []).find(i => i.price?.lookup_key === PLAN.keys.extra);
+      const items = have ? [want ? { id: have.id, quantity: want } : { id: have.id, deleted: true }] : want ? [{ price: prices.extra, quantity: want }] : [];
+      const updated = items.length ? await stripe('POST', `/v1/subscriptions/${encodeURIComponent(sub.id)}`, { items, proration_behavior: 'create_prorations' }) : sub;
       const next = subscriptionRow(updated, user.id, Math.floor(Date.now() / 1000));
       await saveSubscription(sb, next);
-      return { status: 200, body: { ok: true, assetsAllowed: next.assets_allowed, interval: want.quote.interval, tier: want.quote.tier } };
+      return { status: 200, body: { ok: true, assetsAllowed: next.assets_allowed } };
     }
 
     if (action === 'portal') {

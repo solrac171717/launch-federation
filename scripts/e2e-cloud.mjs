@@ -572,24 +572,23 @@ await step('billing: limits stop extra assets without a plan; the free trial sta
 
   // the free trial for 5 assets, through (pretend) Stripe checkout
   await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan screen');
-  await slide(12); await until(`/\\$65 a month/.test(document.getElementById('bl-price').textContent) && /Owner plan/.test(document.getElementById('bl-plan').textContent)`, 'price follows the slider (Owner $47 + 2 x $9)');
+  await slide(5); await until(`/\\$77 a month/.test(document.getElementById('bl-price').textContent)`, 'price follows the slider ($47 + 2 x $15)');
   await mbtn('Start 7-day free trial');
   await until(`/Trial/.test(document.getElementById('plan-btn')?.textContent || '')`, 'trial started after coming back from checkout', 20000);
   const [row] = await subs();
-  if (row.status !== 'trialing' || row.assets_allowed !== 12) throw new Error('plan not saved from the webhook: ' + JSON.stringify(row));
+  if (row.status !== 'trialing' || row.assets_allowed !== 5) throw new Error('plan not saved from the webhook: ' + JSON.stringify(row));
   const sent = (await (await fetch(`${mock.origin}/__log`)).json()).find(l => l[0] === 'stripe-checkout');
-  if (!sent || !/ownedmap_v2_owner_month","1"/.test(sent[1]) || !/ownedmap_v2_extra_month","2"/.test(sent[1]) || !/"trial":"7"/.test(sent[1])) throw new Error('checkout was not what was chosen: ' + (sent && sent[1]));
+  if (!sent || !/ownedmap_base_monthly","1"/.test(sent[1]) || !/ownedmap_extra_asset_monthly","2"/.test(sent[1]) || !/"trial":"7"/.test(sent[1])) throw new Error('checkout was not what was chosen: ' + (sent && sent[1]));
 
   // inside the plan, and the edge of it
-  if ((await importRows(['A2', 'A3'])) !== 'ok') throw new Error('1 + 2 assets fit a 12-asset plan');
-  if ((await importRows(Array.from({ length: 10 }, (_, i) => `B${i + 1}`))) !== 'blocked') throw new Error('3 + 10 assets do not fit a 12-asset plan');
+  if ((await importRows(['A2', 'A3'])) !== 'ok') throw new Error('1 + 2 assets fit a 5-asset plan');
+  if ((await importRows(['A4', 'A5', 'A6'])) !== 'blocked') throw new Error('3 + 3 assets do not fit a 5-asset plan');
   const total = (await rows()).filter(r => /^A\d$/.test(r.name)).length; if (total !== 3) throw new Error('a refused import must add nothing, found ' + total);
 
   // a bigger plan
-  await click('#plan-btn'); await until(`document.getElementById('bl-range') && /Using 3 of 12/.test(document.getElementById('modal').textContent)`, 'usage shown');
-  await slide(30); await until(`/\\$119 a month/.test(document.getElementById('bl-price').textContent) && /Family plan . covers up to 40/.test(document.getElementById('bl-plan').textContent)`, '30 assets is the Family plan');
-  await slide(14); await mbtn('Update plan'); await until(`/Plan updated/.test(document.getElementById('toast').textContent)`, 'plan updated');
-  if ((await subs())[0].assets_allowed !== 14) throw new Error('the change did not reach the plan');
+  await click('#plan-btn'); await until(`document.getElementById('bl-range') && /Using 3 of 5/.test(document.getElementById('modal').textContent)`, 'usage shown');
+  await slide(8); await mbtn('Update plan'); await until(`/Plan updated/.test(document.getElementById('toast').textContent)`, 'plan updated');
+  if ((await subs())[0].assets_allowed !== 8) throw new Error('the change did not reach the plan');
   if ((await importRows(['A4', 'A5', 'A6'])) !== 'ok') throw new Error('the bigger plan should have room');
 
   // the customer portal (Stripe hosts it)
@@ -613,15 +612,15 @@ await step('billing: limits stop extra assets without a plan; the free trial sta
 await step('start for free: the button opens Stripe checkout with no account, paying creates the account, the payer chooses a password once and lands in the app on a trial; an existing email is never opened', async () => {
   const NEW = 'newbuyer@example.com', OLD = 'existing.buyer@example.com';
   await ev(`localStorage.clear()`); await fetch(`${mock.origin}/__buyer?email=${NEW}`);
-  await goto(`${mock.origin}/api/start?assets=14`);
+  await goto(`${mock.origin}/api/start?assets=5`);
   await until(`document.getElementById('wl-form')`, 'welcome page after checkout', 15000);
   const sent = (await (await fetch(`${mock.origin}/__log`)).json()).filter(l => l[0] === 'stripe-checkout').at(-1);
-  if (!sent || !/"trial":"7"/.test(sent[1]) || !/ownedmap_v2_owner_month","1"/.test(sent[1]) || !/ownedmap_v2_extra_month","4"/.test(sent[1])) throw new Error('checkout was not 14 assets with a 7-day trial: ' + (sent && sent[1]));
+  if (!sent || !/"trial":"7"/.test(sent[1]) || !/ownedmap_extra_asset_monthly","2"/.test(sent[1])) throw new Error('checkout was not 5 assets with a 7-day trial: ' + (sent && sent[1]));
   if (!(await ev(`document.getElementById('wl-email').value === ${JSON.stringify(NEW)}`))) throw new Error('the email typed at checkout should be shown');
   if (/session_id/.test(await ev(`location.href`))) throw new Error('the checkout id must not stay in the address bar');
   const [claim] = await (await fetch(`${mock.origin}/__claims`)).json();
   const [sub] = (await (await fetch(`${mock.origin}/__subs`)).json()).filter(r => r.status === 'trialing');
-  if (!claim || !claim.claimable || !sub || sub.assets_allowed !== 14) throw new Error('account and plan were not prepared: ' + JSON.stringify({ claim, sub }));
+  if (!claim || !claim.claimable || !sub || sub.assets_allowed !== 5) throw new Error('account and plan were not prepared: ' + JSON.stringify({ claim, sub }));
   await ev(`(()=>{document.getElementById('wl-pw').value='short'; document.getElementById('wl-pw2').value='short'; document.getElementById('wl-form').requestSubmit();})()`);
   await until(`/at least 10/.test(document.querySelector('#wl-form .err').textContent)`, 'weak password refused');
   await ev(`(()=>{document.getElementById('wl-pw').value='buyer-password-1'; document.getElementById('wl-pw2').value='buyer-password-1'; document.getElementById('wl-form').requestSubmit();})()`);

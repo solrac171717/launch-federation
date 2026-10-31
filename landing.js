@@ -1,6 +1,5 @@
 import { h, s, clear, money, compact, pct1, TODAY, ICON, icon, thumb, Delta, statusDot, assetCard, valuationChart, trackHover, analytics } from './src/ui.js';
 import { fmtPct, fmtSigned, tone } from './src/calc.js';
-import { quote, priceText } from './src/billing-core.js';
 import {
   ASSETS, CATEGORIES, WESTLAKE_MONTHS, WESTLAKE_INCOME, WESTLAKE_EXPENSES,
   WESTLAKE_VALUATIONS, portfolio, byId,
@@ -311,32 +310,29 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
 
 /* ------------------------------------------------------------- pricing */
 {
+  const BASE = 47, INCLUDED = 3, EXTRA = 15;
   const range = document.getElementById('px-range');
   if (range) {
-    const total = document.getElementById('px-total'), mqr = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let iv = 'month', shown = quote(+range.value, iv).cents, raf = 0;
+    const total = document.getElementById('px-total'), count = document.getElementById('px-count');
+    const mqr = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let shown = BASE, raf = 0;
+    const price = n => BASE + Math.max(0, n - INCLUDED) * EXTRA;
     const paint = v => { total.textContent = USD0.format(Math.round(v)); };
     const update = () => {
-      const n = +range.value, q = quote(n, iv), p = q.cents;
-      const go = document.querySelector('.px-btn'); if (go) go.setAttribute('href', n === 10 && iv === 'month' ? '/api/start' : `/api/start?assets=${n}${iv === 'year' ? '&interval=year' : ''}`); // the button opens checkout for the assets on the slider
+      const n = +range.value, p = price(n);
+      const go = document.querySelector('.px-btn'); if (go) go.setAttribute('href', n === INCLUDED ? '/api/start' : `/api/start?assets=${n}`); // the button opens checkout for the number of assets on the slider
       const pct = ((n - range.min) / (range.max - range.min)) * 100; range.style.setProperty('--p', `${pct}%`);
       const bub = document.getElementById('px-bubble'); bub.style.setProperty('--q', pct.toFixed(2)); bub.textContent = String(n);
-      range.setAttribute('aria-valuetext', `${n} assets, ${priceText(n, iv)}`);
-      document.getElementById('px-count').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
-      document.getElementById('px-plan').textContent = q.name; document.getElementById('px-cover').textContent = String(q.allowed);
-      document.getElementById('px-eq').textContent = iv === 'year' ? ` assets · about ${USD0.format(q.monthlyCents / 100)} a month` : ' assets';
-      document.getElementById('px-feat-n').textContent = String(q.allowed); document.getElementById('px-per').textContent = iv === 'year' ? '/year' : '/month';
-      document.getElementById('px-after').textContent = priceText(n, iv);
-      document.querySelectorAll('[data-px-iv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pxIv === iv)));
+      range.setAttribute('aria-valuetext', `${n} assets, ${USD0.format(p)} per month`);
+      count.textContent = String(n); document.getElementById('px-feat-n').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
       cancelAnimationFrame(raf);
-      if (mqr) { shown = p / 100; paint(shown); return; }
-      const from = shown, to = p / 100, t0 = performance.now();
-      const step = now => { const k = Math.min(1, (now - t0) / 380), e = 1 - Math.pow(1 - k, 3); shown = from + (to - from) * e; paint(shown); if (k < 1) raf = requestAnimationFrame(step); };
+      if (mqr) { shown = p; paint(p); return; }
+      const from = shown, t0 = performance.now();
+      const step = now => { const k = Math.min(1, (now - t0) / 380), e = 1 - Math.pow(1 - k, 3); shown = from + (p - from) * e; paint(shown); if (k < 1) raf = requestAnimationFrame(step); };
       raf = requestAnimationFrame(step);
     };
     range.addEventListener('input', update); update();
     document.querySelectorAll('[data-px]').forEach(b => b.addEventListener('click', () => { range.value = b.dataset.px; update(); analytics.track('pricing_preset', { assets: +b.dataset.px }); }));
-    document.querySelectorAll('[data-px-iv]').forEach(b => b.addEventListener('click', () => { iv = b.dataset.pxIv; update(); analytics.track('pricing_interval', { interval: iv }); }));
-    range.addEventListener('change', () => analytics.track('pricing_slider', { assets: +range.value, price: quote(+range.value, iv).cents / 100, interval: iv }));
+    range.addEventListener('change', () => analytics.track('pricing_slider', { assets: +range.value, price: price(+range.value) }));
   }
 }
