@@ -85,7 +85,7 @@ export function mountDashboard(opts) {
   function setView(v) {
     state.view = v; geo.toggle.hidden = v !== 'map';
     for (const [k, el] of Object.entries(views)) if (el) el.hidden = k !== v;
-    const url = $('app-url'); if (url) url.textContent = `ownedmap.app / portfolio / ${v}`;
+    const url = $('app-url'); if (url) url.textContent = `ownedmap.com / portfolio / ${v}`;
     $('view-title').textContent = NAVS.find(n => n[0] === v)[1];
     renderNav();
     ({ map: renderMap, assets: renderAssets, perf: renderPerf, reports: renderReports, reminders: renderReminders, cashflow: renderCashflow, insights: renderInsights })[v]();
