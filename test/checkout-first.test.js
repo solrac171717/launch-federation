@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PLAN } from '../src/billing-core.js';
+import { priceDefs, priceKey } from '../src/billing-core.js';
 import { stripeClient, signPayload } from '../api/_stripe.js';
 import { runStart, allowed } from '../api/start.js';
 import { runWelcome } from '../api/welcome.js';
 import { runWebhook } from '../api/stripe-webhook.js';
 import { provisionFromSession, SESSION_ID } from '../api/_provision.js';
 
-const PRICES = [{ id: 'price_b', lookup_key: PLAN.keys.base, active: true }, { id: 'price_e', lookup_key: PLAN.keys.extra, active: true }];
+const OWN = priceKey('owner', 'month'), EXT = priceKey('extra', 'month');
+const PRICES = priceDefs().map(d => ({ id: `price_${d.key}`, lookup_key: d.key, active: true }));
 const SENV = { STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_API_BASE: 'https://stripe.test', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'srv', SITE_URL: 'https://site.test' };
 const NOW = 1_800_000_500;
 
@@ -16,7 +17,7 @@ function shop({ existing = {}, session = {}, rows = {} } = {}) {
   const calls = [], created = [], saved = [], cancelled = [], claims = new Map(), passwords = [], subRows = new Map(Object.entries(rows));
   const SID = 'cs_test_abc123def456';
   const sess = { id: SID, status: 'complete', mode: 'subscription', subscription: 'sub_9', customer: 'cus_9', customer_details: { email: 'Buyer@X.test' }, created: 1_800_000_000, ...session };
-  const sub = { id: 'sub_9', customer: 'cus_9', status: 'trialing', trial_end: 1_800_700_000, items: { data: [{ quantity: 1, price: { lookup_key: PLAN.keys.base }, current_period_end: 1_802_000_000 }, { quantity: 2, price: { lookup_key: PLAN.keys.extra } }] } };
+  const sub = { id: 'sub_9', customer: 'cus_9', status: 'trialing', trial_end: 1_800_700_000, items: { data: [{ quantity: 1, price: { lookup_key: OWN }, current_period_end: 1_802_000_000 }, { quantity: 2, price: { lookup_key: EXT } }] } };
   const json = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
   const fetchImpl = async (url, init = {}) => {
     const u = new URL(url), method = init.method || 'GET', raw = init.body || '';
@@ -52,19 +53,22 @@ const provision = async s => { const stripe = stripeClient({ env: SENV, fetchImp
 
 test('start: the button goes straight to Stripe for the chosen assets, with the trial and a clear charge notice, and needs no account', async () => {
   const s = shop();
-  const r = await runStart({ env: SENV, fetchImpl: s.fetchImpl, assets: '6', siteUrl: 'https://site.test' });
+  const r = await runStart({ env: SENV, fetchImpl: s.fetchImpl, assets: '16', siteUrl: 'https://site.test' });
   assert.equal(r.status, 303); assert.equal(r.location, 'https://checkout.stripe.test/c/pay');
   const f = s.calls.find(c => c.path === '/v1/checkout/sessions' && c.method === 'POST').form;
   assert.equal(f.mode, 'subscription'); assert.ok(!('customer' in f) && !('client_reference_id' in f), 'no account is needed');
-  assert.equal(f['line_items[0][quantity]'], '1'); assert.equal(f['line_items[1][quantity]'], '3');
+  assert.equal(f['line_items[0][quantity]'], '1'); assert.equal(f['line_items[1][quantity]'], '6');
   assert.equal(f['subscription_data[trial_period_days]'], '7'); assert.equal(f.payment_method_collection, 'always');
   assert.equal(f.success_url, 'https://site.test/welcome.html?session_id={CHECKOUT_SESSION_ID}'); assert.equal(f.cancel_url, 'https://site.test/');
-  assert.match(f['custom_text[submit][message]'], /\$92 a month unless you cancel before it ends/); assert.match(f['custom_text[submit][message]'], /terms\.html/);
+  assert.match(f['custom_text[submit][message]'], /\$101 a month unless you cancel before it ends/); assert.match(f['custom_text[submit][message]'], /terms\.html/);
+  const y = shop(); await runStart({ env: SENV, fetchImpl: y.fetchImpl, assets: '25', interval: 'year', siteUrl: 'https://site.test' });
+  const g = y.calls.find(c => c.path === '/v1/checkout/sessions' && c.method === 'POST').form;
+  assert.equal(g['line_items[0][price]'], 'price_ownedmap_v2_family_year'); assert.ok(!('line_items[1][price]' in g)); assert.match(g['custom_text[submit][message]'], /\$1,190 a year unless/);
 });
-test('start: with no number of assets it is the base plan, with no extra line', async () => {
+test('start: with no number of assets it is the Owner plan, with no extra line', async () => {
   const s = shop(); await runStart({ env: SENV, fetchImpl: s.fetchImpl, siteUrl: 'https://site.test' });
   const f = s.calls.find(c => c.path === '/v1/checkout/sessions' && c.method === 'POST').form;
-  assert.equal(f['line_items[0][price]'], 'price_b'); assert.ok(!('line_items[1][price]' in f));
+  assert.equal(f['line_items[0][price]'], `price_${OWN}`); assert.ok(!('line_items[1][price]' in f));
 });
 test('start: without Stripe it says so, and a visitor cannot open sessions in a loop', async () => {
   assert.equal((await runStart({ env: {}, fetchImpl: shop().fetchImpl, siteUrl: 'https://site.test' })).status, 503);
@@ -76,7 +80,7 @@ test('provision: a new email gets an account with an unknown password, the plan,
   const s = shop(), r = await provision(s);
   assert.deepEqual([r.email, r.created], ['buyer@x.test', true]);
   assert.equal(s.created.length, 1); assert.equal(s.created[0].email_confirm, true); assert.ok(s.created[0].password.length >= 30);
-  assert.equal(s.saved[0].user_id, 'new-1'); assert.equal(s.saved[0].assets_allowed, 5); assert.equal(s.saved[0].status, 'trialing');
+  assert.equal(s.saved[0].user_id, 'new-1'); assert.equal(s.saved[0].assets_allowed, 12); assert.equal(s.saved[0].status, 'trialing');
   assert.equal(s.claims.get(s.SID).claimable, true);
   await provision(s);
   assert.equal(s.created.length, 1, 'running it twice (the webhook and the page) creates one account'); assert.equal(s.claims.get(s.SID).claimable, true, 'the claim keeps what the first run decided');
@@ -127,5 +131,5 @@ test('welcome: an unfinished or malformed checkout is simply not found', async (
 test('webhook: a payment without an account makes the account from the email typed at checkout', async () => {
   const s = shop(), raw = JSON.stringify({ id: 'evt_9', type: 'checkout.session.completed', created: NOW, data: { object: { id: s.SID, mode: 'subscription', subscription: 'sub_9', customer: 'cus_9', client_reference_id: null, customer_details: { email: 'Buyer@X.test' } } } });
   const r = await runWebhook({ env: { ...SENV, STRIPE_WEBHOOK_SECRET: 'whsec_t' }, fetchImpl: s.fetchImpl, raw, signature: signPayload(raw, 'whsec_t', NOW), now: NOW });
-  assert.equal(r.status, 200); assert.equal(r.body.provisioned, true); assert.equal(s.created[0].email, 'buyer@x.test'); assert.equal(s.saved[0].assets_allowed, 5);
+  assert.equal(r.status, 200); assert.equal(r.body.provisioned, true); assert.equal(s.created[0].email, 'buyer@x.test'); assert.equal(s.saved[0].assets_allowed, 12);
 });

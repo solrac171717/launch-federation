@@ -136,7 +136,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         if (sp === 'customers' && req.method === 'POST') { const c = { id: sid('cus'), email: b.email, metadata: b.metadata }; stripe.customers.set(c.id, c); return json(res, 200, c); }
         if (sp === 'products' && req.method === 'GET') return json(res, 200, { data: stripe.products });
         if (sp === 'products') { const p = { id: sid('prod'), ...b }; stripe.products.push(p); return json(res, 200, p); }
-        if (sp === 'prices' && req.method === 'GET') { const want = url.searchParams.getAll('lookup_keys[0]').concat(url.searchParams.getAll('lookup_keys[1]')); return json(res, 200, { data: stripe.prices.filter(p => p.active && want.includes(p.lookup_key)) }); }
+        if (sp === 'prices' && req.method === 'GET') { const want = [...url.searchParams].filter(([k]) => k.startsWith('lookup_keys[')).map(([, v]) => v); return json(res, 200, { data: stripe.prices.filter(p => p.active && want.includes(p.lookup_key)) }); }
         if (sp === 'prices') { for (const p of stripe.prices) if (p.lookup_key === b.lookup_key) { p.active = false; p.lookup_key = null; } const p = { id: sid('price'), active: true, lookup_key: b.lookup_key, unit_amount: Number(b.unit_amount), recurring: b.recurring, product: b.product }; stripe.prices.push(p); return json(res, 200, p); }
         if (sp === 'checkout/sessions' && req.method === 'GET') return json(res, 404, {});
         const getSession = /^checkout\/sessions\/(.+)$/.exec(sp);
@@ -148,7 +148,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
           const sub = stripe.subs.get(m[1]); if (!sub) return json(res, 404, { error: { message: 'No such subscription' } });
           if (req.method === 'POST') for (const it of b.items || []) {
             if (it.id && it.deleted) sub.items = sub.items.filter(x => x.id !== it.id);
-            else if (it.id) sub.items.find(x => x.id === it.id).quantity = Number(it.quantity);
+            else if (it.id) { const x = sub.items.find(y => y.id === it.id); if (it.price) x.price = priceById(it.price); if (it.quantity !== undefined) x.quantity = Number(it.quantity); }
             else sub.items.push({ id: sid('si'), quantity: Number(it.quantity), price: priceById(it.price), current_period_end: Math.floor(Date.now() / 1000) + 30 * 86400 });
           }
           return json(res, 200, subJson(sub));

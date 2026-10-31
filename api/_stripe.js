@@ -1,7 +1,7 @@
 // Stripe without the SDK: a small client (form-encoded requests, like the REST API expects), webhook signature check, and the sync of a Stripe
 // subscription into the `subscriptions` table. Used by api/billing.js and api/stripe-webhook.js. The leading underscore keeps Vercel from serving it as a route.
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { PLAN, allowedFromItems } from '../src/billing-core.js';
+import { PLAN, allowedFromItems, priceDefs, priceKey, quote } from '../src/billing-core.js';
 
 export class StripeError extends Error {
   constructor(message, status = 502, code = '') { super(message); this.name = 'StripeError'; this.status = status; this.code = code; }
@@ -45,19 +45,26 @@ export function verifySignature(raw, header, secret, now = Math.floor(Date.now()
 /** For tests and the local mock: a header that verifySignature accepts. */
 export const signPayload = (raw, secret, t = Math.floor(Date.now() / 1000)) => `t=${t},v1=${createHmac('sha256', secret).update(`${t}.${raw}`).digest('hex')}`;
 
-/** The two prices of the plan, found by lookup key; created (with their product) the first time, in whichever mode the key belongs to. */
+/** Every price of the plans, found by lookup key and created (with their product) the first time, in whichever mode the key belongs to. Returns { lookupKey: priceId }. */
 export async function ensurePrices(stripe) {
-  const want = [PLAN.keys.base, PLAN.keys.extra];
-  const found = await stripe('GET', '/v1/prices', { lookup_keys: want, active: true, limit: 10 });
+  const defs = priceDefs(), want = defs.map(d => d.key);
+  const found = await stripe('GET', '/v1/prices', { lookup_keys: want, active: true, limit: 100 });
   const byKey = Object.fromEntries((found.data || []).map(p => [p.lookup_key, p.id]));
-  if (want.every(k => byKey[k])) return { base: byKey[PLAN.keys.base], extra: byKey[PLAN.keys.extra] };
+  if (want.every(k => byKey[k])) return byKey;
   const products = await stripe('GET', '/v1/products', { active: true, limit: 100 });
   let product = (products.data || []).find(p => p.metadata?.app === 'owned-map')?.id;
-  if (!product) product = (await stripe('POST', '/v1/products', { name: PLAN.name, description: 'Track your assets on one map. 3 assets included, extra assets billed monthly.', metadata: { app: 'owned-map' } })).id;
-  const make = (key, cents, nickname) => stripe('POST', '/v1/prices', { product, currency: PLAN.currency, unit_amount: cents, recurring: { interval: PLAN.interval }, lookup_key: key, transfer_lookup_key: true, nickname, metadata: { app: 'owned-map' } });
-  if (!byKey[PLAN.keys.base]) byKey[PLAN.keys.base] = (await make(PLAN.keys.base, PLAN.baseCents, `Base plan, ${PLAN.included} assets`)).id;
-  if (!byKey[PLAN.keys.extra]) byKey[PLAN.keys.extra] = (await make(PLAN.keys.extra, PLAN.extraCents, 'Extra asset')).id;
-  return { base: byKey[PLAN.keys.base], extra: byKey[PLAN.keys.extra] };
+  if (!product) product = (await stripe('POST', '/v1/products', { name: PLAN.name, description: 'Track everything you own on one map. Plans by number of assets, billed monthly or yearly.', metadata: { app: 'owned-map' } })).id;
+  for (const d of defs) {
+    if (byKey[d.key]) continue;
+    byKey[d.key] = (await stripe('POST', '/v1/prices', { product, currency: PLAN.currency, unit_amount: d.cents, recurring: { interval: d.interval }, lookup_key: d.key, transfer_lookup_key: true, nickname: d.nickname, metadata: { app: 'owned-map' } })).id;
+  }
+  return byKey;
+}
+
+/** The Checkout / subscription line items for a number of assets: the plan once, plus the extra assets. Returns { items: [{ price, quantity }], quote }. */
+export function planItems(prices, assets, interval) {
+  const q = quote(assets, interval);
+  return { quote: q, items: [{ price: prices[priceKey(q.tier, q.interval)], quantity: 1 }, ...(q.extra ? [{ price: prices[priceKey('extra', q.interval)], quantity: q.extra }] : [])] };
 }
 
 const iso = s => (s ? new Date(Number(s) * 1000).toISOString() : null);
