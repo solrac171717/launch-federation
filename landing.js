@@ -332,7 +332,6 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
       raf = requestAnimationFrame(step);
     };
     range.addEventListener('input', update); update();
-    document.querySelectorAll('[data-px]').forEach(b => b.addEventListener('click', () => { range.value = b.dataset.px; update(); analytics.track('pricing_preset', { assets: +b.dataset.px }); }));
     range.addEventListener('change', () => analytics.track('pricing_slider', { assets: +range.value, price: price(+range.value) }));
   }
 }
