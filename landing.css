@@ -1045,3 +1045,5 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .proof-avatars img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; margin-left: -8px; object-fit: cover; background: #CBD5E1; }
 .proof-avatars img:first-child { margin-left: 0; }
 .proof-badge { flex: 0 0 auto; }
+.proof, .proof b { color: #0A0A0F; }
+.device { margin-top: clamp(24px, 3vw, 48px); }
