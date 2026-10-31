@@ -1047,3 +1047,4 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .proof-badge { flex: 0 0 auto; }
 .proof, .proof b { color: #0A0A0F; }
 .device { margin-top: clamp(24px, 3vw, 48px); }
+.hero-copy .lead { max-width: 46ch; }
