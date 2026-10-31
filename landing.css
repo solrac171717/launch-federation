@@ -1042,9 +1042,6 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .proof { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; font-size: 14px; color: var(--text-3); }
 .proof b { color: var(--text-1, #0A0A0F); font-weight: 600; }
 .proof-avatars { display: inline-flex; }
-.proof-avatars i { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; margin-left: -8px; background: linear-gradient(135deg, #93C5FD, #1D4ED8); }
-.proof-avatars i:first-child { margin-left: 0; }
-.proof-avatars i:nth-child(2) { background: linear-gradient(135deg, #BFDBFE, #3B82F6); }
-.proof-avatars i:nth-child(3) { background: linear-gradient(135deg, #A5B4FC, #4338CA); }
-.proof-avatars i:nth-child(4) { background: linear-gradient(135deg, #CBD5E1, #475569); }
+.proof-avatars img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; margin-left: -8px; object-fit: cover; background: #CBD5E1; }
+.proof-avatars img:first-child { margin-left: 0; }
 .proof-badge { flex: 0 0 auto; }
