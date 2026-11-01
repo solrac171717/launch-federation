@@ -89,6 +89,12 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
       setSession(fromTokenResponse(d));
     },
 
+    /** Google sign-in on our own page: Google hands the page an ID token, Supabase swaps it for a session. */
+    async signInWithGoogleToken(idToken) {
+      const d = await call('/auth/v1/token?grant_type=id_token', { method: 'POST', body: { provider: 'google', id_token: String(idToken) } });
+      setSession(fromTokenResponse(d));
+    },
+
     /** Call once on load: finishes a magic-link sign-in if the URL carries a session (or an error). */
     async consumeRedirect() {
       const hash = (location?.hash || '').replace(/^#/, '');

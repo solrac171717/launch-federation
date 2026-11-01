@@ -1,6 +1,7 @@
 // The login page: Google sign-in goes through Supabase (provider "google") and comes back to the app, which finishes the session from the URL.
 // The cards on the right are plain data. Each testimonial has a stock portrait chosen by the gender of the name; a testimonial without `photo` shows the person's initials instead.
 import { CONFIG } from './assets/config.js';
+import { createCloud } from './src/cloud.js';
 
 const TESTIMONIALS = [
   { photo: "assets/t-michael.jpg", name: "Michael Anderson", role: "Individual Investor · Real Estate & Vehicles", quote: "I've always struggled to keep track of all my assets across different platforms. Owned Map brings everything together in one place and makes it incredibly easy to understand my overall portfolio. I honestly wish I had started using it sooner." },
@@ -47,8 +48,36 @@ col.append(track);
 
 const google = document.getElementById('lg-google'), msg = document.getElementById('lg-msg');
 const base = String(CONFIG.supabaseUrl || '').replace(/\/$/, '');
-if (base) {
-  google.href = `${base}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(`${location.origin}/app.html`)}`;
+// With a Google client id the sign-in happens on this page (Google's own button over ours), so the account chooser says "continue to ownedmap.com";
+// without one it falls back to the Supabase redirect, where Google names the Supabase domain.
+const clientId = CONFIG.googleClientId;
+const redirectFlow = () => { google.href = `${base}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(`${location.origin}/app.html`)}`; };
+const loadGsi = () => new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.onload = ok; s.onerror = no; document.head.append(s); });
+if (base && clientId) {
+  const cloud = createCloud({ url: CONFIG.supabaseUrl, anonKey: CONFIG.supabaseAnonKey });
+  redirectFlow();
+  loadGsi().then(() => {
+    const holder = document.createElement('div'); holder.className = 'lg-gsi'; google.after(holder);
+    google.parentNode.style.position = 'relative';
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: async r => {
+        msg.hidden = true;
+        try { await cloud.signInWithGoogleToken(r.credential); location.href = 'app.html'; }
+        catch { msg.hidden = false; msg.textContent = 'Google sign-in failed. Try again, or continue with email.'; }
+      },
+    });
+    const place = () => {
+      const r = google.getBoundingClientRect(), p = google.parentNode.getBoundingClientRect();
+      holder.style.cssText = `position:absolute;left:${r.left - p.left}px;top:${r.top - p.top}px;width:${r.width}px;height:${r.height}px;overflow:hidden;opacity:.01;`;
+      holder.replaceChildren();
+      window.google.accounts.id.renderButton(holder, { type: 'standard', size: 'large', width: Math.min(400, Math.round(r.width)) });
+    };
+    place(); addEventListener('resize', place);
+    google.addEventListener('click', e => e.preventDefault());
+  }).catch(redirectFlow);
+} else if (base) {
+  redirectFlow();
 } else {
   google.addEventListener('click', e => { e.preventDefault(); msg.hidden = false; msg.textContent = 'Google sign-in is not set up on this site yet. Use your email and password below.'; });
 }
