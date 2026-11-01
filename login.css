@@ -45,3 +45,11 @@ a { color: var(--blue-d); }
   .lg-col { height: 360px; width: min(420px, calc(100% - 40px)); }
 }
 @media (prefers-reduced-motion: reduce) { .lg-track { animation: none; } .lg-col { overflow-y: auto; } .lg-google { transition: none; } }
+
+/* rating line above the title */
+.lg-proof { display: flex; align-items: center; gap: 10px; margin: 0 0 22px; font-size: 14px; color: var(--ink); }
+.lg-proof b { font-weight: 600; }
+.lg-avatars { display: inline-flex; }
+.lg-avatars img { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; margin-left: -8px; object-fit: cover; background: #CBD5E1; }
+.lg-avatars img:first-child { margin-left: 0; }
+.lg-badge { flex: 0 0 auto; }
