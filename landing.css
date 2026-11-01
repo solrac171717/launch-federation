@@ -1083,4 +1083,4 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 .px-main > .px-per { justify-self: center; margin-bottom: 6px; }
 @media (min-width: 901px) { .px-main > .px-per { grid-column: 1; grid-row: 1; justify-self: start; align-self: end; margin: 0 0 12px; } .px-main > .px-price { margin-top: 0; } }
 @media (max-width: 900px) { .px-main > .px-per { order: 0; margin-bottom: 14px; } }
-.px-save { margin-left: 8px; color: #0B6B3A; font-weight: 700; white-space: nowrap; } .px-save::before { content: ' b7'; margin-right: 8px; color: var(--text-3); font-weight: 400; }
+.px-save { margin-left: 8px; color: #0B6B3A; font-weight: 700; white-space: nowrap; } .px-save::before { content: '\00b7'; margin-right: 8px; color: var(--text-3); font-weight: 400; }
