@@ -329,7 +329,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
       range.setAttribute('aria-valuetext', `${n} assets, ${fmt(p)} per ${interval}`);
       count.textContent = String(n); document.getElementById('px-feat-n').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
       per.textContent = interval;
-      if (interval === 'year') { save.hidden = false; save.textContent = `You save ${fmt(price(n, 'month') * 12 - p)} a year`; } else save.hidden = true;
+      if (interval === 'year') { save.hidden = false; save.textContent = `You save ${fmt(price(n, 'month') * 12 - p)}`; } else save.hidden = true;
       cancelAnimationFrame(raf);
       if (mqr) { shown = p; paint(p, true); return; }
       const from = shown, t0 = performance.now();
