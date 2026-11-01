@@ -64,3 +64,4 @@ a { color: var(--blue-d); }
 .lg-proof { justify-content: center; }
 .lg-sub { margin-left: auto; margin-right: auto; }
 .lg-legal { text-align: center; }
+.lg-sub { max-width: none; font-size: 1.05rem; }
