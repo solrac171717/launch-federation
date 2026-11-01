@@ -1081,3 +1081,7 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 @media (max-width: 900px) { .px-main > .px-save { order: 2; justify-self: center; margin: -12px 0 18px; } .px-side { gap: 16px; } }
 @media (max-width: 380px) { .px-per-b { padding: 10px 12px; font-size: 13px; } .px-per-b i { display: none; } }
 @media (min-width: 901px) { .px-main > .px-save { grid-column: 1; grid-row: 4; justify-self: start; margin: 8px 0 0; } }
+/* the Monthly / Yearly switch sits right above the $0 */
+.px-main > .px-per { justify-self: center; margin-bottom: 6px; }
+@media (min-width: 901px) { .px-main > .px-per { grid-column: 1; grid-row: 1; justify-self: start; align-self: end; margin: 0 0 12px; } .px-main > .px-price { margin-top: 0; } }
+@media (max-width: 900px) { .px-main > .px-per { order: 0; margin-bottom: 14px; } }
