@@ -8,11 +8,13 @@ import { runWebhook } from '../api/stripe-webhook.js';
 /* ----------------------------------------------------------------- the plan */
 test('the price is the one on the website: $47 with 3 assets, then $15 for each extra', () => {
   assert.equal(priceCents(1), 4700); assert.equal(priceCents(3), 4700);
-  assert.equal(priceCents(4), 6200); assert.equal(priceCents(10), 4700 + 7 * 1500); assert.equal(priceCents(50), 4700 + 47 * 1500);
+  assert.equal(priceCents(4), 6200); assert.equal(priceCents(10), 4700 + 7 * 1500); assert.equal(priceCents(50), 4700 + 47 * 1500); assert.equal(priceCents(100), 4700 + 97 * 1500);
+  assert.equal(priceCents(3, 'year'), 39480); assert.equal(priceCents(4, 'year'), 39480 + 12600); assert.equal(priceCents(100, 'year'), 39480 + 97 * 12600);
+  assert.ok(priceCents(10, 'year') < priceCents(10) * 12 * 0.71 + 1 && priceCents(10, 'year') > priceCents(10) * 12 * 0.69, 'yearly is 30% under twelve months');
   assert.equal(usd(4700), '$47'); assert.equal(usd(6250), '$62.50');
 });
 test('what a person types is clamped to what the plan allows', () => {
-  assert.equal(cleanAssets('7'), 7); assert.equal(cleanAssets(0), 3); assert.equal(cleanAssets(999), 50); assert.equal(cleanAssets('abc'), null); assert.equal(cleanAssets(7.6), 8);
+  assert.equal(cleanAssets('7'), 7); assert.equal(cleanAssets(0), 3); assert.equal(cleanAssets(999), 100); assert.equal(cleanAssets('abc'), null); assert.equal(cleanAssets(7.6), 8);
   assert.equal(extraQty(3), 0); assert.equal(extraQty(10), 7);
 });
 test('assets paid for come from the base plan plus the extra items, and only from ours', () => {
@@ -207,4 +209,17 @@ test('the portal: an account with no portal configuration gets ours created once
   assert.equal(w.calls.at(-1).form.configuration, 'bpc_1');
   await run(w, { action: 'portal' });
   assert.equal(w.calls.filter(c => c.p === '/v1/billing_portal/configurations' && c.method === 'POST').length, 1, 'the second time it is found, not made again');
+});
+test('yearly plan: its prices count like the monthly ones, and the limit is 100 assets', () => {
+  const b = PLAN.keys.baseYear, e = PLAN.keys.extraYear;
+  assert.equal(allowedFromItems([{ lookup_key: b, quantity: 1 }, { lookup_key: e, quantity: 97 }]), 100);
+  assert.equal(allowedFromItems([{ lookup_key: e, quantity: 7 }]), 0, 'yearly extras without the yearly base give nothing');
+  assert.equal(cleanAssets(100), 100); assert.equal(cleanAssets(101), 100);
+});
+test('ensurePrices creates the yearly prices with the 30% discount, once, on their own keys', async () => {
+  const w = world({ prices: PRICES }); w.state.products.push({ id: 'prod_9', metadata: { app: 'owned-map' } });
+  const call = stripeClient({ env: ENV, fetchImpl: w.fetchImpl }), got = await ensurePrices(call, '', 'year');
+  assert.equal(got.base, `price_${PLAN.keys.baseYear}`); assert.equal(got.extra, `price_${PLAN.keys.extraYear}`);
+  const made = w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').map(c => [c.form.lookup_key, c.form.unit_amount, c.form['recurring[interval]']]);
+  assert.deepEqual(made, [[PLAN.keys.baseYear, '39480', 'year'], [PLAN.keys.extraYear, '12600', 'year']]);
 });

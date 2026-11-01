@@ -310,28 +310,38 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
 
 /* ------------------------------------------------------------- pricing */
 {
-  const BASE = 47, INCLUDED = 3, EXTRA = 15;
+  const BASE = 47, INCLUDED = 3, EXTRA = 15, OFF = 0.30; // keep in step with PLAN in src/billing-core.js
   const range = document.getElementById('px-range');
   if (range) {
-    const total = document.getElementById('px-total'), count = document.getElementById('px-count');
+    const total = document.getElementById('px-total'), count = document.getElementById('px-count'), per = document.getElementById('px-per'), save = document.getElementById('px-save');
     const mqr = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let shown = BASE, raf = 0;
-    const price = n => BASE + Math.max(0, n - INCLUDED) * EXTRA;
-    const paint = v => { total.textContent = USD0.format(Math.round(v)); };
+    const USD2 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmt = v => (Number.isInteger(Math.round(v * 100) / 100) ? USD0 : USD2).format(v);
+    let interval = 'month', shown = BASE, raf = 0;
+    const yr = c => Math.round(c * 12 * (1 - OFF) * 100) / 100;                       // a year of that monthly price, 30% off
+    const price = (n, iv = interval) => (iv === 'year' ? yr(BASE) + Math.max(0, n - INCLUDED) * yr(EXTRA) : BASE + Math.max(0, n - INCLUDED) * EXTRA);
+    const paint = (v, exact) => { total.textContent = exact ? fmt(v) : USD0.format(Math.round(v)); };
     const update = () => {
       const n = +range.value, p = price(n);
-      const go = document.querySelector('.px-btn'); if (go) go.setAttribute('href', n === INCLUDED ? '/api/start' : `/api/start?assets=${n}`); // the button opens checkout for the number of assets on the slider
+      const go = document.querySelector('.px-btn'); if (go) { const q = []; if (n !== INCLUDED) q.push(`assets=${n}`); if (interval === 'year') q.push('billing=year'); go.setAttribute('href', q.length ? `/api/start?${q.join('&')}` : '/api/start'); } // the button opens checkout for the assets and period chosen here
       const pct = ((n - range.min) / (range.max - range.min)) * 100; range.style.setProperty('--p', `${pct}%`);
       const bub = document.getElementById('px-bubble'); bub.style.setProperty('--q', pct.toFixed(2)); bub.textContent = String(n);
-      range.setAttribute('aria-valuetext', `${n} assets, ${USD0.format(p)} per month`);
+      range.setAttribute('aria-valuetext', `${n} assets, ${fmt(p)} per ${interval}`);
       count.textContent = String(n); document.getElementById('px-feat-n').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
+      per.textContent = interval;
+      if (interval === 'year') { save.hidden = false; save.textContent = `That is ${fmt(p / 12)} a month, ${Math.round(OFF * 100)}% less than paying monthly.`; } else save.hidden = true;
       cancelAnimationFrame(raf);
-      if (mqr) { shown = p; paint(p); return; }
+      if (mqr) { shown = p; paint(p, true); return; }
       const from = shown, t0 = performance.now();
-      const step = now => { const k = Math.min(1, (now - t0) / 380), e = 1 - Math.pow(1 - k, 3); shown = from + (p - from) * e; paint(shown); if (k < 1) raf = requestAnimationFrame(step); };
+      const step = now => { const k = Math.min(1, (now - t0) / 380), e = 1 - Math.pow(1 - k, 3); shown = from + (p - from) * e; paint(shown, k === 1); if (k < 1) raf = requestAnimationFrame(step); };
       raf = requestAnimationFrame(step);
     };
     range.addEventListener('input', update); update();
-    range.addEventListener('change', () => analytics.track('pricing_slider', { assets: +range.value, price: price(+range.value) }));
+    document.querySelectorAll('[data-per]').forEach(b => b.addEventListener('click', () => {
+      interval = b.dataset.per === 'year' ? 'year' : 'month';
+      document.querySelectorAll('[data-per]').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); });
+      update(); analytics.track('pricing_period', { period: interval });
+    }));
+    range.addEventListener('change', () => analytics.track('pricing_slider', { assets: +range.value, price: price(+range.value), period: interval }));
   }
 }

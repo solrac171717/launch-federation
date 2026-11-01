@@ -1,7 +1,7 @@
 // Stripe without the SDK: a small client (form-encoded requests, like the REST API expects), webhook signature check, and the sync of a Stripe
 // subscription into the `subscriptions` table. Used by api/billing.js and api/stripe-webhook.js. The leading underscore keeps Vercel from serving it as a route.
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { PLAN, allowedFromItems } from '../src/billing-core.js';
+import { PLAN, allowedFromItems, keysFor, cleanInterval, yearCents } from '../src/billing-core.js';
 
 export class StripeError extends Error {
   constructor(message, status = 502, code = '') { super(message); this.name = 'StripeError'; this.status = status; this.code = code; }
@@ -54,25 +54,26 @@ export async function brandStripe(stripe, site) {
   if (!product) return { product: null, prices: 0 };
   await stripe('POST', `/v1/products/${product.id}`, { name: PLAN.name, description: PRODUCT_DESCRIPTION, images: [`${String(site).replace(/\/$/, '')}/assets/logo-o.png`] });
   const prices = await stripe('GET', '/v1/prices', { product: product.id, limit: 20 });
-  const names = { [PLAN.keys.base]: `Owned Map, ${PLAN.included} assets`, [PLAN.keys.extra]: 'Owned Map, extra asset' };
+  const names = { [PLAN.keys.base]: `Owned Map, ${PLAN.included} assets`, [PLAN.keys.extra]: 'Owned Map, extra asset', [PLAN.keys.baseYear]: `Owned Map, ${PLAN.included} assets, yearly`, [PLAN.keys.extraYear]: 'Owned Map, extra asset, yearly' };
   let n = 0;
   for (const pr of prices.data || []) if (names[pr.lookup_key]) { await stripe('POST', `/v1/prices/${pr.id}`, { nickname: names[pr.lookup_key] }); n++; }
   return { product: product.id, prices: n };
 }
 
 /** The two prices of the plan, found by lookup key; created (with their product) the first time, in whichever mode the key belongs to. */
-export async function ensurePrices(stripe, site = '') {
-  const want = [PLAN.keys.base, PLAN.keys.extra];
+export async function ensurePrices(stripe, site = '', interval = 'month') {
+  const keys = keysFor(interval), yearly = cleanInterval(interval) === 'year', cents = c => (yearly ? yearCents(c) : c), per = yearly ? 'year' : 'month';
+  const want = [keys.base, keys.extra];
   const found = await stripe('GET', '/v1/prices', { lookup_keys: want, active: true, limit: 10 });
   const byKey = Object.fromEntries((found.data || []).map(p => [p.lookup_key, p.id]));
-  if (want.every(k => byKey[k])) return { base: byKey[PLAN.keys.base], extra: byKey[PLAN.keys.extra] };
+  if (want.every(k => byKey[k])) return { base: byKey[keys.base], extra: byKey[keys.extra] };
   const products = await stripe('GET', '/v1/products', { active: true, limit: 100 });
   let product = (products.data || []).find(p => p.metadata?.app === 'owned-map')?.id;
   if (!product) product = (await stripe('POST', '/v1/products', { name: PLAN.name, description: PRODUCT_DESCRIPTION, ...(site ? { images: [`${site}/assets/logo-o.png`] } : {}), metadata: { app: 'owned-map' } })).id;
-  const make = (key, cents, nickname) => stripe('POST', '/v1/prices', { product, currency: PLAN.currency, unit_amount: cents, recurring: { interval: PLAN.interval }, lookup_key: key, transfer_lookup_key: true, nickname, metadata: { app: 'owned-map' } });
-  if (!byKey[PLAN.keys.base]) byKey[PLAN.keys.base] = (await make(PLAN.keys.base, PLAN.baseCents, `Owned Map, ${PLAN.included} assets`)).id;
-  if (!byKey[PLAN.keys.extra]) byKey[PLAN.keys.extra] = (await make(PLAN.keys.extra, PLAN.extraCents, 'Owned Map, extra asset')).id;
-  return { base: byKey[PLAN.keys.base], extra: byKey[PLAN.keys.extra] };
+  const make = (key, cents, nickname) => stripe('POST', '/v1/prices', { product, currency: PLAN.currency, unit_amount: cents, recurring: { interval: per }, lookup_key: key, transfer_lookup_key: true, nickname, metadata: { app: 'owned-map' } });
+  if (!byKey[keys.base]) byKey[keys.base] = (await make(keys.base, cents(PLAN.baseCents), `Owned Map, ${PLAN.included} assets${yearly ? ', yearly' : ''}`)).id;
+  if (!byKey[keys.extra]) byKey[keys.extra] = (await make(keys.extra, cents(PLAN.extraCents), `Owned Map, extra asset${yearly ? ', yearly' : ''}`)).id;
+  return { base: byKey[keys.base], extra: byKey[keys.extra] };
 }
 
 const iso = s => (s ? new Date(Number(s) * 1000).toISOString() : null);

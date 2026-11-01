@@ -7,7 +7,7 @@ import { runWelcome } from '../api/welcome.js';
 import { runWebhook } from '../api/stripe-webhook.js';
 import { provisionFromSession, SESSION_ID } from '../api/_provision.js';
 
-const PRICES = [{ id: 'price_b', lookup_key: PLAN.keys.base, active: true }, { id: 'price_e', lookup_key: PLAN.keys.extra, active: true }];
+const PRICES = [{ id: 'price_b', lookup_key: PLAN.keys.base, active: true }, { id: 'price_e', lookup_key: PLAN.keys.extra, active: true }, { id: 'price_by', lookup_key: PLAN.keys.baseYear, active: true }, { id: 'price_ey', lookup_key: PLAN.keys.extraYear, active: true }];
 const SENV = { STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_API_BASE: 'https://stripe.test', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'srv', SITE_URL: 'https://site.test' };
 const NOW = 1_800_000_500;
 
@@ -128,4 +128,10 @@ test('webhook: a payment without an account makes the account from the email typ
   const s = shop(), raw = JSON.stringify({ id: 'evt_9', type: 'checkout.session.completed', created: NOW, data: { object: { id: s.SID, mode: 'subscription', subscription: 'sub_9', customer: 'cus_9', client_reference_id: null, customer_details: { email: 'Buyer@X.test' } } } });
   const r = await runWebhook({ env: { ...SENV, STRIPE_WEBHOOK_SECRET: 'whsec_t' }, fetchImpl: s.fetchImpl, raw, signature: signPayload(raw, 'whsec_t', NOW), now: NOW });
   assert.equal(r.status, 200); assert.equal(r.body.provisioned, true); assert.equal(s.created[0].email, 'buyer@x.test'); assert.equal(s.saved[0].assets_allowed, 5);
+});
+test('start: paying yearly uses the yearly prices and says so in the charge notice', async () => {
+  const s = shop(); const r = await runStart({ env: SENV, fetchImpl: s.fetchImpl, assets: '6', interval: 'year', siteUrl: 'https://site.test' });
+  assert.equal(r.status, 303);
+  const f = s.calls.find(c => c.path === '/v1/checkout/sessions' && c.method === 'POST').form;
+  assert.equal(f['metadata[interval]'], 'year'); assert.match(f['custom_text[submit][message]'], /\$772\.80 a year unless you cancel/);
 });

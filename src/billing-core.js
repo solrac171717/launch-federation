@@ -2,15 +2,22 @@
 // The price is the one shown on the website: a base plan with 3 assets, plus a fixed amount for each extra asset.
 export const PLAN = {
   name: 'Owned Map', currency: 'usd', interval: 'month',
-  baseCents: 4700, included: 3, extraCents: 1500, maxAssets: 50,
+  baseCents: 4700, included: 3, extraCents: 1500, maxAssets: 100, yearlyOff: 0.30, // paying a year at once takes 30% off twelve months
   trialDays: 7,                                    // free, but a card is required (charged when the trial ends); 0 turns the trial off
-  keys: { base: 'ownedmap_base_monthly', extra: 'ownedmap_extra_asset_monthly' }, // Stripe lookup keys: the prices are found (or created) by these
+  keys: { base: 'ownedmap_base_monthly', extra: 'ownedmap_extra_asset_monthly', baseYear: 'ownedmap_base_yearly', extraYear: 'ownedmap_extra_asset_yearly' }, // Stripe lookup keys: the prices are found (or created) by these
 };
 
 /** Number of assets a person chose, clamped to what the plan allows; null when it is not a number. */
 export const cleanAssets = v => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(PLAN.maxAssets, Math.max(PLAN.included, n)) : null; };
 export const extraQty = n => Math.max(0, (cleanAssets(n) ?? PLAN.included) - PLAN.included);
-export const priceCents = n => PLAN.baseCents + extraQty(n) * PLAN.extraCents;
+export const cleanInterval = v => (v === 'year' ? 'year' : 'month');
+export const yearCents = monthly => Math.round(monthly * 12 * (1 - PLAN.yearlyOff));
+/** What a plan for n assets costs per billing period: per month, or per year with the discount. */
+export const priceCents = (n, interval = 'month') => (cleanInterval(interval) === 'year'
+  ? yearCents(PLAN.baseCents) + extraQty(n) * yearCents(PLAN.extraCents)
+  : PLAN.baseCents + extraQty(n) * PLAN.extraCents);
+/** The two Stripe lookup keys (base plan, extra asset) of a billing interval. */
+export const keysFor = interval => (cleanInterval(interval) === 'year' ? { base: PLAN.keys.baseYear, extra: PLAN.keys.extraYear } : { base: PLAN.keys.base, extra: PLAN.keys.extra });
 export const usd = cents => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
 
 /** How many assets a subscription pays for, from its items [{ lookup_key, quantity }]. 0 when there is no base plan. */
@@ -18,7 +25,7 @@ export function allowedFromItems(items = []) {
   let base = 0, extra = 0;
   for (const it of items) {
     const q = Number(it.quantity) || 0;
-    if (it.lookup_key === PLAN.keys.base) base += q; else if (it.lookup_key === PLAN.keys.extra) extra += q;
+    if (it.lookup_key === PLAN.keys.base || it.lookup_key === PLAN.keys.baseYear) base += q; else if (it.lookup_key === PLAN.keys.extra || it.lookup_key === PLAN.keys.extraYear) extra += q;
   }
   return base > 0 ? base * PLAN.included + extra : 0;
 }
