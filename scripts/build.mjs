@@ -11,11 +11,11 @@ const check = f => {
 for (const dir of ['src', 'api', 'scripts', 'assets']) {
   for (const f of await readdir(dir)) if (f.endsWith('.js') || f.endsWith('.mjs')) check(`${dir}/${f}`);
 }
-check('landing.js');
+check('landing.js'); check('login.js');
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
-for (const p of ['index.html', 'app.html', 'privacy.html', 'terms.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
+for (const p of ['index.html', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
   await cp(p, `dist/${p}`, { recursive: true });
 }
 
@@ -41,7 +41,7 @@ export const CONFIG = ${JSON.stringify({ supabaseUrl: sbUrl, supabaseAnonKey: sb
   console.log('App configured for Supabase (' + new URL(sbUrl).host + ').');
 } else console.warn('SUPABASE_URL / SUPABASE_ANON_KEY not set: the app will save assets on the visitor device only.');
 
-for (const page of ['index.html', 'app.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html']) {
+for (const page of ['index.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html']) {
   const src = await readFile(`dist/${page}`, 'utf8');
   const missing = [...src.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:)([^"?#]+)/g)].map(m => m[1]).filter(p => !p.startsWith('/api/') && !existsSync(`dist/${p}`)); // /api/... is answered by a serverless function, not a file
   if (missing.length) { console.error(`Missing files referenced by ${page}:`, missing); process.exit(1); }
