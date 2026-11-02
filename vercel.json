@@ -11,6 +11,14 @@
       "schedule": "30 13 * * *"
     }
   ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.ownedmap.com" }],
+      "destination": "https://ownedmap.com/$1",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
