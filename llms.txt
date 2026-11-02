@@ -1,0 +1,25 @@
+# Owned Map
+
+> Owned Map is a web app that puts everything a person owns (property, vehicles, boats, aircraft, land, parking and equipment) on one interactive map, with the value, income, expenses, yield and net worth of each asset side by side.
+
+Owned Map is a paid subscription product with a 7-day free trial (card required, charged only when the trial ends). Values are entered by the user; Owned Map does not pull market prices.
+
+## What it does
+- Shows every asset on an interactive map with a Globe view and a Country view, in any country.
+- Tracks value, purchase cost, yearly income, expenses and debt per asset, and calculates appreciation, net income, yield and net worth. Supports partial ownership by percentage.
+- Handles houses, apartments, commercial buildings, warehouses, land, parking spaces, cars, trucks, motorcycles, motorhomes, yachts, sailboats, jet skis, aircraft and heavy equipment.
+- Attaches documents (deeds, insurance, contracts), fills in asset details from an uploaded document, and sets reminders for renewals.
+- Exports PDF, Excel (.xlsx) and CSV reports, and imports assets from CSV.
+
+## Pricing
+- $47 per month includes 3 assets; each extra asset is $15 per month, up to 100 assets.
+- Yearly billing is 30% less than monthly.
+- 7-day free trial.
+
+## Pages
+- [Home, product overview, live demo, pricing and FAQ](%SITE_URL%/)
+- [Privacy Policy](%SITE_URL%/privacy.html)
+- [Terms of Service](%SITE_URL%/terms.html)
+
+## Contact
+support@ownedmap.com
