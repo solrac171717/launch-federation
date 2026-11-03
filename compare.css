@@ -67,3 +67,4 @@
 .cite { font-size: .72em; line-height: 0; } .cite a { text-decoration: none; font-weight: 700; padding: 0 1px; }
 .cmp-sources { gap: 10px; } .cmp-sources li { font-size: 14.5px; line-height: 1.55; } .cmp-sources li:target { background: #FFF8DB; border-radius: 6px; }
 .cmp-sources span { color: var(--text-3); }
+.foot-badge { display: inline-block; line-height: 0; margin-top: 4px; opacity: .85; transition: opacity .3s; } .foot-badge:hover { opacity: 1; } .foot-badge img { display: block; width: 118px; height: 32px; }

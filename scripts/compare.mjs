@@ -9,7 +9,7 @@ const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US',
 
 const LOGO = '<a class="logo" href="/" aria-label="Owned Map home"><span class="lmark" style="--s:30px" aria-hidden="true"><img src="/assets/logo-o.png" alt="" width="192" height="192"></span><span>OWNED MAP</span></a>';
 const header = () => `<header class="legal-top"><div class="wrap">\n  ${LOGO}\n  <nav aria-label="Primary"><a href="/#pricing">Pricing</a><a href="/compare/">Compare</a><a href="/login.html">Login</a><a class="g-start" href="${CTA.href}">Start free</a></nav>\n</div></header>`;
-const footer = () => `<footer class="footer"><div class="wrap foot">\n  ${LOGO}\n  <p>&copy; 2026 Owned Map.</p>\n  <nav class="foot-links" aria-label="Footer"><a href="/compare/">Compare</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></nav>\n</div></footer>`;
+const footer = () => `<footer class="footer"><div class="wrap foot">\n  ${LOGO}\n  <p>&copy; 2026 Owned Map.</p>\n  <a class="foot-badge" href="https://twelve.tools" target="_blank" rel="noopener"><img src="https://twelve.tools/badge1-light.svg" alt="Featured on Twelve Tools" width="118" height="32" loading="lazy" decoding="async"></a>\n  <nav class="foot-links" aria-label="Footer"><a href="/compare/">Compare</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></nav>\n</div></footer>`;
 
 function shell({ site, path, title, description, jsonld, body }) {
   const url = site ? `${site}${path}` : '';
