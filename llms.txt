@@ -18,6 +18,12 @@ Owned Map is a paid subscription product with a 7-day free trial (card required,
 
 ## Pages
 - [Home, product overview, live demo, pricing and FAQ](%SITE_URL%/)
+- [Guides: practical advice on tracking property, vehicles, boats and aircraft](%SITE_URL%/guides/)
+- [How to track rental property performance](%SITE_URL%/guides/track-rental-properties.html)
+- [How to keep track of vehicles, boats and aircraft](%SITE_URL%/guides/track-vehicles-boats-and-aircraft.html)
+- [Asset inventory for estate planning](%SITE_URL%/guides/asset-inventory-for-estate-planning.html)
+- [How to calculate net worth with real assets](%SITE_URL%/guides/net-worth-with-real-assets.html)
+- [Kubera alternative for people who own real assets](%SITE_URL%/guides/kubera-alternative-for-real-assets.html)
 - [Privacy Policy](%SITE_URL%/privacy.html)
 - [Terms of Service](%SITE_URL%/terms.html)
 
