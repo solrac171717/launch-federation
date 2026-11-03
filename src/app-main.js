@@ -596,15 +596,16 @@ function openWelcome({ step = 1, picked = [], assetId = null } = {}) {
   const a = raw.find(r => r.id === assetId);
   if (!a) { modal().close(); return; }
   const presets = [
-    { kind: 'insurance', title: 'Insurance renewal', repeat: 'yearly', date: '', on: true, note: 'Every year' },
+    { kind: 'insurance', title: 'Insurance renewal', repeat: 'yearly', date: '', on: false, note: 'Every year. Pick the date to turn it on' },
     { kind: 'other', title: UPDATE_TITLE, repeat: 'monthly', date: nextDue(isoDay(), 'monthly'), on: true, note: 'Every month, keeps your history up to date' },
-    { kind: 'inspection', title: 'Inspection or service', repeat: 'yearly', date: '', on: false, note: 'Every year' },
+    { kind: 'inspection', title: 'Inspection or service', repeat: 'yearly', date: '', on: false, note: 'Every year. Pick the date to turn it on' },
   ];
+  const err = h('p', { class: 'err form-err', role: 'alert' });
   const rows = presets.map(p => {
     const box = h('input', { type: 'checkbox', checked: p.on, id: `wz-${p.kind}-${p.repeat}` }), date = h('input', { type: 'date', value: p.date, 'aria-label': `${p.title} date` });
+    date.addEventListener('change', () => { box.checked = Boolean(date.value); err.textContent = ''; }); // choosing a date is choosing the reminder
     return { p, box, date, el: h('div', { class: 'wz-rem' }, h('label', { class: 'check', for: box.id }, box, h('span', {}, h('b', {}, p.title), h('em', {}, p.note))), date) };
   });
-  const err = h('p', { class: 'err form-err', role: 'alert' });
   const done = h('button', { type: 'button', class: 'btn btn-primary btn-sm' }, h('span', { class: 'lbl' }, 'Finish setup'), h('span', { class: 'spin', 'aria-hidden': 'true' }));
   done.addEventListener('click', async () => {
     err.textContent = '';
