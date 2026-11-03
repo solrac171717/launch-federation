@@ -30,7 +30,7 @@ test('the rendered pages are indexable, structured and carry the sticky call to 
     assert.match(html, /class="cmp-side"/); assert.match(html, /class="cmp-bar"/); assert.match(html, /href="\/#pricing"/);
     for (const m of html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)) JSON.parse(m[1].replaceAll('<\/', '</'));
   }
-  const g = pages.find(p => p.path.endsWith('owned-map-vs-kubera.html')).html;
+  const g = pages.find(p => p.path.endsWith('kubera-vs-owned-map.html')).html;
   for (const t of ['FAQPage', 'BreadcrumbList', 'Article']) assert.match(g, new RegExp(`"@type":"${t}"`));
 });
 test('no invented social proof: nothing that looks like a rating or a customer count', () => {

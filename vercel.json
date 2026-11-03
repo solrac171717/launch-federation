@@ -13,6 +13,11 @@
   ],
   "redirects": [
     {
+      "source": "/compare/owned-map-vs-kubera.html",
+      "destination": "/compare/kubera-vs-owned-map.html",
+      "permanent": true
+    },
+    {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "www.ownedmap.com" }],
       "destination": "https://ownedmap.com/$1",

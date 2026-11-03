@@ -19,7 +19,7 @@ Owned Map is a paid subscription product with a 7-day free trial (card required,
 ## Pages
 - [Home, product overview, live demo, pricing and FAQ](%SITE_URL%/)
 - [Owned Map compared with other trackers](%SITE_URL%/compare/)
-- [Owned Map vs Kubera: which net worth tracker fits you?](%SITE_URL%/compare/owned-map-vs-kubera.html)
+- [Kubera vs Owned Map: which net worth tracker fits you?](%SITE_URL%/compare/kubera-vs-owned-map.html)
 - [Privacy Policy](%SITE_URL%/privacy.html)
 - [Terms of Service](%SITE_URL%/terms.html)
 

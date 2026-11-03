@@ -21,12 +21,12 @@ const m = n => usd(priceCents(n)), y = n => usd(priceCents(n, 'year'));
 
 export const COMPARISONS = [
   {
-    slug: 'owned-map-vs-kubera',
+    slug: 'kubera-vs-owned-map',
     rival: 'Kubera',
-    crumb: 'Owned Map vs Kubera',
-    title: 'Owned Map vs Kubera: Which Net Worth Tracker Fits You?',
-    description: 'Owned Map vs Kubera compared on assets, automation, documents, sharing and price, with a worked example and who should pick which. Updated November 2026.',
-    h1: 'Owned Map vs Kubera: an honest comparison',
+    crumb: 'Kubera vs Owned Map',
+    title: 'Kubera vs Owned Map: Which Net Worth Tracker Fits You?',
+    description: 'Kubera vs Owned Map compared on assets, automation, documents, sharing and price, with a worked example and who should pick which. Updated November 2026.',
+    h1: 'Kubera vs Owned Map: an honest comparison',
     lead: 'Kubera and Owned Map both help you see what you are worth, but they start from opposite ends. Kubera starts from your financial accounts and pulls them in. Owned Map starts from the things you can point to on a map (property, vehicles, boats, aircraft, land) and keeps their numbers, documents and dates together. This page puts them side by side, says plainly where Kubera is the better pick, and gives you a way to decide in five minutes.',
     toc: [['verdict', 'The short answer'], ['at-a-glance', 'At a glance'], ['starting-point', 'Two different starting points'], ['features', 'Feature by feature'], ['example', 'A worked example: one rental condo'], ['documents', 'Documents and dates'], ['sharing', 'Sharing and inheritance'], ['price', 'Price'], ['choose', 'Who should choose which'], ['switch', 'Using both, or switching'], ['method', 'How we checked']],
     sections: [
