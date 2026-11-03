@@ -1082,8 +1082,10 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
   .px-sub { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 10px; }
   .px-sub > span.px-n { flex-basis: 100%; text-align: center; }
   .px-sub .px-free, .px-sub .px-save { margin-left: 0; }
-  .px-sub .px-save::before { display: none; }
+  .px-sub .px-save:not(.plus)::before { display: none; }
+  .px-sub .px-save.plus::before { margin-right: 6px; }
 }
+.px-sub .px-save.plus::before { content: '+'; margin-right: 8px; color: #0B6B3A; font-weight: 700; }
 .px-free { margin-left: 10px; padding: 2px 10px; border-radius: 999px; background: #E8F7EE; color: #0B6B3A; font-weight: 700; font-size: .86em; white-space: nowrap; }
 @media (max-width: 900px) { .px-side { gap: 16px; } }
 @media (max-width: 380px) { .px-per-b { padding: 10px 12px; font-size: 13px; } .px-per-b i { display: none; } }

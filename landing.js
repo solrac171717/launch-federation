@@ -332,7 +332,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
       range.setAttribute('aria-valuetext', `${n} assets, ${fmt(p)} per ${interval}`);
       count.textContent = String(n); document.getElementById('px-feat-n').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
       per.textContent = interval;
-      const f = freeCount(n); freeEl.hidden = f === 0; freeEl.textContent = `of which ${f} asset${f === 1 ? ' is' : 's are'} free`; freeEl.title = `Past ${TIERS[0][0]} assets each one costs less. What that saves you is worth ${f} of your ${n} assets at $${TIERS[0][1]} each, so ${f} of them cost nothing.`;
+      const f = freeCount(n); freeEl.hidden = f === 0; freeEl.textContent = `of which ${f} asset${f === 1 ? ' is' : 's are'} free`; save.classList.toggle('plus', f > 0); freeEl.title = `Past ${TIERS[0][0]} assets each one costs less. What that saves you is worth ${f} of your ${n} assets at $${TIERS[0][1]} each, so ${f} of them cost nothing.`;
       if (interval === 'year') { save.hidden = false; save.textContent = `You save ${fmt(price(n, 'month') * 12 - p)}`; } else save.hidden = true;
       cancelAnimationFrame(raf);
       if (mqr) { shown = p; paint(p, true); return; }
