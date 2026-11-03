@@ -6,7 +6,7 @@ const PASSWORD_MIN = 10, PASSWORD_MAX = 72;
 
 /** ctx: { cloud, openModal, modal, toast, message, billing, billingOn: () => boolean, signOut, who: () => { email, initials, role, admin, mine } } */
 export function createAccountUi(ctx) {
-  const { cloud, openModal, modal, toast, message, billing, signOut, who } = ctx;
+  const { cloud, openModal, modal, toast, message, billing, signOut, who, support } = ctx;
 
   const busy = (b, on) => { b.disabled = on; b.classList.toggle('busy', on); };
   const button = (text, kind, fn) => {
@@ -86,6 +86,8 @@ export function createAccountUi(ctx) {
           h('select', { id: 'am-lang', disabled: true, 'aria-describedby': 'am-lang-hint' }, h('option', {}, 'English')),
           h('p', { class: 'hint', id: 'am-lang-hint' }, 'More languages are coming. For now Owned Map is in English.')))),
       ...(plans ? [planSection(v)] : []),
+      section('Help', h('p', { class: 'hint' }, 'A question, a problem or an idea? We read every message.'),
+        h('div', { class: 'modal-actions am-left' }, h('a', { class: 'btn btn-dark btn-sm', id: 'am-support', href: support().href }, `Email ${support().email}`))),
       ...(cancel ? [cancel] : [])));
   }
   return { open };

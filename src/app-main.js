@@ -84,10 +84,18 @@ function showAuth(error) {
 // the account card at the bottom of the sidebar: who is signed in and what they are on. It opens the profile menu (src/app-account.js)
 const ACCT_ICON = {
   chev: 'M9 6l6 6-6 6',
+  mail: 'M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm0 1.5 8 5.5 8-5.5',
   shield: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Zm-3 9 2 2 4-4',
 };
 const acctIcon = key => svg('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true', class: 'acct-ico' }, svg('path', { d: ACCT_ICON[key] }));
 const initialsOf = email => { const n = String(email || '?').split('@')[0].split(/[._+-]+/).filter(Boolean); return ((n[0]?.[0] || '?') + (n[1]?.[0] || n[0]?.[1] || '')).toUpperCase(); };
+const SUPPORT_EMAIL = 'support@ownedmap.com';
+/** A new email to support that already says who is writing and what they are on, so nobody has to be asked. */
+const supportMailto = () => {
+  const me = cloud.user()?.email || '', on = CONFIG.billing && account?.mine ? billingUi.label() : '';
+  const body = `Hi Owned Map support,\n\n\n\n--\nAccount: ${me}${on ? `\nPlan: ${on}` : ''}`;
+  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Owned Map support')}&body=${encodeURIComponent(body)}`;
+};
 const whoAmI = () => {
   const email = cloud.user()?.email || '', plan = planFor(email), admin = plan.key === 'superadmin';
   return { email, initials: initialsOf(email), admin, mine: account.mine, role: admin ? plan.label : account.mine ? 'Owner' : ROLES[account.role], note: plan.note };
@@ -108,6 +116,7 @@ function renderFoot() {
       h('span', { class: 'acct-av' + (me.admin ? ' admin' : ''), 'aria-hidden': 'true' }, me.initials),
       h('span', { class: 'acct-who' }, h('span', { class: 'acct-email', title: me.email }, me.email || 'Signed in'), h('span', { class: 'acct-role' + (me.admin ? ' admin' : ''), title: me.admin ? me.note : '' }, me.admin ? acctIcon('shield') : null, line)),
       acctIcon('chev')),
+    h('a', { class: 'acct-support', id: 'support-link', href: supportMailto(), title: `Email ${SUPPORT_EMAIL}` }, acctIcon('mail'), 'Support'),
     h('div', { class: 'acct-sync' }, h('i', { 'aria-hidden': 'true' }), 'Synced to your account')));
 }
 function renderBanner() {
@@ -636,7 +645,7 @@ const shareUi = createShareUi({ cloud, openModal, modal, toast, run, message });
 const membersUi = createMembersUi({ cloud, openModal, modal, toast, run, message });
 const heirUi = createHeirUi({ cloud, openModal, modal, toast, run, message });
 const billingUi = createBillingUi({ cloud, openModal, modal, toast, run, message, used: () => raw.filter(r => !r.isSample).length, superadmin: () => isSuperadmin(cloud.user()?.email) });
-const accountUi = createAccountUi({ cloud, openModal, modal, toast, message, billing: billingUi, billingOn: () => Boolean(CONFIG.billing), signOut, who: whoAmI });
+const accountUi = createAccountUi({ cloud, openModal, modal, toast, message, billing: billingUi, billingOn: () => Boolean(CONFIG.billing), signOut, who: whoAmI, support: () => ({ href: supportMailto(), email: SUPPORT_EMAIL }) });
 const settingsFacade = {
   get: async () => settings,
   save: async patch => {

@@ -557,6 +557,18 @@ await step('profile menu: opens from the sidebar card, shows the account, the la
   if ((await ev(`document.getElementById('am-lang').disabled`)) !== true) throw new Error('the language box should not offer anything that does not exist');
   await ev(`document.querySelector('.acct-modal .modal-x').click()`); await until(`!document.getElementById('modal').open`, 'closed');
 });
+await step('support: the sidebar and the profile menu both open an email to support@ownedmap.com that already says who is writing', async () => {
+  await ev(`localStorage.clear()`); await signIn('sup@example.com'); await calm();
+  const side = await ev(`document.getElementById('support-link')?.getAttribute('href') || ''`);
+  if (!/^mailto:support@ownedmap\.com\?/.test(side)) throw new Error('sidebar link: ' + side);
+  const body = decodeURIComponent((side.match(/body=([^&]*)/) || [])[1] || '');
+  if (!body.includes('sup@example.com')) throw new Error('the email should name the account: ' + body);
+  if (!/Support/.test(await ev(`document.getElementById('support-link').textContent`))) throw new Error('the link needs the word Support');
+  await click('#profile-btn'); await until(`document.getElementById('am-support')`, 'help in the profile menu');
+  if (!/^mailto:support@ownedmap\.com/.test(await ev(`document.getElementById('am-support').getAttribute('href')`))) throw new Error('menu link');
+  const lastIsCancelOrHelp = await ev(`(()=>{const s=[...document.querySelectorAll('.acct-modal .am-sec')]; return s[s.length-1].classList.contains('am-danger') || s[s.length-1].textContent.includes('Help');})()`);
+  if (!lastIsCancelOrHelp) throw new Error('cancelling must stay at the very bottom');
+});
 await step('profile menu: change password checks length and match, saves, and the new password signs in', async () => {
   const E = 'pwd@example.com'; await ev(`localStorage.clear()`); await signIn(E); await calm();
   await click('#profile-btn'); await until(`document.getElementById('am-pw')`, 'password fields');
