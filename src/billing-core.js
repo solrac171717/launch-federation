@@ -30,6 +30,10 @@ export const priceCents = (n, interval = 'month') => {
   const year = cleanInterval(interval) === 'year', unit = c => (year ? yearCents(c) : c);
   return unit(PLAN.baseCents) + tierQty(n).reduce((sum, q, i) => sum + q * unit(PLAN.tiers[i].cents), 0);
 };
+/** What the lower bands save, per month, compared with paying the first-band price for every extra asset. */
+export const volumeSavingsCents = n => tierQty(n).reduce((sum, q, i) => sum + q * (PLAN.tiers[0].cents - PLAN.tiers[i].cents), 0);
+/** That saving in assets: every full first-band price saved (the $15) is one asset on the house. */
+export const freeAssets = n => Math.floor(volumeSavingsCents(n) / PLAN.tiers[0].cents);
 /** The Stripe lookup keys of the three extra-asset prices, in band order, for a billing interval. */
 export const tierKeys = interval => (cleanInterval(interval) === 'year' ? [PLAN.keys.extraYear, PLAN.keys.extra2Year, PLAN.keys.extra3Year] : [PLAN.keys.extra, PLAN.keys.extra2, PLAN.keys.extra3]);
 /** The Stripe lookup keys (base plan, extra assets by band) of a billing interval. */

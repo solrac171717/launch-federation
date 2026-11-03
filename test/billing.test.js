@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PLAN, priceCents, extraQty, tierQty, tierKeys, extraText, cleanAssets, usd, allowedFromItems, billingView } from '../src/billing-core.js';
+import { PLAN, priceCents, extraQty, tierQty, tierKeys, extraText, freeAssets, volumeSavingsCents, cleanAssets, usd, allowedFromItems, billingView } from '../src/billing-core.js';
 import { formEncode, verifySignature, signPayload, ensurePrices, subscriptionRow, stripeClient } from '../api/_stripe.js';
 import { runBilling } from '../api/billing.js';
 import { runWebhook } from '../api/stripe-webhook.js';
@@ -24,6 +24,12 @@ test('the bands split the extra assets, and the price explains itself in words',
   for (let n = 3; n <= 100; n++) assert.equal(tierQty(n).reduce((a, b) => a + b, 0) + PLAN.included, n, `the bands add up to ${n} assets`);
   assert.equal(extraText(), '$15 each for assets 4 to 10, $10 each for assets 11 to 25 and $5 each from the 26th');
   assert.equal(new Set([...tierKeys('month'), ...tierKeys('year')]).size, 6, 'six different Stripe prices');
+});
+test('the lower bands are shown as assets on the house: every $15 saved is one free asset', () => {
+  assert.equal(volumeSavingsCents(10), 0); assert.equal(volumeSavingsCents(11), 500); assert.equal(volumeSavingsCents(25), 15 * 500); assert.equal(volumeSavingsCents(26), 15 * 500 + 1000); assert.equal(volumeSavingsCents(100), 15 * 500 + 75 * 1000);
+  assert.deepEqual([3, 10, 11, 13, 14, 25, 26, 50, 100].map(freeAssets), [0, 0, 0, 1, 1, 5, 5, 21, 55]);
+  for (let n = 3; n < 100; n++) assert.ok(freeAssets(n + 1) >= freeAssets(n), 'it never goes down as you add assets');
+  assert.equal(PLAN.tiers[0].cents * freeAssets(100) <= volumeSavingsCents(100), true);
 });
 test('the pricing card on the website uses the same numbers as the plan that is charged', async () => {
   const { readFileSync } = await import('node:fs');

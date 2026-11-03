@@ -313,7 +313,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
   const BASE = 47, INCLUDED = 3, OFF = 0.30, TIERS = [[10, 15], [25, 10], [100, 5]]; // [up to this asset, dollars each]. Keep in step with PLAN in src/billing-core.js
   const range = document.getElementById('px-range');
   if (range) {
-    const total = document.getElementById('px-total'), count = document.getElementById('px-count'), per = document.getElementById('px-per'), save = document.getElementById('px-save');
+    const total = document.getElementById('px-total'), count = document.getElementById('px-count'), per = document.getElementById('px-per'), save = document.getElementById('px-save'), freeEl = document.getElementById('px-free');
     const mqr = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const USD2 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmt = v => (Number.isInteger(Math.round(v * 100) / 100) ? USD0 : USD2).format(v);
@@ -321,6 +321,8 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
     const yr = c => Math.round(c * 12 * (1 - OFF) * 100) / 100;                       // a year of that monthly price, 30% off
     const extras = n => { let from = INCLUDED; return TIERS.map(([upTo, d]) => { const q = Math.max(0, Math.min(n, upTo) - from); from = Math.max(from, upTo); return [q, d]; }); };
     const price = (n, iv = interval) => { const unit = d => (iv === 'year' ? yr(d) : d); return unit(BASE) + extras(n).reduce((sum, [q, d]) => sum + q * unit(d), 0); };
+    // every $15 the lower bands save, compared with paying $15 for each extra asset, is one asset on the house
+    const freeCount = n => Math.floor(extras(n).reduce((sum, [q, d]) => sum + q * (TIERS[0][1] - d), 0) / TIERS[0][1]);
     const paint = (v, exact) => { total.textContent = exact ? fmt(v) : USD0.format(Math.round(v)); };
     const update = () => {
       const n = +range.value, p = price(n);
@@ -330,6 +332,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
       range.setAttribute('aria-valuetext', `${n} assets, ${fmt(p)} per ${interval}`);
       count.textContent = String(n); document.getElementById('px-feat-n').textContent = String(n); document.getElementById('px-unit').textContent = n === 1 ? 'asset' : 'assets';
       per.textContent = interval;
+      const f = freeCount(n); freeEl.hidden = f === 0; freeEl.textContent = `${f} asset${f === 1 ? '' : 's'} free`; freeEl.title = `Past ${TIERS[0][0]} assets each one costs less. What that saves you equals ${f} asset${f === 1 ? '' : 's'} at $${TIERS[0][1]} each.`;
       if (interval === 'year') { save.hidden = false; save.textContent = `You save ${fmt(price(n, 'month') * 12 - p)}`; } else save.hidden = true;
       cancelAnimationFrame(raf);
       if (mqr) { shown = p; paint(p, true); return; }

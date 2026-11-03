@@ -626,6 +626,8 @@ await step('billing: limits stop extra assets without a plan; the free trial sta
   // the free trial for 5 assets, through (pretend) Stripe checkout
   await openPlan(); await until(`document.getElementById('bl-range')`, 'plan screen');
   await slide(5); await until(`/\\$77 a month/.test(document.getElementById('bl-price').textContent)`, 'price follows the slider ($47 + 2 x $15)');
+  if (await ev(`document.getElementById('bl-free').textContent !== ''`)) throw new Error('no free assets before the lower bands');
+  await slide(25); await until(`/\\$302 a month/.test(document.getElementById('bl-price').textContent)`, 'price at 25 assets'); await until(`document.getElementById('bl-free').textContent === '5 assets free'`, 'free assets shown'); await slide(5);
   await mbtn('Start 7-day free trial');
   await until(`/Trial/.test(document.getElementById('profile-btn')?.textContent || '')`, 'trial started after coming back from checkout', 20000);
   const [row] = await subs();
