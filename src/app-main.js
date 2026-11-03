@@ -1,6 +1,6 @@
 // Owned Map app entry: sign-in, the user's assets (Supabase or this device), and the dashboard on top of them.
 import { CONFIG } from '../assets/config.js';
-import { h, clear } from './dom.js';
+import { h, s as svg, clear } from './dom.js';
 import { thumb, money } from './ui.js';
 import { createCloud } from './cloud.js';
 import { createCloudStore, createLocalStore, validateAsset, toView, quickValues } from './asset-store.js';
@@ -80,23 +80,33 @@ function showAuth(error) {
 }
 
 /* ------------------------------------------------------------------ the dashboard */
+// the account block at the bottom of the sidebar: who is signed in, what they are on, billing and sign out
+const ACCT_ICON = {
+  card: 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm0 3h18M7 15h3',
+  out: 'M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h11',
+  shield: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Zm-3 9 2 2 4-4',
+};
+const acctIcon = key => svg('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true', class: 'acct-ico' }, svg('path', { d: ACCT_ICON[key] }));
+const initialsOf = email => { const n = String(email || '?').split('@')[0].split(/[._+-]+/).filter(Boolean); return ((n[0]?.[0] || '?') + (n[1]?.[0] || n[0]?.[1] || '')).toUpperCase(); };
+
 function renderFoot() {
   const f = clear($('side-foot'));
-  if (cloud.configured) {
-    const plan = planFor(cloud.user()?.email);
-    if (shared.length) {
-      const sel = h('select', { class: 'mini-sel sf-account', 'aria-label': 'Which portfolio to open', onchange: e => switchAccount(e.target.value) },
-        h('option', { value: '' }, 'My portfolio'), ...shared.map(s => h('option', { value: s.ownerId }, `${s.ownerEmail} (${ROLES[s.role].toLowerCase()})`)));
-      sel.value = account.mine ? '' : account.ownerId; f.append(sel);
-    }
-    f.append(h('span', { class: 'sf-user', title: cloud.user()?.email || '' }, cloud.user()?.email || 'Signed in'),
-      ...(plan.key === 'superadmin' ? [h('span', { class: 'sf-plan', title: plan.note }, `${plan.label} · unlimited`)] : []),
-      h('span', { class: 'sf-sync' }, 'Synced to your account'),
-      ...(CONFIG.billing && account.mine ? [h('button', { type: 'button', class: 'mini-btn', id: 'plan-btn', title: 'Plan and billing', onclick: () => billingUi.open() }, `Plan: ${billingUi.label()}`)] : []),
-      h('button', { type: 'button', class: 'mini-btn', onclick: signOut }, 'Sign out'));
-  } else {
-    f.append(h('span', { class: 'sf-sync' }, 'Saved on this device only'));
+  if (!cloud.configured) { f.append(h('div', { class: 'acct-sync off' }, h('i', { 'aria-hidden': 'true' }), 'Saved on this device only')); return; }
+  const email = cloud.user()?.email || '', plan = planFor(email), admin = plan.key === 'superadmin';
+  const role = admin ? plan.label : account.mine ? 'Owner' : ROLES[account.role];
+  if (shared.length) {
+    const sel = h('select', { class: 'mini-sel sf-account', 'aria-label': 'Which portfolio to open', onchange: e => switchAccount(e.target.value) },
+      h('option', { value: '' }, 'My portfolio'), ...shared.map(s => h('option', { value: s.ownerId }, `${s.ownerEmail} (${ROLES[s.role].toLowerCase()})`)));
+    sel.value = account.mine ? '' : account.ownerId; f.append(sel);
   }
+  f.append(h('div', { class: 'acct' },
+    h('div', { class: 'acct-head' },
+      h('span', { class: 'acct-av' + (admin ? ' admin' : ''), 'aria-hidden': 'true' }, initialsOf(email)),
+      h('div', { class: 'acct-who' }, h('span', { class: 'acct-email', title: email }, email || 'Signed in'), h('span', { class: 'acct-role' + (admin ? ' admin' : ''), title: admin ? plan.note : '' }, admin ? acctIcon('shield') : null, role))),
+    h('div', { class: 'acct-actions' },
+      ...(CONFIG.billing && account.mine ? [h('button', { type: 'button', class: 'acct-row', id: 'plan-btn', title: 'Plan and billing', onclick: () => billingUi.open() }, acctIcon('card'), h('span', { class: 'acct-t' }, h('b', {}, 'Plan & billing'), h('small', {}, billingUi.label())))] : []),
+      h('button', { type: 'button', class: 'acct-row out', 'aria-label': 'Sign out', onclick: signOut }, acctIcon('out'), h('span', { class: 'acct-t' }, h('b', {}, 'Sign out')))),
+    h('div', { class: 'acct-sync' }, h('i', { 'aria-hidden': 'true' }), 'Synced to your account')));
 }
 function renderBanner() {
   const b = $('app-banner'), sample = raw.some(r => r.isSample), due = dueNow();
