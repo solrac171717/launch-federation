@@ -7,14 +7,10 @@ Regla de oro: **solo se afirma lo que el producto hace hoy** (ver "Lo que NO se 
 
 ## 1. Qué hay ya en producción (hecho por mí)
 
-- 5 guías útiles + índice: `ownedmap.com/guides/`
-  - `/guides/track-rental-properties.html`
-  - `/guides/track-vehicles-boats-and-aircraft.html`
-  - `/guides/asset-inventory-for-estate-planning.html`
-  - `/guides/net-worth-with-real-assets.html`
-  - `/guides/kubera-alternative-for-real-assets.html`
+- Páginas VS (estrategia actual, las guías genéricas están aparcadas en `content/parked/`):
+  - `/compare/` (índice) y `/compare/owned-map-vs-kubera.html` (≈2.500 palabras, CTA sticky a `/#pricing`)
 - Plantilla descargable (gancho para enlaces): `ownedmap.com/downloads/asset-inventory-template.csv`
-- Sitemap con 9 URLs, `llms.txt` con las guías, datos estructurados (Article, FAQ, Breadcrumb), canonical correcto.
+- Sitemap con 5 URLs, `llms.txt` con las guías, datos estructurados (Article, FAQ, Breadcrumb), canonical correcto.
 
 ---
 
@@ -23,7 +19,7 @@ Regla de oro: **solo se afirma lo que el producto hace hoy** (ver "Lo que NO se 
 | # | Tarea | Por qué importa |
 |---|---|---|
 | 1 | **Google Search Console**: añadir `ownedmap.com` como propiedad de *dominio* (verificación por DNS en GoDaddy), enviar `https://ownedmap.com/sitemap.xml` | Sin esto Google tarda semanas en enterarse |
-| 2 | En Search Console, **Inspección de URL → "Solicitar indexación"** de las 6 URLs de `/guides/` + la home | Acelera la primera indexación |
+| 2 | En Search Console, **Inspección de URL → "Solicitar indexación"** de las URLs de `/compare/` + la home | Acelera la primera indexación |
 | 3 | **Bing Webmaster Tools**: importar el sitio desde Search Console | Bing alimenta a otros buscadores y a asistentes de IA |
 | 4 | **Una compra real** con cupón del 100% de Stripe y cancelarla desde el menú de perfil | Es lo único que no he podido probar contra Stripe en vivo |
 | 5 | Verificar que **support@ownedmap.com** recibe correo | Con Zoho ya hubo fallos de entrega |
