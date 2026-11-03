@@ -12,7 +12,7 @@ Owned Map is a paid subscription product with a 7-day free trial (card required,
 - Exports PDF, Excel (.xlsx) and CSV reports, and imports assets from CSV.
 
 ## Pricing
-- $47 per month includes 3 assets; each extra asset is $15 per month, up to 100 assets.
+- $47 per month includes 3 assets. Extra assets cost $15 each for assets 4 to 10, $10 each for assets 11 to 25 and $5 each from the 26th, up to 100 assets (25 assets: $302 a month, 100 assets: $677 a month).
 - Yearly billing is 30% less than monthly.
 - 7-day free trial.
 

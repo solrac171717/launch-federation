@@ -1,7 +1,7 @@
 // Stripe without the SDK: a small client (form-encoded requests, like the REST API expects), webhook signature check, and the sync of a Stripe
 // subscription into the `subscriptions` table. Used by api/billing.js and api/stripe-webhook.js. The leading underscore keeps Vercel from serving it as a route.
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { PLAN, allowedFromItems, keysFor, cleanInterval, yearCents } from '../src/billing-core.js';
+import { PLAN, allowedFromItems, keysFor, cleanInterval, yearCents, tierQty } from '../src/billing-core.js';
 
 export class StripeError extends Error {
   constructor(message, status = 502, code = '') { super(message); this.name = 'StripeError'; this.status = status; this.code = code; }
@@ -45,7 +45,7 @@ export function verifySignature(raw, header, secret, now = Math.floor(Date.now()
 /** For tests and the local mock: a header that verifySignature accepts. */
 export const signPayload = (raw, secret, t = Math.floor(Date.now() / 1000)) => `t=${t},v1=${createHmac('sha256', secret).update(`${t}.${raw}`).digest('hex')}`;
 
-const PRODUCT_DESCRIPTION = 'Owned Map: track your assets on one map. 3 assets included, extra assets billed monthly.';
+const PRODUCT_DESCRIPTION = 'Owned Map: track your assets on one map. 3 assets included, extra assets priced by band.';
 
 /** Puts the Owned Map name, description and logo on the product and prices already in Stripe (what Checkout, invoices and receipts show). Safe to run again. */
 export async function brandStripe(stripe, site) {
@@ -53,28 +53,34 @@ export async function brandStripe(stripe, site) {
   const product = (products.data || []).find(p => p.metadata?.app === 'owned-map');
   if (!product) return { product: null, prices: 0 };
   await stripe('POST', `/v1/products/${product.id}`, { name: PLAN.name, description: PRODUCT_DESCRIPTION, images: [`${String(site).replace(/\/$/, '')}/assets/logo-o.png`] });
-  const prices = await stripe('GET', '/v1/prices', { product: product.id, limit: 20 });
-  const names = { [PLAN.keys.base]: `Owned Map, ${PLAN.included} assets`, [PLAN.keys.extra]: 'Owned Map, extra asset', [PLAN.keys.baseYear]: `Owned Map, ${PLAN.included} assets, yearly`, [PLAN.keys.extraYear]: 'Owned Map, extra asset, yearly' };
+  const prices = await stripe('GET', '/v1/prices', { product: product.id, limit: 50 });
+  const names = { [PLAN.keys.base]: `Owned Map, ${PLAN.included} assets`, [PLAN.keys.extra]: 'Owned Map, extra asset', [PLAN.keys.extra2]: 'Owned Map, extra asset (11th to 25th)', [PLAN.keys.extra3]: 'Owned Map, extra asset (26th onwards)',
+    [PLAN.keys.baseYear]: `Owned Map, ${PLAN.included} assets, yearly`, [PLAN.keys.extraYear]: 'Owned Map, extra asset, yearly', [PLAN.keys.extra2Year]: 'Owned Map, extra asset (11th to 25th), yearly', [PLAN.keys.extra3Year]: 'Owned Map, extra asset (26th onwards), yearly' };
   let n = 0;
   for (const pr of prices.data || []) if (names[pr.lookup_key]) { await stripe('POST', `/v1/prices/${pr.id}`, { nickname: names[pr.lookup_key] }); n++; }
   return { product: product.id, prices: n };
 }
 
-/** The two prices of the plan, found by lookup key; created (with their product) the first time, in whichever mode the key belongs to. */
+/** The prices of the plan (base plus the three extra-asset bands), found by lookup key; created (with their product) the first time, in whichever mode the key belongs to. */
 export async function ensurePrices(stripe, site = '', interval = 'month') {
   const keys = keysFor(interval), yearly = cleanInterval(interval) === 'year', cents = c => (yearly ? yearCents(c) : c), per = yearly ? 'year' : 'month';
-  const want = [keys.base, keys.extra];
+  const want = [keys.base, ...keys.extras];
   const found = await stripe('GET', '/v1/prices', { lookup_keys: want, active: true, limit: 10 });
   const byKey = Object.fromEntries((found.data || []).map(p => [p.lookup_key, p.id]));
-  if (want.every(k => byKey[k])) return { base: byKey[keys.base], extra: byKey[keys.extra] };
+  const result = () => ({ base: byKey[keys.base], extras: keys.extras.map(k => byKey[k]), extra: byKey[keys.extras[0]] });
+  if (want.every(k => byKey[k])) return result();
   const products = await stripe('GET', '/v1/products', { active: true, limit: 100 });
   let product = (products.data || []).find(p => p.metadata?.app === 'owned-map')?.id;
   if (!product) product = (await stripe('POST', '/v1/products', { name: PLAN.name, description: PRODUCT_DESCRIPTION, ...(site ? { images: [`${site}/assets/logo-o.png`] } : {}), metadata: { app: 'owned-map' } })).id;
-  const make = (key, cents, nickname) => stripe('POST', '/v1/prices', { product, currency: PLAN.currency, unit_amount: cents, recurring: { interval: per }, lookup_key: key, transfer_lookup_key: true, nickname, metadata: { app: 'owned-map' } });
-  if (!byKey[keys.base]) byKey[keys.base] = (await make(keys.base, cents(PLAN.baseCents), `Owned Map, ${PLAN.included} assets${yearly ? ', yearly' : ''}`)).id;
-  if (!byKey[keys.extra]) byKey[keys.extra] = (await make(keys.extra, cents(PLAN.extraCents), `Owned Map, extra asset${yearly ? ', yearly' : ''}`)).id;
-  return { base: byKey[keys.base], extra: byKey[keys.extra] };
+  const make = (key, amount, nickname) => stripe('POST', '/v1/prices', { product, currency: PLAN.currency, unit_amount: amount, recurring: { interval: per }, lookup_key: key, transfer_lookup_key: true, nickname, metadata: { app: 'owned-map' } });
+  const suffix = yearly ? ', yearly' : '', labels = ['extra asset', 'extra asset (11th to 25th)', 'extra asset (26th onwards)'];
+  if (!byKey[keys.base]) byKey[keys.base] = (await make(keys.base, cents(PLAN.baseCents), `Owned Map, ${PLAN.included} assets${suffix}`)).id;
+  for (const [i, key] of keys.extras.entries()) if (!byKey[key]) byKey[key] = (await make(key, cents(PLAN.tiers[i].cents), `Owned Map, ${labels[i]}${suffix}`)).id;
+  return result();
 }
+
+/** The Checkout / subscription line items for n assets: the base plan once, and each extra-asset band that has any assets in it. */
+export const lineItems = (prices, n) => [{ price: prices.base, quantity: 1 }, ...tierQty(n).flatMap((q, i) => (q ? [{ price: prices.extras[i], quantity: q }] : []))];
 
 const iso = s => (s ? new Date(Number(s) * 1000).toISOString() : null);
 /**

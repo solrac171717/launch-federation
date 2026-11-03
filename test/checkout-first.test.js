@@ -7,7 +7,8 @@ import { runWelcome } from '../api/welcome.js';
 import { runWebhook } from '../api/stripe-webhook.js';
 import { provisionFromSession, SESSION_ID } from '../api/_provision.js';
 
-const PRICES = [{ id: 'price_b', lookup_key: PLAN.keys.base, active: true }, { id: 'price_e', lookup_key: PLAN.keys.extra, active: true }, { id: 'price_by', lookup_key: PLAN.keys.baseYear, active: true }, { id: 'price_ey', lookup_key: PLAN.keys.extraYear, active: true }];
+const PRICES = [{ id: 'price_b', lookup_key: PLAN.keys.base, active: true }, { id: 'price_e', lookup_key: PLAN.keys.extra, active: true }, { id: 'price_e2', lookup_key: PLAN.keys.extra2, active: true }, { id: 'price_e3', lookup_key: PLAN.keys.extra3, active: true },
+  { id: 'price_by', lookup_key: PLAN.keys.baseYear, active: true }, { id: 'price_ey', lookup_key: PLAN.keys.extraYear, active: true }, { id: 'price_e2y', lookup_key: PLAN.keys.extra2Year, active: true }, { id: 'price_e3y', lookup_key: PLAN.keys.extra3Year, active: true }];
 const SENV = { STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_API_BASE: 'https://stripe.test', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'srv', SITE_URL: 'https://site.test' };
 const NOW = 1_800_000_500;
 

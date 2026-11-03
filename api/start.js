@@ -2,8 +2,8 @@
 // and sends the visitor straight to it. There they type their email and card; the 7-day trial starts, and the price is charged when it ends
 // unless they cancel first. The account is created afterwards, from the email typed there (see api/stripe-webhook.js and api/welcome.js).
 // Env: STRIPE_SECRET_KEY, optional SITE_URL.
-import { PLAN, cleanAssets, cleanInterval, extraQty, priceCents, usd } from '../src/billing-core.js';
-import { stripeClient, ensurePrices, StripeError } from './_stripe.js';
+import { PLAN, cleanAssets, cleanInterval, priceCents, usd } from '../src/billing-core.js';
+import { stripeClient, ensurePrices, lineItems, StripeError } from './_stripe.js';
 
 const page = (res, status, title, text) => {
   res.statusCode = status; res.setHeader('content-type', 'text/html; charset=utf-8'); res.setHeader('cache-control', 'no-store');
@@ -21,12 +21,12 @@ export function allowed(ip, now = Date.now(), limit = 12) {
 export async function runStart({ env, fetchImpl = fetch, assets, siteUrl, interval }) {
   let stripe; try { stripe = stripeClient({ env, fetchImpl }); } catch { return { status: 503, title: 'Not available yet', text: 'Sign-up is not open yet. Please try again soon.' }; }
   const site = String(siteUrl || env.SITE_URL || '').replace(/\/$/, '');
-  const n = cleanAssets(assets ?? PLAN.included) ?? PLAN.included, extra = extraQty(n), per = cleanInterval(interval);
+  const n = cleanAssets(assets ?? PLAN.included) ?? PLAN.included, per = cleanInterval(interval);
   try {
     const prices = await ensurePrices(stripe, site, per);
     const session = await stripe('POST', '/v1/checkout/sessions', {
       mode: 'subscription', allow_promotion_codes: true, payment_method_collection: 'always', billing_address_collection: 'auto',
-      line_items: [{ price: prices.base, quantity: 1 }, ...(extra ? [{ price: prices.extra, quantity: extra }] : [])],
+      line_items: lineItems(prices, n),
       success_url: `${site}/welcome.html?session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${site}/`,
       metadata: { source: 'landing', assets: String(n), interval: per },
       subscription_data: { description: 'Owned Map', metadata: { source: 'landing' }, ...(PLAN.trialDays > 0 ? { trial_period_days: PLAN.trialDays } : {}) },

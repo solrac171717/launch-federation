@@ -310,7 +310,7 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
 
 /* ------------------------------------------------------------- pricing */
 {
-  const BASE = 47, INCLUDED = 3, EXTRA = 15, OFF = 0.30; // keep in step with PLAN in src/billing-core.js
+  const BASE = 47, INCLUDED = 3, OFF = 0.30, TIERS = [[10, 15], [25, 10], [100, 5]]; // [up to this asset, dollars each]. Keep in step with PLAN in src/billing-core.js
   const range = document.getElementById('px-range');
   if (range) {
     const total = document.getElementById('px-total'), count = document.getElementById('px-count'), per = document.getElementById('px-per'), save = document.getElementById('px-save');
@@ -319,7 +319,8 @@ mountDashboard({ getAssets: () => ASSETS, sample: true, csvName: 'owned-map-samp
     const fmt = v => (Number.isInteger(Math.round(v * 100) / 100) ? USD0 : USD2).format(v);
     let interval = 'month', shown = BASE, raf = 0;
     const yr = c => Math.round(c * 12 * (1 - OFF) * 100) / 100;                       // a year of that monthly price, 30% off
-    const price = (n, iv = interval) => (iv === 'year' ? yr(BASE) + Math.max(0, n - INCLUDED) * yr(EXTRA) : BASE + Math.max(0, n - INCLUDED) * EXTRA);
+    const extras = n => { let from = INCLUDED; return TIERS.map(([upTo, d]) => { const q = Math.max(0, Math.min(n, upTo) - from); from = Math.max(from, upTo); return [q, d]; }); };
+    const price = (n, iv = interval) => { const unit = d => (iv === 'year' ? yr(d) : d); return unit(BASE) + extras(n).reduce((sum, [q, d]) => sum + q * unit(d), 0); };
     const paint = (v, exact) => { total.textContent = exact ? fmt(v) : USD0.format(Math.round(v)); };
     const update = () => {
       const n = +range.value, p = price(n);

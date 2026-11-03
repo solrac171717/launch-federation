@@ -1,17 +1,38 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PLAN, priceCents, extraQty, cleanAssets, usd, allowedFromItems, billingView } from '../src/billing-core.js';
+import { PLAN, priceCents, extraQty, tierQty, tierKeys, extraText, cleanAssets, usd, allowedFromItems, billingView } from '../src/billing-core.js';
 import { formEncode, verifySignature, signPayload, ensurePrices, subscriptionRow, stripeClient } from '../api/_stripe.js';
 import { runBilling } from '../api/billing.js';
 import { runWebhook } from '../api/stripe-webhook.js';
 
 /* ----------------------------------------------------------------- the plan */
-test('the price is the one on the website: $47 with 3 assets, then $15 for each extra', () => {
+test('the price is the one on the website: $47 with 3 assets, then $15, $10 and $5 for the extras by band', () => {
   assert.equal(priceCents(1), 4700); assert.equal(priceCents(3), 4700);
-  assert.equal(priceCents(4), 6200); assert.equal(priceCents(10), 4700 + 7 * 1500); assert.equal(priceCents(50), 4700 + 47 * 1500); assert.equal(priceCents(100), 4700 + 97 * 1500);
-  assert.equal(priceCents(3, 'year'), 39480); assert.equal(priceCents(4, 'year'), 39480 + 12600); assert.equal(priceCents(100, 'year'), 39480 + 97 * 12600);
-  assert.ok(priceCents(10, 'year') < priceCents(10) * 12 * 0.71 + 1 && priceCents(10, 'year') > priceCents(10) * 12 * 0.69, 'yearly is 30% under twelve months');
+  assert.equal(priceCents(4), 6200); assert.equal(priceCents(10), 4700 + 7 * 1500, 'up to the 10th asset an extra costs $15');
+  assert.equal(priceCents(11), 4700 + 7 * 1500 + 1000, 'the 11th asset costs $10'); assert.equal(priceCents(25), 4700 + 7 * 1500 + 15 * 1000);
+  assert.equal(priceCents(26), 4700 + 7 * 1500 + 15 * 1000 + 500, 'from the 26th an extra costs $5');
+  assert.equal(priceCents(50), 4700 + 7 * 1500 + 15 * 1000 + 25 * 500); assert.equal(priceCents(100), 4700 + 7 * 1500 + 15 * 1000 + 75 * 500);
+  assert.deepEqual([priceCents(25), priceCents(50), priceCents(100)].map(usd), ['$302', '$427', '$677']);
+  assert.equal(priceCents(3, 'year'), 39480); assert.equal(priceCents(4, 'year'), 39480 + 12600); assert.equal(priceCents(11, 'year'), 39480 + 7 * 12600 + 8400);
+  assert.equal(priceCents(100, 'year'), 39480 + 7 * 12600 + 15 * 8400 + 75 * 4200);
+  for (const n of [3, 10, 25, 60, 100]) assert.ok(priceCents(n, 'year') < priceCents(n) * 12 * 0.71 + 1 && priceCents(n, 'year') > priceCents(n) * 12 * 0.69, `yearly is 30% under twelve months at ${n} assets`);
+  for (let n = 3; n < 100; n++) assert.ok(priceCents(n + 1) > priceCents(n), 'every extra asset costs something');
   assert.equal(usd(4700), '$47'); assert.equal(usd(6250), '$62.50');
+});
+test('the bands split the extra assets, and the price explains itself in words', () => {
+  assert.deepEqual(tierQty(3), [0, 0, 0]); assert.deepEqual(tierQty(10), [7, 0, 0]); assert.deepEqual(tierQty(12), [7, 2, 0]); assert.deepEqual(tierQty(25), [7, 15, 0]); assert.deepEqual(tierQty(100), [7, 15, 75]);
+  for (let n = 3; n <= 100; n++) assert.equal(tierQty(n).reduce((a, b) => a + b, 0) + PLAN.included, n, `the bands add up to ${n} assets`);
+  assert.equal(extraText(), '$15 each for assets 4 to 10, $10 each for assets 11 to 25 and $5 each from the 26th');
+  assert.equal(new Set([...tierKeys('month'), ...tierKeys('year')]).size, 6, 'six different Stripe prices');
+});
+test('the pricing card on the website uses the same numbers as the plan that is charged', async () => {
+  const { readFileSync } = await import('node:fs');
+  const js = readFileSync(new URL('../landing.js', import.meta.url), 'utf8');
+  const m = /BASE = (\d+), INCLUDED = (\d+), OFF = ([\d.]+), TIERS = (\[\[[^;]*?\]\]);/.exec(js);
+  assert.ok(m, 'landing.js pricing constants not found');
+  assert.equal(Number(m[1]) * 100, PLAN.baseCents); assert.equal(Number(m[2]), PLAN.included); assert.equal(Number(m[3]), PLAN.yearlyOff);
+  assert.deepEqual(JSON.parse(m[4]).map(([upTo, d]) => ({ upTo, cents: d * 100 })), PLAN.tiers);
+  assert.equal(PLAN.tiers.at(-1).upTo, PLAN.maxAssets, 'the last band reaches the maximum');
 });
 test('what a person types is clamped to what the plan allows', () => {
   assert.equal(cleanAssets('7'), 7); assert.equal(cleanAssets(0), 3); assert.equal(cleanAssets(999), 100); assert.equal(cleanAssets('abc'), null); assert.equal(cleanAssets(7.6), 8);
@@ -21,6 +42,7 @@ test('assets paid for come from the base plan plus the extra items, and only fro
   const b = PLAN.keys.base, e = PLAN.keys.extra;
   assert.equal(allowedFromItems([{ lookup_key: b, quantity: 1 }]), 3);
   assert.equal(allowedFromItems([{ lookup_key: b, quantity: 1 }, { lookup_key: e, quantity: 7 }]), 10);
+  assert.equal(allowedFromItems([{ lookup_key: b, quantity: 1 }, { lookup_key: e, quantity: 7 }, { lookup_key: PLAN.keys.extra2, quantity: 15 }, { lookup_key: PLAN.keys.extra3, quantity: 5 }]), 30, 'extras in every band count');
   assert.equal(allowedFromItems([{ lookup_key: e, quantity: 7 }]), 0, 'extras without the base plan give nothing');
   assert.equal(allowedFromItems([{ lookup_key: 'something_else', quantity: 5 }]), 0);
 });
@@ -77,7 +99,7 @@ function world({ subRow = null, user = { id: 'u1', email: 'a@x.test' }, prices =
       if (p === '/v1/billing_portal/configurations') { state.portalCfg = { id: 'bpc_1', metadata: { app: 'owned-map' } }; return json(state.portalCfg); }
       if (p === '/v1/billing_portal/sessions') return state.needPortalCfg && !form.configuration ? json({ error: { message: 'No configuration provided and your live mode default configuration has not been created.' } }, false, 400) : json({ url: 'https://portal.test/x' });
       const m = /^\/v1\/subscriptions\/(.+)$/.exec(p);
-      if (m) { if (method === 'POST') { const it = Object.keys(form).filter(k => k.startsWith('items[0]')); state.lastUpdate = { it: Object.fromEntries(it.map(k => [k, form[k]])), proration: form.proration_behavior }; const s = state.subs.get(m[1]); if (form['items[0][deleted]']) s.items.data = s.items.data.filter(x => x.id !== form['items[0][id]']); else if (form['items[0][id]']) s.items.data.find(x => x.id === form['items[0][id]']).quantity = Number(form['items[0][quantity]']); else s.items.data.push({ id: 'si_new', quantity: Number(form['items[0][quantity]']), price: { lookup_key: PLAN.keys.extra } }); } return json(state.subs.get(m[1])); }
+      if (m) { if (method === 'POST') { const idx = [...new Set(Object.keys(form).map(k => /^items\[(\d+)\]/.exec(k)?.[1]).filter(Boolean))]; const at = i => ({ id: form[`items[${i}][id]`], price: form[`items[${i}][price]`], quantity: form[`items[${i}][quantity]`], deleted: form[`items[${i}][deleted]`] }); state.lastUpdate = { it: Object.fromEntries(Object.keys(form).filter(k => k.startsWith('items[0]')).map(k => [k, form[k]])), all: idx.map(at), proration: form.proration_behavior }; const s = state.subs.get(m[1]); for (const i of idx) { const x = at(i); if (x.deleted) s.items.data = s.items.data.filter(y => y.id !== x.id); else if (x.id) s.items.data.find(y => y.id === x.id).quantity = Number(x.quantity); else s.items.data.push({ id: `si_new_${i}`, quantity: Number(x.quantity), price: { lookup_key: state.prices.find(pr => pr.id === x.price)?.lookup_key } }); } } return json(state.subs.get(m[1])); }
       return json({}, false, 404);
     }
     if (u.pathname === '/auth/v1/user') return init.headers.authorization === 'Bearer good' ? json(user) : json({}, false, 401);
@@ -90,18 +112,27 @@ function world({ subRow = null, user = { id: 'u1', email: 'a@x.test' }, prices =
   return { fetchImpl, calls, saved, state };
 }
 const ENV = { STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_API_BASE: 'https://stripe.test', SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'srv', SITE_URL: 'https://site.test' };
-const PRICES = [{ id: 'price_b', lookup_key: PLAN.keys.base, active: true }, { id: 'price_e', lookup_key: PLAN.keys.extra, active: true }];
+const PRICES = [{ id: 'price_b', lookup_key: PLAN.keys.base, active: true }, { id: 'price_e', lookup_key: PLAN.keys.extra, active: true }, { id: 'price_e2', lookup_key: PLAN.keys.extra2, active: true }, { id: 'price_e3', lookup_key: PLAN.keys.extra3, active: true }];
 const run = (w, body, token = 'good') => runBilling({ env: ENV, fetchImpl: w.fetchImpl, token, body });
 
-test('the first checkout creates the product and both prices; the next ones reuse them', async () => {
+test('the first checkout creates the product and all four prices; the next ones reuse them', async () => {
   const w = world();
   await run(w, { action: 'checkout', assets: 5 });
-  assert.deepEqual(w.calls.filter(c => c.method === 'POST' && /prices|products/.test(c.p)).map(c => c.p), ['/v1/products', '/v1/prices', '/v1/prices']);
+  assert.deepEqual(w.calls.filter(c => c.method === 'POST' && /prices|products/.test(c.p)).map(c => c.p), ['/v1/products', '/v1/prices', '/v1/prices', '/v1/prices', '/v1/prices']);
   const made = w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').map(c => [c.form.lookup_key, c.form.unit_amount, c.form.currency, c.form['recurring[interval]']]);
-  assert.deepEqual(made, [[PLAN.keys.base, '4700', 'usd', 'month'], [PLAN.keys.extra, '1500', 'usd', 'month']]);
+  assert.deepEqual(made, [[PLAN.keys.base, '4700', 'usd', 'month'], [PLAN.keys.extra, '1500', 'usd', 'month'], [PLAN.keys.extra2, '1000', 'usd', 'month'], [PLAN.keys.extra3, '500', 'usd', 'month']]);
   const w2 = world({ prices: PRICES });
   await run(w2, { action: 'checkout', assets: 5 });
   assert.ok(!w2.calls.some(c => c.method === 'POST' && /prices|products/.test(c.p)));
+});
+test('checkout for a big portfolio sends one line per price band, with the right quantities', async () => {
+  const w = world({ prices: PRICES });
+  await run(w, { action: 'checkout', assets: 30 });
+  const f = w.calls.find(c => c.p === '/v1/checkout/sessions').form;
+  assert.deepEqual([0, 1, 2, 3].map(i => [f[`line_items[${i}][price]`], f[`line_items[${i}][quantity]`]]), [['price_b', '1'], ['price_e', '7'], ['price_e2', '15'], ['price_e3', '5']]);
+  const small = world({ prices: PRICES }); await run(small, { action: 'checkout', assets: 4 });
+  const g = small.calls.find(c => c.p === '/v1/checkout/sessions').form;
+  assert.equal(g['line_items[1][price]'], 'price_e'); assert.equal(g['line_items[1][quantity]'], '1'); assert.equal(g['line_items[2][price]'], undefined, 'bands with no assets are not sent');
 });
 test('checkout: base plan plus the extras, the user in the metadata, a free trial, and no card needed', async () => {
   const w = world({ prices: PRICES });
@@ -147,6 +178,17 @@ test('changing the number of assets adds, updates or removes only the extra item
   r = await run(w, { action: 'change', assets: 3 }); assert.equal(r.body.assetsAllowed, 3); assert.equal(w.state.lastUpdate.it['items[0][deleted]'], 'true');
   w = world({ prices: PRICES, subRow: { ...row, status: 'canceled' } });
   assert.equal((await run(w, { action: 'change', assets: 6 })).status, 409);
+});
+test('changing a plan across price bands adds the new band, and removes it again when the portfolio shrinks', async () => {
+  const row = { user_id: 'u1', stripe_customer_id: 'cus_1', stripe_subscription_id: 'sub_1', status: 'active', assets_allowed: 10 };
+  const sub = { id: 'sub_1', customer: 'cus_1', status: 'active', metadata: { user_id: 'u1' }, items: { data: [{ id: 'si_b', quantity: 1, price: { lookup_key: PLAN.keys.base } }, { id: 'si_e', quantity: 7, price: { lookup_key: PLAN.keys.extra } }] } };
+  const w = world({ prices: PRICES, subRow: row }); w.state.subs.set('sub_1', sub);
+  let r = await run(w, { action: 'change', assets: 30 });
+  assert.equal(r.body.assetsAllowed, 30); assert.equal(w.state.lastUpdate.all.length, 3, 'one item per band');
+  assert.deepEqual(w.state.lastUpdate.all.map(x => [x.id || x.price, x.quantity]), [['si_e', '7'], ['price_e2', '15'], ['price_e3', '5']]);
+  r = await run(w, { action: 'change', assets: 8 });
+  assert.equal(r.body.assetsAllowed, 8); assert.deepEqual(w.state.lastUpdate.all.map(x => [x.id, x.quantity, x.deleted]), [['si_e', '5', undefined], ['si_new_1', undefined, 'true'], ['si_new_2', undefined, 'true']]);
+  assert.equal(w.state.subs.get('sub_1').items.data.length, 2, 'only the base plan and the first band are left');
 });
 test('the portal needs a customer; a Stripe error is passed on in plain words and not as a crash', async () => {
   let w = world({ prices: PRICES, subRow: { user_id: 'u1', stripe_customer_id: 'cus_1', status: 'active' } });
@@ -198,8 +240,8 @@ test('the client refuses to run without a key', () => { assert.throws(() => stri
 test('ensurePrices keeps what exists and only creates what is missing', async () => {
   const w = world({ prices: [PRICES[0]] }); w.state.products.push({ id: 'prod_9', metadata: { app: 'owned-map' } });
   const call = stripeClient({ env: ENV, fetchImpl: w.fetchImpl }), got = await ensurePrices(call);
-  assert.equal(got.base, 'price_b'); assert.equal(got.extra, `price_${PLAN.keys.extra}`);
-  assert.ok(!w.calls.some(c => c.p === '/v1/products' && c.method === 'POST'), 'the product is reused'); assert.equal(w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').length, 1);
+  assert.equal(got.base, 'price_b'); assert.equal(got.extra, `price_${PLAN.keys.extra}`); assert.deepEqual(got.extras, [PLAN.keys.extra, PLAN.keys.extra2, PLAN.keys.extra3].map(k => `price_${k}`));
+  assert.ok(!w.calls.some(c => c.p === '/v1/products' && c.method === 'POST'), 'the product is reused'); assert.equal(w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').length, 3);
 });
 test('the portal: an account with no portal configuration gets ours created once, with cancel and invoices, then it opens', async () => {
   const w = world({ prices: PRICES, subRow: { user_id: 'u1', stripe_customer_id: 'cus_1', status: 'trialing' } }); w.state.needPortalCfg = true;
@@ -219,7 +261,7 @@ test('yearly plan: its prices count like the monthly ones, and the limit is 100 
 test('ensurePrices creates the yearly prices with the 30% discount, once, on their own keys', async () => {
   const w = world({ prices: PRICES }); w.state.products.push({ id: 'prod_9', metadata: { app: 'owned-map' } });
   const call = stripeClient({ env: ENV, fetchImpl: w.fetchImpl }), got = await ensurePrices(call, '', 'year');
-  assert.equal(got.base, `price_${PLAN.keys.baseYear}`); assert.equal(got.extra, `price_${PLAN.keys.extraYear}`);
+  assert.equal(got.base, `price_${PLAN.keys.baseYear}`); assert.equal(got.extra, `price_${PLAN.keys.extraYear}`); assert.equal(got.extras.length, 3);
   const made = w.calls.filter(c => c.p === '/v1/prices' && c.method === 'POST').map(c => [c.form.lookup_key, c.form.unit_amount, c.form['recurring[interval]']]);
-  assert.deepEqual(made, [[PLAN.keys.baseYear, '39480', 'year'], [PLAN.keys.extraYear, '12600', 'year']]);
+  assert.deepEqual(made, [[PLAN.keys.baseYear, '39480', 'year'], [PLAN.keys.extraYear, '12600', 'year'], [PLAN.keys.extra2Year, '8400', 'year'], [PLAN.keys.extra3Year, '4200', 'year']]);
 });

@@ -4,8 +4,8 @@
 //   portal    -> Stripe's customer portal: card, invoices, cancel
 // The prices are found, or created the first time, by lookup key (see ensurePrices). The subscription row itself is written by the webhook
 // (and right after a change), never by the browser. Env: STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY (optional), SITE_URL (optional).
-import { PLAN, cleanAssets, cleanInterval, extraQty, LIVE } from '../src/billing-core.js';
-import { stripeClient, ensurePrices, ensurePortalConfig, subscriptionRow, supabaseClient, saveSubscription, StripeError } from './_stripe.js';
+import { PLAN, cleanAssets, cleanInterval, tierQty, tierKeys, LIVE } from '../src/billing-core.js';
+import { stripeClient, ensurePrices, lineItems, ensurePortalConfig, subscriptionRow, supabaseClient, saveSubscription, StripeError } from './_stripe.js';
 
 const send = (res, status, body) => {
   res.statusCode = status;
@@ -39,11 +39,11 @@ export async function runBilling({ env, fetchImpl = fetch, token, body, siteUrl 
         const saved = await sb('/rest/v1/subscriptions?on_conflict=user_id', { method: 'POST', body: JSON.stringify({ user_id: user.id, stripe_customer_id: customer, status: 'none', assets_allowed: 0 }), headers: { prefer: 'resolution=merge-duplicates,return=minimal' } });
         if (!saved.ok) return fail(502, 'save_failed');
       }
-      const per = cleanInterval(body.interval), prices = await ensurePrices(stripe, '', per), extra = extraQty(assets);
+      const per = cleanInterval(body.interval), prices = await ensurePrices(stripe, '', per);
       const trial = PLAN.trialDays > 0 && !cur?.trial_end; // one free trial per person
       const session = await stripe('POST', '/v1/checkout/sessions', {
         mode: 'subscription', customer, client_reference_id: user.id, allow_promotion_codes: true,
-        line_items: [{ price: prices.base, quantity: 1 }, ...(extra ? [{ price: prices.extra, quantity: extra }] : [])],
+        line_items: lineItems(prices, assets),
         success_url: `${site}/app.html?billing=success`, cancel_url: `${site}/app.html?billing=cancel`,
         payment_method_collection: 'always', // the trial needs a card: it is charged when the trial ends, unless the person cancels first
         subscription_data: { metadata: { user_id: user.id }, ...(trial ? { trial_period_days: PLAN.trialDays } : {}) },
@@ -55,8 +55,13 @@ export async function runBilling({ env, fetchImpl = fetch, token, body, siteUrl 
       const assets = cleanAssets(body.assets); if (assets === null) return fail(400, 'bad_assets');
       if (!cur?.stripe_subscription_id || !LIVE.includes(cur.status)) return fail(409, 'no_subscription');
       const sub = await stripe('GET', `/v1/subscriptions/${encodeURIComponent(cur.stripe_subscription_id)}`);
-      const yearly = (sub.items?.data || []).some(i => i.price?.lookup_key === PLAN.keys.baseYear), prices = await ensurePrices(stripe, '', yearly ? 'year' : 'month'), want = extraQty(assets), have = (sub.items?.data || []).find(i => [PLAN.keys.extra, PLAN.keys.extraYear].includes(i.price?.lookup_key));
-      const items = have ? [want ? { id: have.id, quantity: want } : { id: have.id, deleted: true }] : want ? [{ price: prices.extra, quantity: want }] : [];
+      const yearly = (sub.items?.data || []).some(i => i.price?.lookup_key === PLAN.keys.baseYear), prices = await ensurePrices(stripe, '', yearly ? 'year' : 'month'), want = tierQty(assets);
+      // each extra-asset band is its own item: change its quantity, add it when the portfolio grows into it, drop it when it shrinks out of it
+      const items = tierKeys(yearly ? 'year' : 'month').flatMap((key, i) => {
+        const have = (sub.items?.data || []).find(it => it.price?.lookup_key === key);
+        if (have) return [want[i] ? { id: have.id, quantity: want[i] } : { id: have.id, deleted: true }];
+        return want[i] ? [{ price: prices.extras[i], quantity: want[i] }] : [];
+      });
       const updated = items.length ? await stripe('POST', `/v1/subscriptions/${encodeURIComponent(sub.id)}`, { items, proration_behavior: 'create_prorations' }) : sub;
       const next = subscriptionRow(updated, user.id, Math.floor(Date.now() / 1000));
       await saveSubscription(sb, next);

@@ -3,7 +3,7 @@
 import { cp, rm, readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { PLAN, priceCents } from '../src/billing-core.js';
+import { PLAN, priceCents, extraText } from '../src/billing-core.js';
 
 const check = f => {
   const r = spawnSync(process.execPath, ['--check', f], { encoding: 'utf8' });
@@ -36,7 +36,7 @@ const jsonLd = (html, site) => {
     { '@type': 'SoftwareApplication', '@id': `${site}/#app`, name: 'Owned Map', url: `${site}/`, applicationCategory: 'FinanceApplication', operatingSystem: 'Web', inLanguage: 'en-US', publisher: { '@id': `${site}/#org` },
       description: 'Owned Map puts property, vehicles, boats, aircraft, land and equipment on one interactive map, with the value, income, expenses, yield and net worth of each asset, plus PDF, Excel and CSV reports.',
       featureList: ['Interactive world map of every asset you own', 'Value, income, expenses, yield and net worth per asset', 'Mortgages and loans per asset', 'Documents and renewal reminders', 'PDF, Excel and CSV reports', 'CSV import'],
-      offers: [offer('Monthly', PLAN.baseCents, 'P1M', `Includes ${PLAN.included} assets; each extra asset is $${usd(PLAN.extraCents)} a month. 7-day free trial.`), offer('Yearly', priceCents(PLAN.included, 'year'), 'P1Y', `Includes ${PLAN.included} assets, ${Math.round(PLAN.yearlyOff * 100)}% less than monthly billing. 7-day free trial.`)] },
+      offers: [offer('Monthly', PLAN.baseCents, 'P1M', `Includes ${PLAN.included} assets; extra assets: ${extraText()}, per month. 7-day free trial.`), offer('Yearly', priceCents(PLAN.included, 'year'), 'P1Y', `Includes ${PLAN.included} assets, ${Math.round(PLAN.yearlyOff * 100)}% less than monthly billing. 7-day free trial.`)] },
   ];
   if (faq.length) graph.push({ '@type': 'FAQPage', '@id': `${site}/#faq`, mainEntity: faq });
   return `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replaceAll('</', '<\/')}</script>`;
