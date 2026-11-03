@@ -5,11 +5,24 @@ import { PLAN, priceCents, usd, extraText } from '../src/billing-core.js';
 
 export const CHECKED = '2026-11-03';
 
+/** Every outside claim on a page points to one of these. Each was opened and read on CHECKED; `says` is what we rely on it for. */
+export const SOURCES = [
+  { n: 1, title: 'Kubera: homepage', publisher: 'Kubera', url: 'https://www.kubera.com', says: 'Features, asset types, sharing, beneficiaries and the 14-day trial.' },
+  { n: 2, title: 'Kubera Black', publisher: 'Kubera', url: 'https://www.kubera.com/kubera-black', says: 'Kubera Black is priced at $2,500 a year.' },
+  { n: 3, title: 'Kubera: security', publisher: 'Kubera', url: 'https://www.kubera.com/security', says: 'How accounts connect through aggregators; Kubera says it does not store bank credentials.' },
+  { n: 4, title: 'Kubera pricing', publisher: 'Toolradar', url: 'https://toolradar.com/tools/kubera/pricing', says: 'Lists Essentials at $250 a year; says prices were confirmed on kubera.com on October 29, 2026.' },
+  { n: 5, title: 'Capitalization rate', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Capitalization_rate', says: 'The cap rate is net operating income divided by current value, not the original price.' },
+  { n: 6, title: 'Publication 527, Residential Rental Property (2025)', publisher: 'Internal Revenue Service', url: 'https://www.irs.gov/publications/p527', says: 'You cannot simply deduct mortgage principal payments; keep accurate records and separate repairs from improvements.' },
+  { n: 7, title: 'Wills Survey 2025', publisher: 'Caring.com, with YouGov', url: 'https://www.caring.com/resources/wills-survey/', says: '24% of respondents have a will, down from 33% in 2022 (more than 2,500 US adults).' },
+  { n: 8, title: 'Before the Storm: Don\u2019t Wait Until It\u2019s Too Late', publisher: 'Nebraska Department of Insurance', url: 'https://doi.nebraska.gov/sites/default/files/doc/BeforeTheStorm-Don%27tWaitUntilItsTooLate.pdf', says: 'An inventory should record brand, price, purchase date, model, serial number and receipts, with photos.' },
+];
+const c = n => `<sup class="cite"><a href="#src-${n}" aria-label="Source ${n}">[${n}]</a></sup>`;
+
 /** Social proof we can stand behind. Add { quote, name, role } to quotes only when a real customer has said it and agreed to be named. */
 export const PROOF = {
   quotes: [],
   points: [
-    ['No bank logins', 'Nothing to connect, so no bank credentials are ever stored.'],
+    ['No bank logins', 'Nothing to connect, so there is no bank access to set up or revoke.'],
     ['Your data leaves with you', 'Export PDF, Excel or CSV whenever you like.'],
     ['Cancel in two clicks', 'From your profile menu, no email to support.'],
   ],
@@ -24,17 +37,19 @@ export const COMPARISONS = [
     slug: 'kubera-vs-owned-map',
     rival: 'Kubera',
     crumb: 'Kubera vs Owned Map',
-    title: 'Kubera vs Owned Map: Which Net Worth Tracker Fits You?',
-    description: 'Kubera vs Owned Map compared on assets, automation, documents, sharing and price, with a worked example and who should pick which. Updated November 2026.',
+    title: 'Kubera vs Owned Map (2026): Kubera Alternative for Real Assets',
+    description: 'Kubera vs Owned Map compared on assets, automation, documents, sharing and price. A Kubera alternative for property, boats and vehicles. Checked Nov 2026.',
+    primary: 'kubera vs owned map',
+    takeaways: ['Kubera syncs bank, brokerage and crypto accounts for you; Owned Map does not connect to any account.', 'Owned Map is built for physical assets: a map, rental numbers, documents and renewal dates.', `Owned Map starts at ${usd(PLAN.baseCents)} a month for ${PLAN.included} assets. Kubera Black is $2,500 a year, and its entry plan is about $250 a year.`, 'Many owners of both kinds of wealth use the two together.'],
     h1: 'Kubera vs Owned Map: an honest comparison',
     lead: 'Kubera and Owned Map both help you see what you are worth, but they start from opposite ends. Kubera starts from your financial accounts and pulls them in. Owned Map starts from the things you can point to on a map (property, vehicles, boats, aircraft, land) and keeps their numbers, documents and dates together. This page puts them side by side, says plainly where Kubera is the better pick, and gives you a way to decide in five minutes.',
-    toc: [['verdict', 'The short answer'], ['at-a-glance', 'At a glance'], ['starting-point', 'Two different starting points'], ['features', 'Feature by feature'], ['example', 'A worked example: one rental condo'], ['documents', 'Documents and dates'], ['sharing', 'Sharing and inheritance'], ['price', 'Price'], ['choose', 'Who should choose which'], ['switch', 'Using both, or switching'], ['method', 'How we checked']],
+    toc: [['verdict', 'The short answer'], ['at-a-glance', 'At a glance'], ['starting-point', 'Two different starting points'], ['features', 'Feature by feature'], ['example', 'A worked example: one rental condo'], ['documents', 'Documents and dates'], ['sharing', 'Sharing and inheritance'], ['security', 'Security and privacy'], ['price', 'Price'], ['choose', 'Who should choose which'], ['switch', 'Using both, or switching'], ['method', 'How we checked'], ['sources', 'Sources']],
     sections: [
       { id: 'verdict', h2: 'The short answer', html: `<ul><li><strong>Pick Kubera</strong> if what you want is a dashboard that updates itself from your bank, brokerage and crypto accounts, and you mostly track financial assets.</li><li><strong>Pick Owned Map</strong> if a large part of what you own is physical (rental property, your home, cars, a boat, an aircraft, land) and you want the numbers that matter for each one, plus the documents and renewal dates, in one place and on a map.</li><li><strong>Use both</strong> if you have a big financial portfolio and a serious set of physical assets. They do not get in each other&rsquo;s way.</li></ul>
-<p>The rest of the page explains why, so you do not have to take our word for it. Where we describe Kubera, we use what it publishes on its own site, and we link to it so you can check.</p>` },
+<p>The rest of the page explains why, so you do not have to take our word for it. Where we describe Kubera, we use what it publishes on its own site, and we link to it so you can check.${c(1)}</p>` },
       { id: 'at-a-glance', h2: 'At a glance', html: `<table><thead><tr><th></th><th>Kubera</th><th>Owned Map</th></tr></thead><tbody>
 <tr><td>Built around</td><td>Your whole net worth, financial accounts first</td><td>The physical assets you own, on a map</td></tr>
-<tr><td>Connects to banks and brokerages</td><td><strong>Yes.</strong> It advertises thousands of banks and brokerages worldwide</td><td>No, by design</td></tr>
+<tr><td>Connects to banks and brokerages</td><td><strong>Yes.</strong> It advertises thousands of banks and brokerages worldwide${c(1)}</td><td>No, by design</td></tr>
 <tr><td>Crypto wallets, exchanges, DeFi</td><td><strong>Yes</strong></td><td>No (you can enter a value by hand)</td></tr>
 <tr><td>Property, vehicles, boats, aircraft</td><td>Yes, as assets you add</td><td><strong>Yes, the core of the product</strong></td></tr>
 <tr><td>Map of everything you own</td><td>Not advertised</td><td><strong>Yes</strong>, globe and country views</td></tr>
@@ -43,11 +58,11 @@ export const COMPARISONS = [
 <tr><td>Date reminders (insurance, tax, registration, inspection)</td><td>Not advertised</td><td><strong>Yes</strong></td></tr>
 <tr><td>Share with family or an advisor</td><td>Yes (&ldquo;Multiplayer&rdquo;, with access control)</td><td>Yes (read-only link, household members)</td></tr>
 <tr><td>Passes the portfolio to beneficiaries</td><td>Yes (a dead man&rsquo;s switch)</td><td>A private emergency sheet for one trusted person</td></tr>
-<tr><td>Free trial</td><td>14 days</td><td>7 days, card required</td></tr>
+<tr><td>Free trial</td><td>14 days${c(1)}</td><td>7 days, card required</td></tr>
 <tr><td>Starting price</td><td>Check kubera.com (see the price section)</td><td>${usd(PLAN.baseCents)} a month for ${PLAN.included} assets</td></tr></tbody></table>
 <p>&ldquo;Not advertised&rdquo; means we did not find it on Kubera&rsquo;s public pages in ${'November 2026'}. It may exist or be added later, so check before you rule it out.</p>` },
       { id: 'starting-point', h2: 'Two different starting points', html: `<p>Most comparison pages list features as if every tool were trying to do the same job. These two are not.</p>
-<p><strong>Kubera is a net worth tracker.</strong> Its pitch is that you connect your accounts once and your total updates itself. It talks about thousands of banks and brokerages through several data aggregators, a web-based sync for institutions that cannot connect directly, blockchain wallets, exchanges, DeFi and NFTs, and a long list of other asset types. Its tagline is that if you can own it, Kubera can track it. That is a financial-first design: the accounts are the main source, and everything else is something you add.</p>
+<p><strong>Kubera is a net worth tracker.</strong> Its pitch is that you connect your accounts once and your total updates itself. It talks about thousands of banks and brokerages through several data aggregators, a web-based sync for institutions that cannot connect directly, blockchain wallets, exchanges, DeFi and NFTs, and a long list of other asset types. Its tagline is that if you can own it, Kubera can track it.${c(1)} That is a financial-first design: the accounts are the main source, and everything else is something you add.</p>
 <p><strong>Owned Map is a manager for physical things.</strong> Every asset is a pin on a map. Open one and you see the estimated value, what you paid, the income and expenses, any loan, your share of ownership, and what follows from them: appreciation, net operating income, yield, monthly cash flow and your net worth after debt. The value history grows each time you update a value. Documents sit on the asset, and so do the dates you cannot afford to miss. The numbers are the ones you enter. Owned Map does not connect to any account and does not fetch market prices.</p>
 <p>That last point is the biggest single difference, and it cuts both ways. If you hate typing numbers, an automatic connection is a real advantage. If a house, a boat or a collector car is most of your wealth, no bank feed will ever tell you what it is worth, so you are typing the number either way, and what matters is what the tool does with it.</p>` },
       { id: 'features', h2: 'Feature by feature', html: `<h3>Assets you can track</h3>
@@ -66,6 +81,7 @@ export const COMPARISONS = [
 <p>From those, Owned Map calculates the following and shows it on the asset:</p>
 <ul><li>Net operating income: $38,400 &minus; $9,600 = <strong>$28,800 a year</strong></li><li>Yield on what you paid: $28,800 &divide; $520,000 = <strong>5.5%</strong></li><li>Yield on what it is worth now: $28,800 &divide; $640,000 = <strong>4.5%</strong></li><li>Equity: $640,000 &minus; $310,000 = <strong>$330,000</strong></li><li>Appreciation: ($640,000 &minus; $520,000) &divide; $520,000 = <strong>23.1%</strong></li><li>Cash flow after the loan: $28,800 &minus; ($1,850 &times; 12) = <strong>$6,600 a year, $550 a month</strong></li></ul>
 <p>The gap between the two yields is the useful part. The condo returns 5.5% on the money you put in, but only 4.5% on what it is worth today, because its value rose faster than the rent. That is the kind of fact that tells you whether to hold, raise the rent or sell, and it is the kind of number a net worth total alone hides.</p>
+<p>Two details are worth knowing. First, the 4.5% figure is the standard capitalization rate, which divides net operating income by the property&rsquo;s <em>current value</em>, not the original price.${c(5)} Second, the loan payment sits outside net operating income, and for good reason: in the United States the IRS tells rental owners that they cannot simply deduct mortgage principal payments, and that they should keep accurate records and separate repairs from improvements.${c(6)} So cash flow (what reaches you), net operating income (how the property performs) and taxable profit (what you report) are three different numbers. Ask your accountant about the third; a tracker should at least keep the first two straight.</p>
 <p>In a pure net worth tracker you can still add the condo with its value and the loan, and the total will be right. You would work out the yields yourself, in a spreadsheet. Whether that is a problem depends on how many properties you have and how often you ask the question. With one property, probably not. With four, in two countries, one of them co-owned, it usually is.</p>` },
       { id: 'documents', h2: 'Documents and dates', html: `<p>Owning things creates paperwork and deadlines: an insurance policy that renews, a registration, a yearly inspection, a property tax bill, a loan agreement. Most of the expensive surprises of ownership come from a date nobody wrote down.</p>
 <p>Owned Map keeps documents on the asset they belong to and holds the dates (insurance, tax, registration, inspections) with reminders, so the policy and the date live next to the thing they cover. On Kubera&rsquo;s public pages we found no mention of attaching documents or tracking renewal dates, so if this is part of why you want a tool, ask them before you buy.</p>
@@ -73,8 +89,13 @@ export const COMPARISONS = [
       { id: 'sharing', h2: 'Sharing and inheritance', html: `<p>Both tools take this seriously, in different ways.</p>
 <p><strong>Kubera</strong> offers a sharing feature it calls Multiplayer, with granular access control for family, assistants, advisors and accountants, and a dead man&rsquo;s switch: if you go silent for too long, it delivers your portfolio to the beneficiaries you chose. For a large, mostly digital estate, that is a strong feature.</p>
 <p><strong>Owned Map</strong> lets you share a read-only link, give household members access, and set a private emergency sheet for one trusted person. It is simpler and aimed at the common case: your partner or one executor needs to know what exists, where it is and where the papers are. It does not hand your portfolio to several beneficiaries automatically.</p>
+<p>Why it matters: in Caring.com&rsquo;s 2025 survey of more than 2,500 US adults, only 24% said they have a will, down from 33% in 2022.${c(7)} A will is not an inventory, but the two go together: an executor cannot settle what nobody knows exists. Regulators say the same about household goods. The Nebraska Department of Insurance advises recording brand, price, purchase date, model, serial number and receipts, with photos.${c(8)} Cars, boats and aircraft deserve the same discipline, with the registration or title number added.</p>
 <p>Whichever you use, the most valuable thing for your family is not the tool but the list: every asset, where it is, who holds the papers, and who to call. We wrote the template mentioned above for that reason.</p>` },
-      { id: 'price', h2: 'Price', html: `<p>Kubera&rsquo;s prices change, so check <a href="https://www.kubera.com" rel="noopener" target="_blank">kubera.com</a> before deciding. As of ${'November 2026'}, its Black plan is listed on its own site at $2,499 a year. For the entry plan we could not confirm a figure from Kubera itself, and third-party listings put it at about $250 a year. Treat that as a rough guide, not a quote. Kubera offers a 14-day trial.</p>
+      { id: 'security', h2: 'Security and privacy', html: `<p>This is where the two products are most different, so it is worth being precise.</p>
+<p><strong>Kubera</strong> connects to your accounts through a network of financial aggregators (its security page names Plaid, Mastercard, MX, Yodlee, Akoya, SnapTrade, Lean, Akahu and Salt Edge). It says your banking credentials are entered on the aggregator&rsquo;s screen or, with open banking, on the bank&rsquo;s own login page, that its servers never see them, that it asks for read-only access and cannot initiate transactions, and that data is encrypted at rest and in transit but not end to end.${c(3)} Those are Kubera&rsquo;s own statements, and they describe a careful design for a product that has to read your accounts.</p>
+<p><strong>Owned Map</strong> avoids the question. It does not connect to bank, brokerage or crypto accounts, so there is no access to grant, no connection that can break and nothing to revoke. The trade is the one already described: you enter the values yourself. For physical assets, where no feed could tell you what a boat is worth anyway, many people consider that a fair trade.</p>
+<p>Whichever you choose, use a unique password and turn on every extra sign-in protection the service offers.</p>` },
+      { id: 'price', h2: 'Price', html: `<p>Kubera&rsquo;s prices change, so check <a href="https://www.kubera.com" rel="noopener" target="_blank">kubera.com</a> before deciding. As of ${'November 2026'}, Kubera&rsquo;s own Black page lists that plan at $2,500 a year.${c(2)} The pages of Kubera&rsquo;s we could read do not show an entry price. The price tracker Toolradar lists the Essentials plan at $250 a year and says it confirmed prices on kubera.com on October 29, 2026.${c(4)} Treat that as a guide, not a quote. Kubera offers a 14-day trial.${c(1)}</p>
 <p>Owned Map&rsquo;s pricing is simple and public. ${usd(PLAN.baseCents)} a month includes ${PLAN.included} assets. ${extraText()}, up to ${PLAN.maxAssets} assets. Paying yearly is ${Math.round(PLAN.yearlyOff * 100)}% less. There is a ${PLAN.trialDays}-day free trial, and a card is required.</p>
 <table><thead><tr><th>Assets tracked</th><th>Monthly</th><th>Paid yearly</th></tr></thead><tbody>
 <tr><td>${PLAN.included}</td><td>${m(PLAN.included)}</td><td>${y(PLAN.included)}</td></tr>
@@ -92,7 +113,7 @@ export const COMPARISONS = [
 <p>If you are moving physical assets from a spreadsheet or another tool, the quickest route is the CSV import: download the <a href="/downloads/asset-inventory-template.csv">inventory template</a>, paste your list in, and import it. Then add the loans, shares and documents asset by asset. For a list of ten assets it is a short afternoon, and the pins appear on the map as you go.</p>
 <p>If you try Owned Map and it is not for you, you can cancel from your profile menu and export your data first. You are not locked in.</p>` },
       { id: 'method', h2: 'How we checked', html: `<p>We wrote this page on ${'November 3, 2026'}. What we say about Kubera comes from its own public pages, <a href="https://www.kubera.com" rel="noopener" target="_blank">kubera.com</a> and its Black plan page, plus third-party price listings where Kubera does not show a figure, which we flag as such. We have not used a paid Kubera account for this page, so we say &ldquo;not advertised&rdquo; where we found nothing, rather than &ldquo;not available&rdquo;. What we say about Owned Map is what the product does today.</p>
-<p>Both products change. If you spot something out of date, email <a href="mailto:support@ownedmap.com">support@ownedmap.com</a> and we will correct it.</p>` },
+<p>Every outside claim is numbered and listed under Sources below, with what we rely on it for. Both products change. If you spot something out of date, email <a href="mailto:support@ownedmap.com">support@ownedmap.com</a> and we will correct it.</p>` },
     ],
     faq: [
       ['Is Owned Map a replacement for Kubera?', 'Only if most of what you track is physical: property, vehicles, boats, aircraft and land. Owned Map does not connect to bank, brokerage or crypto accounts, which is what Kubera is built around. Many people with both kinds of wealth would use the two together.'],
@@ -100,10 +121,18 @@ export const COMPARISONS = [
       ['Is Owned Map cheaper than Kubera?', `Not for a small portfolio. Owned Map starts at ${usd(PLAN.baseCents)} a month for ${PLAN.included} assets, or about ${y(PLAN.included)} a year if you pay yearly. Kubera lists its prices on its own site, so compare the current figures. The two do different jobs, so price is only part of the choice.`],
       ['Can Kubera track real estate and vehicles?', 'Yes. Kubera says it tracks physical assets such as real estate, vehicles, gold, jewelry and watches. We did not find rental yield, cash flow, documents or renewal dates on its public pages, which Owned Map is built around.'],
       ['Can I try Owned Map before paying?', `Yes. There is a ${PLAN.trialDays}-day free trial, and a card is required to start it. You can cancel from your profile menu at any time.`],
+      ['Does Kubera store my bank password?', 'Kubera says it does not. Its security page says credentials are entered on the aggregator\u2019s screen or the bank\u2019s own login page, that its servers never see them, and that it has read-only access and cannot move money. Owned Map avoids the question by not connecting to accounts at all.'],
       ['How do I move my assets over?', 'Download the free inventory template, fill in your list and import the CSV. Then add loans, ownership shares and documents to each asset.'],
     ],
     related: [],
+    sources: [1, 2, 3, 4, 5, 6, 7, 8],
   },
 ];
+
+const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+/** The Sources section, built from SOURCES so the numbers in the text and the list cannot drift apart. */
+for (const cmp of COMPARISONS) {
+  cmp.sections.push({ id: 'sources', h2: 'Sources', html: `<ol class="cmp-sources">${cmp.sources.map(n => { const r = SOURCES.find(x => x.n === n); return `<li id="src-${n}"><a href="${r.url}" rel="noopener" target="_blank">${r.title}</a>, ${r.publisher}. <span>${r.says} Read ${longDate(CHECKED)}.</span></li>`; }).join('')}</ol>` });
+}
 
 export const bySlug = Object.fromEntries(COMPARISONS.map(c => [c.slug, c]));

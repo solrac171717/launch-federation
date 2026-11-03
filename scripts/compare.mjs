@@ -1,6 +1,8 @@
 // Turns content/compare.mjs into static pages (/compare/<slug>.html and the /compare/ index): article on the left, a sticky call to start on the right
 // (a bottom bar on phones), breadcrumbs, table of contents and structured data (Article, BreadcrumbList, FAQPage). Used by scripts/build.mjs.
-import { COMPARISONS, CHECKED, CTA, PROOF } from '../content/compare.mjs';
+import { COMPARISONS, CHECKED, CTA, PROOF, SOURCES } from '../content/compare.mjs';
+
+const wordsOf = c => [c.lead, ...c.sections.map(s => s.html), ...c.faq.flat()].join(' ').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ').split(/\s+/).filter(Boolean).length;
 
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
@@ -61,8 +63,9 @@ export function renderComparison(c, site) {
 ${crumbs([['Home', '/'], ['Compare', '/compare/'], [c.crumb, path]])}
 <p class="eyebrow">Comparison</p>
 <h1>${esc(c.h1)}</h1>
-<p class="updated">Checked ${longDate(CHECKED)}</p>
+<p class="updated">Checked ${longDate(CHECKED)} &middot; By the Owned Map team</p>
 <p class="intro">${c.lead}</p>
+<aside class="cmp-take" aria-label="Key takeaways"><strong>Key takeaways</strong><ul>${c.takeaways.map(t => `<li>${esc(t)}</li>`).join('')}</ul></aside>
 <nav class="cmp-toc" aria-label="On this page"><strong>On this page</strong><ol>${c.toc.map(([id, label]) => `<li><a href="#${id}">${esc(label)}</a></li>`).join('')}</ol></nav>
 ${c.sections.map(s => `<section id="${s.id}">\n<h2>${esc(s.h2)}</h2>\n${s.html}\n</section>`).join('\n')}
 <aside class="g-cta" aria-label="Try Owned Map"><h2>${esc(CTA.title)}</h2><p>${esc(CTA.text)}</p><a class="btn btn-primary btn-lg" href="${CTA.href}">${esc(CTA.button)}</a></aside>
@@ -78,7 +81,10 @@ ${bar()}`;
   const jsonld = site ? {
     '@context': 'https://schema.org',
     '@graph': [
-      { '@type': 'Article', '@id': `${url}#article`, headline: c.h1, description: c.description, datePublished: CHECKED, dateModified: CHECKED, inLanguage: 'en-US', mainEntityOfPage: url, image: `${site}/assets/og-image.png`, author: { '@id': `${site}/#org` }, publisher: { '@id': `${site}/#org` } },
+      { '@type': 'Article', '@id': `${url}#article`, headline: c.h1, description: c.description, datePublished: CHECKED, dateModified: CHECKED, inLanguage: 'en-US', isAccessibleForFree: true, articleSection: 'Comparisons', wordCount: wordsOf(c), mainEntityOfPage: url, image: `${site}/assets/og-image.png`, author: { '@id': `${site}/#org` }, publisher: { '@id': `${site}/#org` },
+        about: [{ '@type': 'Thing', name: 'Net worth tracking' }, { '@type': 'Thing', name: 'Asset management software' }],
+        mentions: [{ '@type': 'SoftwareApplication', name: c.rival, applicationCategory: 'FinanceApplication', url: SOURCES[0].url }, { '@id': `${site}/#app` }],
+        citation: (c.sources || []).map(n => SOURCES.find(r => r.n === n)).map(r => ({ '@type': 'WebPage', name: r.title, url: r.url, publisher: { '@type': 'Organization', name: r.publisher } })) },
       { '@type': 'BreadcrumbList', itemListElement: [['Home', `${site}/`], ['Compare', `${site}/compare/`], [c.h1, url]].map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })) },
       { '@type': 'FAQPage', mainEntity: c.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
     ],
@@ -88,14 +94,14 @@ ${bar()}`;
 
 export function renderHub(site) {
   const path = '/compare/';
-  const title = 'Compare Owned Map: Honest Side-by-Side Comparisons';
-  const description = 'How Owned Map compares with other net worth and asset trackers, feature by feature, with prices and who each one suits. Honest, dated and sourced.';
+  const title = 'Net Worth Tracker Comparison: Owned Map vs Alternatives';
+  const description = 'A net worth tracker comparison for people who own property, vehicles and boats: features, prices and who each tool suits. Dated, sourced and honest.';
   const body = `<main class="wrap cmp-layout">
 <article class="legal cmp-article">
 ${crumbs([['Home', '/'], ['Compare', '/compare/']])}
 <p class="eyebrow">Compare</p>
-<h1>Owned Map compared with other trackers</h1>
-<p class="intro">Side-by-side pages for people choosing a tool to keep track of what they own. Each one says where the other product is stronger, uses what it publishes, and is dated.</p>
+<h1>Net worth tracker comparison: Owned Map vs the alternatives</h1>
+<p class="intro">Side-by-side pages for people choosing a tool to keep track of what they own. Every net worth tracker comparison here says where the other product is stronger, uses only what that product publishes, cites its sources and is dated.</p>
 <ul class="g-cards">${COMPARISONS.map(c => `<li><a href="/compare/${c.slug}.html"><strong>${esc(c.h1)}</strong><span>${esc(c.description)}</span></a></li>`).join('')}</ul>
 </article>
 ${side()}

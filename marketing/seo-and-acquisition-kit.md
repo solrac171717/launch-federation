@@ -162,3 +162,9 @@ Cada guía: 600-900 palabras de valor real, un ejemplo con números que cuadren,
 | Pruebas gratuitas iniciadas | Stripe → Suscripciones (en prueba) |
 | Clientes de pago y MRR | Stripe → Suscripciones (activas) |
 | De dónde vinieron (pregúntales) | Conversación |
+
+---
+
+## Regla anti-canibalización (obligatoria)
+
+Antes de escribir cualquier página nueva, añádela a `content/seo-map.mjs` (en `PLANNED`) con su frase principal y secundarias. `test/seo-map.test.js` falla si dos URLs comparten o solapan una frase, si hay una página "alternative" aparte de la del competidor, o si una página pone en título/H1/descripción la frase de otra. Una página por competidor: "X alternative" y "X vs Owned Map" se responden en la misma URL.

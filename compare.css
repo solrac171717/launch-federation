@@ -61,3 +61,9 @@
   .cmp-page .footer { padding-bottom: 76px; }
 }
 @media (max-width: 560px) { .cmp-toc ol { columns: 1; } }
+.cmp-take { margin: 22px 0 0; padding: 16px 20px; border-left: 4px solid var(--blue); border-radius: 0 12px 12px 0; background: #F3F8FF; }
+.cmp-take strong { color: var(--navy); font-size: 14px; letter-spacing: .02em; }
+.legal .cmp-take ul { margin: 8px 0 0; }
+.cite { font-size: .72em; line-height: 0; } .cite a { text-decoration: none; font-weight: 700; padding: 0 1px; }
+.cmp-sources { gap: 10px; } .cmp-sources li { font-size: 14.5px; line-height: 1.55; } .cmp-sources li:target { background: #FFF8DB; border-radius: 6px; }
+.cmp-sources span { color: var(--text-3); }
