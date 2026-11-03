@@ -31,7 +31,7 @@ export function createBillingUi(ctx) {
     const count = h('b', { id: 'bl-count' }), price = h('b', { id: 'bl-price' }), free = h('span', { id: 'bl-free', class: 'bl-free' });
     const choosing = v.state === 'none' || v.state === 'ended'; // the period (month or year) is picked only when subscribing; an existing plan keeps its own
     let interval = 'month';
-    const paint = () => { const n = cleanAssets(slider.value), f = freeAssets(n); count.textContent = String(n); free.textContent = f ? `${f} asset${f === 1 ? '' : 's'} free` : ''; price.textContent = choosing ? `${usd(priceCents(n, interval))} a ${interval}` : ''; };
+    const paint = () => { const n = cleanAssets(slider.value), f = freeAssets(n); count.textContent = String(n); free.textContent = f ? `of which ${f} asset${f === 1 ? ' is' : 's are'} free` : ''; price.textContent = choosing ? `${usd(priceCents(n, interval))} a ${interval}` : ''; };
     slider.addEventListener('input', paint); paint();
     const per = h('div', { class: 'bl-per', role: 'group', 'aria-label': 'Billing period' }, ...[['month', 'Monthly'], ['year', `Yearly · save ${Math.round(PLAN.yearlyOff * 100)}%`]].map(([k, text]) => { const b = h('button', { type: 'button', class: `bl-per-b${k === interval ? ' on' : ''}`, 'aria-pressed': String(k === interval) }, text); b.addEventListener('click', () => { interval = k; per.querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); paint(); }); return b; }));
     const picker = h('div', { class: 'bl-pick' }, h('label', { for: 'bl-range' }, 'How many assets do you want to track?'), slider,
