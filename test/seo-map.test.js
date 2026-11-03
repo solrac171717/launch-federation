@@ -89,11 +89,11 @@ test('every comparison backs its outside claims: numbered, listed, linked and re
   for (const c of COMPARISONS) {
     const html = c.sections.map(s => s.html).join(' ');
     const cited = [...new Set([...html.matchAll(/href="#src-(\d+)"/g)].map(m => Number(m[1])))].sort((a, b) => a - b);
-    assert.deepEqual(cited, [...c.sources].sort((a, b) => a - b), `${c.slug}: every listed source is cited in the text and every citation is listed`);
+    assert.deepEqual(cited, c.sources.map((_, i) => i + 1), `${c.slug}: citations are numbered 1..n by first appearance and every listed source is cited`);
     assert.ok(c.sources.length >= 6, 'a page of this kind rests on several sources');
     const page = renderAll(SITE).find(p => p.path.endsWith(`${c.slug}.html`)).html;
     const ld = JSON.parse([...page.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)][0][1].replaceAll('<\/', '</'));
     const art = ld['@graph'].find(x => x['@type'] === 'Article');
-    assert.equal(art.citation.length, c.sources.length); assert.ok(art.wordCount >= 2500, 'wordCount is real');
+    assert.equal(art.citation.length, c.sources.length); assert.ok(art.wordCount >= 2500, 'wordCount is real'); for (const cit of art.citation) assert.ok(SOURCES.some(x => x.url === cit.url));
   }
 });

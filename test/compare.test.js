@@ -46,3 +46,12 @@ test('the worked example adds up and the prices are the ones charged', () => {
   for (const n of [3, 10, 25, 50]) { assert.ok(html.includes(usd(priceCents(n))) && html.includes(usd(priceCents(n, 'year'))), `price row for ${n}`); }
   assert.ok(html.includes(`${usd(PLAN.baseCents)} a month`));
 });
+test('the Monarch example adds up (house, boat, car) and quotes the prices charged', () => {
+  assert.equal(42000 - 13500, 28500); assert.equal((28500 / 410000 * 100).toFixed(1), '7.0'); assert.equal((28500 / 485000 * 100).toFixed(1), '5.9');
+  assert.equal(485000 - 265000, 220000); assert.equal(((485000 - 410000) / 410000 * 100).toFixed(1), '18.3'); assert.equal(28500 - 1650 * 12, 8700); assert.equal(8700 / 12, 725);
+  assert.equal(((78000 - 62000) / 78000 * 100).toFixed(1), '20.5'); assert.equal((9400 / 62000 * 100).toFixed(1), '15.2'); assert.equal(((48000 - 31000) / 31000 * 100).toFixed(1), '54.8');
+  assert.equal(485000 + 62000 + 48000, 595000); assert.equal(595000 - 265000, 330000); assert.equal(Math.round(485000 * 0.07 / 1000) * 1000, 34000);
+  const html = renderAll('https://ownedmap.com').find(p => p.path.endsWith('monarch-vs-owned-map.html')).html;
+  for (const t of ['$28,500 a year', '7.0%', '5.9%', '$220,000', '18.3%', '$8,700 a year, $725 a month', '20.5%', '15.2%', '54.8%', '$595,000', '$330,000', '$14.99 a month or $99.99 a year', usd(priceCents(3, 'year'))]) assert.ok(html.includes(t), t);
+  assert.ok(priceCents(3, 'year') / 9999 > 3.9 && priceCents(3, 'year') / 9999 < 4.0, 'about four times, as the page says');
+});

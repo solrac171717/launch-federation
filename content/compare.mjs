@@ -2,6 +2,7 @@
 // Rules for anything added here: only claims we can back. Owned Map's numbers come from src/billing-core.js; a competitor is described only from what it publishes,
 // with the date we checked and a link to its own page. No invented customers, ratings or reviews: real quotes go in PROOF.quotes when we have them.
 import { PLAN, priceCents, usd, extraText } from '../src/billing-core.js';
+import { MONARCH } from './compare-monarch.mjs';
 
 export const CHECKED = '2026-11-03';
 
@@ -15,6 +16,11 @@ export const SOURCES = [
   { n: 6, title: 'Publication 527, Residential Rental Property (2025)', publisher: 'Internal Revenue Service', url: 'https://www.irs.gov/publications/p527', says: 'You cannot simply deduct mortgage principal payments; keep accurate records and separate repairs from improvements.' },
   { n: 7, title: 'Wills Survey 2025', publisher: 'Caring.com, with YouGov', url: 'https://www.caring.com/resources/wills-survey/', says: '24% of respondents have a will, down from 33% in 2022 (more than 2,500 US adults).' },
   { n: 8, title: 'Before the Storm: Don\u2019t Wait Until It\u2019s Too Late', publisher: 'Nebraska Department of Insurance', url: 'https://doi.nebraska.gov/sites/default/files/doc/BeforeTheStorm-Don%27tWaitUntilItsTooLate.pdf', says: 'An inventory should record brand, price, purchase date, model, serial number and receipts, with photos.' },
+  { n: 9, title: 'Monarch: homepage', publisher: 'Monarch', url: 'https://www.monarch.com', says: 'Budgeting, goals, 13,000+ institutions, collaboration with a partner or advisor at no extra cost, web, iOS and Android.' },
+  { n: 10, title: 'Monarch: pricing', publisher: 'Monarch', url: 'https://www.monarch.com/pricing', says: 'Lists $14.99 a month or $99.99 a year, cancel anytime, a money-back guarantee, and a Plus level.' },
+  { n: 11, title: 'Monarch: net worth', publisher: 'Monarch', url: 'https://www.monarch.com/features/net-worth', says: 'Real estate by syncing Zillow Zestimates; vehicles listed in net worth; manual accounts for any asset not connected.' },
+  { n: 12, title: 'Monarch: security', publisher: 'Monarch', url: 'https://www.monarch.com/security', says: 'It says it does not see or store login credentials, data is encrypted, and it has read-only permissions.' },
+  { n: 13, title: 'What is a Zestimate?', publisher: 'Zillow', url: 'https://www.zillow.com/zestimate/', says: 'Zillow publishes the Zestimate\u2019s median error: roughly 7% for off-market homes, and wider in some metros.', via: 'Figures as summarized in search results for Zillow\u2019s pages; open the page for the current table.' },
 ];
 const c = n => `<sup class="cite"><a href="#src-${n}" aria-label="Source ${n}">[${n}]</a></sup>`;
 
@@ -40,6 +46,7 @@ export const COMPARISONS = [
     title: 'Kubera vs Owned Map (2026): Kubera Alternative for Real Assets',
     description: 'Kubera vs Owned Map compared on assets, automation, documents, sharing and price. A Kubera alternative for property, boats and vehicles. Checked Nov 2026.',
     primary: 'kubera vs owned map',
+    rivalUrl: 'https://www.kubera.com',
     takeaways: ['Kubera syncs bank, brokerage and crypto accounts for you; Owned Map does not connect to any account.', 'Owned Map is built for physical assets: a map, rental numbers, documents and renewal dates.', `Owned Map starts at ${usd(PLAN.baseCents)} a month for ${PLAN.included} assets. Kubera Black is $2,500 a year, and its entry plan is about $250 a year.`, 'Many owners of both kinds of wealth use the two together.'],
     h1: 'Kubera vs Owned Map: an honest comparison',
     lead: 'Kubera and Owned Map both help you see what you are worth, but they start from opposite ends. Kubera starts from your financial accounts and pulls them in. Owned Map starts from the things you can point to on a map (property, vehicles, boats, aircraft, land) and keeps their numbers, documents and dates together. This page puts them side by side, says plainly where Kubera is the better pick, and gives you a way to decide in five minutes.',
@@ -124,15 +131,19 @@ export const COMPARISONS = [
       ['Does Kubera store my bank password?', 'Kubera says it does not. Its security page says credentials are entered on the aggregator\u2019s screen or the bank\u2019s own login page, that its servers never see them, and that it has read-only access and cannot move money. Owned Map avoids the question by not connecting to accounts at all.'],
       ['How do I move my assets over?', 'Download the free inventory template, fill in your list and import the CSV. Then add loans, ownership shares and documents to each asset.'],
     ],
-    related: [],
-    sources: [1, 2, 3, 4, 5, 6, 7, 8],
   },
+  MONARCH,
 ];
 
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-/** The Sources section, built from SOURCES so the numbers in the text and the list cannot drift apart. */
+/** The Sources section of each page, built from SOURCES. Citations are numbered per page by first appearance, so the numbers in the text and the list cannot drift apart. */
 for (const cmp of COMPARISONS) {
-  cmp.sections.push({ id: 'sources', h2: 'Sources', html: `<ol class="cmp-sources">${cmp.sources.map(n => { const r = SOURCES.find(x => x.n === n); return `<li id="src-${n}"><a href="${r.url}" rel="noopener" target="_blank">${r.title}</a>, ${r.publisher}. <span>${r.says} Read ${longDate(CHECKED)}.</span></li>`; }).join('')}</ol>` });
+  const order = [];
+  for (const sec of cmp.sections) for (const mt of sec.html.matchAll(/href="#src-(\d+)"/g)) if (!order.includes(Number(mt[1]))) order.push(Number(mt[1]));
+  const num = id => order.indexOf(id) + 1;
+  for (const sec of cmp.sections) sec.html = sec.html.replace(/<sup class="cite"><a href="#src-(\d+)" aria-label="Source \d+">\[\d+\]<\/a><\/sup>/g, (_, id) => `<sup class="cite"><a href="#src-${num(+id)}" aria-label="Source ${num(+id)}">[${num(+id)}]</a></sup>`);
+  cmp.sources = order;
+  cmp.sections.push({ id: 'sources', h2: 'Sources', html: `<ol class="cmp-sources">${order.map((id, i) => { const r = SOURCES.find(x => x.n === id); return `<li id="src-${i + 1}"><a href="${r.url}" rel="noopener" target="_blank">${r.title}</a>, ${r.publisher}. <span>${r.says} ${r.via || `Read ${longDate(CHECKED)}.`}</span></li>`; }).join('')}</ol>` });
 }
 
 export const bySlug = Object.fromEntries(COMPARISONS.map(c => [c.slug, c]));
