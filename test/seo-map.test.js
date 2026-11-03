@@ -14,7 +14,7 @@ const pages = {};
 for (const f of ['index.html', 'privacy.html', 'terms.html']) {
   const h = readFileSync(f, 'utf8'); pages[f === 'index.html' ? '/' : `/${f}`] = { html: h, body: h };
 }
-for (const p of renderAll(SITE)) pages[p.path === '/compare/index.html' ? '/compare/' : p.path] = { html: p.html, body: p.html };
+for (const p of renderAll(SITE)) pages[p.path] = { html: p.html, body: p.html };
 for (const [path, pg] of Object.entries(pages)) {
   pg.title = norm(grab(pg.html, /<title>([^<]*)<\/title>/)); pg.h1 = norm(grab(pg.html, /<h1[^>]*>([\s\S]*?)<\/h1>/));
   pg.description = norm(grab(pg.html, /<meta name="description" content="([^"]*)"/));
@@ -91,7 +91,7 @@ test('every comparison backs its outside claims: numbered, listed, linked and re
     const cited = [...new Set([...html.matchAll(/href="#src-(\d+)"/g)].map(m => Number(m[1])))].sort((a, b) => a - b);
     assert.deepEqual(cited, c.sources.map((_, i) => i + 1), `${c.slug}: citations are numbered 1..n by first appearance and every listed source is cited`);
     assert.ok(c.sources.length >= 6, 'a page of this kind rests on several sources');
-    const page = renderAll(SITE).find(p => p.path.endsWith(`${c.slug}.html`)).html;
+    const page = renderAll(SITE).find(p => p.path.endsWith(`/${c.slug}`)).html;
     const ld = JSON.parse([...page.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)][0][1].replaceAll('<\/', '</'));
     const art = ld['@graph'].find(x => x['@type'] === 'Article');
     assert.equal(art.citation.length, c.sources.length); assert.ok(art.wordCount >= 2500, 'wordCount is real'); for (const cit of art.citation) assert.ok(SOURCES.some(x => x.url === cit.url));

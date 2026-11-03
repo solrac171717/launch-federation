@@ -1,4 +1,4 @@
-// Turns content/compare.mjs into static pages (/compare/<slug>.html and the /compare/ index): article on the left, a sticky call to start on the right
+// Turns content/compare.mjs into static pages (/compare/<slug> and the /compare/ index; the files are <slug>.html, served without the extension): article on the left, a sticky call to start on the right
 // (a bottom bar on phones), breadcrumbs, table of contents and structured data (Article, BreadcrumbList, FAQPage). Used by scripts/build.mjs.
 import { COMPARISONS, CHECKED, CTA, PROOF, SOURCES } from '../content/compare.mjs';
 
@@ -57,7 +57,7 @@ const side = () => `<aside class="cmp-side" aria-label="Try Owned Map"><div clas
 const bar = () => `<div class="cmp-bar"><a class="btn btn-primary" href="${CTA.href}">${esc(CTA.button)}</a></div>`;
 
 export function renderComparison(c, site) {
-  const path = `/compare/${c.slug}.html`, url = site ? `${site}${path}` : '';
+  const path = `/compare/${c.slug}`, file = `${path}.html`, url = site ? `${site}${path}` : ''; // the public URL has no extension; vercel.json rewrites it to the file
   const body = `<main class="wrap cmp-layout">
 <article class="legal cmp-article">
 ${crumbs([['Home', '/'], ['Compare', '/compare/'], [c.crumb, path]])}
@@ -75,7 +75,7 @@ ${c.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></
 </section>
 ${COMPARISONS.length > 1 ? `<section class="cmp-more">
 <h2>More comparisons</h2>
-<ul class="g-related">${COMPARISONS.filter(o => o.slug !== c.slug).map(o => `<li><a href="/compare/${o.slug}.html">${esc(o.h1)}</a><span>${esc(o.description)}</span></li>`).join('')}</ul>
+<ul class="g-related">${COMPARISONS.filter(o => o.slug !== c.slug).map(o => `<li><a href="/compare/${o.slug}">${esc(o.h1)}</a><span>${esc(o.description)}</span></li>`).join('')}</ul>
 </section>` : ''}
 <p class="g-note">${esc(c.rival)} is a trademark of its owner. We are not affiliated with it. This page is general information, not financial advice.</p>
 </article>
@@ -93,7 +93,7 @@ ${bar()}`;
       { '@type': 'FAQPage', mainEntity: c.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
     ],
   } : null;
-  return { path, html: shell({ site, path, title: c.title, description: c.description, jsonld, body }) };
+  return { path, file, html: shell({ site, path, title: c.title, description: c.description, jsonld, body }) };
 }
 
 export function renderHub(site) {
@@ -106,19 +106,19 @@ ${crumbs([['Home', '/'], ['Compare', '/compare/']])}
 <p class="eyebrow">Compare</p>
 <h1>Net worth tracker comparison: Owned Map vs the alternatives</h1>
 <p class="intro">Side-by-side pages for people choosing a tool to keep track of what they own. Every net worth tracker comparison here says where the other product is stronger, uses only what that product publishes, cites its sources and is dated.</p>
-<ul class="g-cards">${COMPARISONS.map(c => `<li><a href="/compare/${c.slug}.html"><strong>${esc(c.h1)}</strong><span>${esc(c.description)}</span></a></li>`).join('')}</ul>
+<ul class="g-cards">${COMPARISONS.map(c => `<li><a href="/compare/${c.slug}"><strong>${esc(c.h1)}</strong><span>${esc(c.description)}</span></a></li>`).join('')}</ul>
 </article>
 ${side()}
 </main>
 ${bar()}`;
   const jsonld = site ? { '@context': 'https://schema.org', '@graph': [
     { '@type': 'CollectionPage', '@id': `${site}${path}#page`, name: title, description, url: `${site}${path}`, isPartOf: { '@id': `${site}/#website` } },
-    { '@type': 'ItemList', itemListElement: COMPARISONS.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: `${site}/compare/${c.slug}.html`, name: c.h1 })) },
+    { '@type': 'ItemList', itemListElement: COMPARISONS.map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: `${site}/compare/${c.slug}`, name: c.h1 })) },
   ] } : null;
-  return { path: '/compare/index.html', html: shell({ site, path, title, description, jsonld, body }) };
+  return { path: '/compare/', file: '/compare/index.html', html: shell({ site, path, title, description, jsonld, body }) };
 }
 
-/** Every page this module makes: [{ path: '/compare/x.html', html }]. */
+/** Every page this module makes: [{ path: '/compare/x', file: '/compare/x.html', html }]. */
 export const renderAll = site => [renderHub(site), ...COMPARISONS.map(c => renderComparison(c, site))];
 /** Public URLs for the sitemap. */
-export const compareUrls = () => ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}.html`)];
+export const compareUrls = () => ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}`)];

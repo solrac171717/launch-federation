@@ -8,7 +8,7 @@ Regla de oro: **solo se afirma lo que el producto hace hoy** (ver "Lo que NO se 
 ## 1. Qué hay ya en producción (hecho por mí)
 
 - Páginas VS (estrategia actual, las guías genéricas están aparcadas en `content/parked/`):
-  - `/compare/` (índice) y `/compare/kubera-vs-owned-map.html` (≈2.500 palabras, CTA sticky a `/#pricing`)
+  - `/compare/` (índice) y `/compare/kubera-vs-owned-map` (≈2.500 palabras, CTA sticky a `/#pricing`)
 - Plantilla descargable (gancho para enlaces): `ownedmap.com/downloads/asset-inventory-template.csv`
 - Sitemap con 5 URLs, `llms.txt` con las guías, datos estructurados (Article, FAQ, Breadcrumb), canonical correcto.
 

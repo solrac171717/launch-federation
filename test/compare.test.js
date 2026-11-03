@@ -20,17 +20,17 @@ test('every comparison has what search engines need and enough to say', () => {
 });
 test('the rendered pages are indexable, structured and carry the sticky call to the pricing section', () => {
   const pages = renderAll('https://ownedmap.com');
-  assert.deepEqual(pages.map(p => p.path).sort(), ['/compare/index.html', ...COMPARISONS.map(c => `/compare/${c.slug}.html`)].sort());
+  assert.deepEqual(pages.map(p => p.path).sort(), ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}`)].sort());
   assert.equal(compareUrls().length, COMPARISONS.length + 1);
   assert.equal(CTA.href, '/#pricing');
   for (const { path, html } of pages) {
     assert.equal((html.match(/<h1[ >]/g) || []).length, 1, `${path} has exactly one h1`);
-    assert.match(html, new RegExp(`<link rel="canonical" href="https://ownedmap\\.com${path === '/compare/index.html' ? '/compare/' : path}"`));
+    assert.match(html, new RegExp(`<link rel="canonical" href="https://ownedmap\\.com${path}"`));
     assert.doesNotMatch(html, /noindex/);
     assert.match(html, /class="cmp-side"/); assert.match(html, /class="cmp-bar"/); assert.match(html, /href="\/#pricing"/);
     for (const m of html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)) JSON.parse(m[1].replaceAll('<\/', '</'));
   }
-  const g = pages.find(p => p.path.endsWith('kubera-vs-owned-map.html')).html;
+  const g = pages.find(p => p.path.endsWith('/kubera-vs-owned-map')).html;
   for (const t of ['FAQPage', 'BreadcrumbList', 'Article']) assert.match(g, new RegExp(`"@type":"${t}"`));
 });
 test('no invented social proof: nothing that looks like a rating or a customer count', () => {
@@ -51,7 +51,14 @@ test('the Monarch example adds up (house, boat, car) and quotes the prices charg
   assert.equal(485000 - 265000, 220000); assert.equal(((485000 - 410000) / 410000 * 100).toFixed(1), '18.3'); assert.equal(28500 - 1650 * 12, 8700); assert.equal(8700 / 12, 725);
   assert.equal(((78000 - 62000) / 78000 * 100).toFixed(1), '20.5'); assert.equal((9400 / 62000 * 100).toFixed(1), '15.2'); assert.equal(((48000 - 31000) / 31000 * 100).toFixed(1), '54.8');
   assert.equal(485000 + 62000 + 48000, 595000); assert.equal(595000 - 265000, 330000); assert.equal(Math.round(485000 * 0.07 / 1000) * 1000, 34000);
-  const html = renderAll('https://ownedmap.com').find(p => p.path.endsWith('monarch-vs-owned-map.html')).html;
+  const html = renderAll('https://ownedmap.com').find(p => p.path.endsWith('/monarch-vs-owned-map')).html;
   for (const t of ['$28,500 a year', '7.0%', '5.9%', '$220,000', '18.3%', '$8,700 a year, $725 a month', '20.5%', '15.2%', '54.8%', '$595,000', '$330,000', '$14.99 a month or $99.99 a year', usd(priceCents(3, 'year'))]) assert.ok(html.includes(t), t);
   assert.ok(priceCents(3, 'year') / 9999 > 3.9 && priceCents(3, 'year') / 9999 < 4.0, 'about four times, as the page says');
+});
+test('the public URLs have no extension, and the build writes the files they are rewritten to', () => {
+  for (const p of renderAll('https://ownedmap.com')) { assert.doesNotMatch(p.path, /\.html$/); assert.match(p.file, /^\/compare\/[a-z0-9-]+\.html$/); }
+  for (const u of compareUrls()) assert.doesNotMatch(u, /\.html/);
+  const html = renderAll('https://ownedmap.com').map(p => p.html).join(' ');
+  assert.doesNotMatch(html, /href="\/compare\/[a-z0-9-]+\.html"/, 'internal links use the clean URL');
+  assert.doesNotMatch(html, /https:\/\/ownedmap\.com\/compare\/[a-z0-9-]+\.html/, 'canonicals, og:url and structured data use the clean URL');
 });

@@ -58,7 +58,7 @@ for (const page of INDEXABLE) {
 }
 // The comparison pages (content/compare.mjs) become static pages, and the inventory template is made from the same columns the app imports.
 await mkdir('dist/compare', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
-for (const g of renderAll(site)) await writeFile(`dist${g.path}`, g.html);
+for (const g of renderAll(site)) await writeFile(`dist${g.file}`, g.html);
 await writeFile('dist/downloads/asset-inventory-template.csv', TEMPLATE_CSV);
 
 if (site) {
@@ -80,10 +80,10 @@ export const CONFIG = ${JSON.stringify({ supabaseUrl: sbUrl, supabaseAnonKey: sb
   console.log('App configured for Supabase (' + new URL(sbUrl).host + ').');
 } else console.warn('SUPABASE_URL / SUPABASE_ANON_KEY not set: the app will save assets on the visitor device only.');
 
-const generated = renderAll(site).map(g => g.path === '/compare/index.html' ? 'compare/index.html' : g.path.slice(1));
+const generated = renderAll(site).map(g => g.file.slice(1));
 for (const page of ['index.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html', ...generated]) {
   const src = await readFile(`dist/${page}`, 'utf8');
-  const missing = [...src.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:)([^"?#]+)/g)].map(m => m[1]).filter(p => !p.startsWith('/api/') && !existsSync(`dist/${p}`)); // /api/... is answered by a serverless function, not a file
+  const missing = [...src.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:)([^"?#]+)/g)].map(m => m[1]).filter(p => !p.startsWith('/api/') && !existsSync(`dist/${p}`) && !existsSync(`dist/${p}.html`)); // /api/... is answered by a serverless function, not a file
   if (missing.length) { console.error(`Missing files referenced by ${page}:`, missing); process.exit(1); }
 }
 console.log('Build OK -> dist/');

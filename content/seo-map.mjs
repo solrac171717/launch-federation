@@ -16,17 +16,17 @@ export const BRAND = 'owned map';
 export const SEO_MAP = [
   { path: '/', type: 'home', primary: 'track every asset you own', secondary: ['asset tracker', 'asset tracking app', 'real asset tracker'] },
   { path: '/compare/', type: 'hub', primary: 'net worth tracker comparison', secondary: ['net worth tracker alternatives'] },
-  { path: '/compare/kubera-vs-owned-map.html', type: 'comparison', rival: 'Kubera', primary: 'kubera vs owned map', secondary: ['kubera alternative', 'kubera competitors'] },
-  { path: '/compare/monarch-vs-owned-map.html', type: 'comparison', rival: 'Monarch Money', primary: 'monarch money vs owned map', secondary: ['monarch money alternative', 'monarch money competitors'] },
+  { path: '/compare/kubera-vs-owned-map', type: 'comparison', rival: 'Kubera', primary: 'kubera vs owned map', secondary: ['kubera alternative', 'kubera competitors'] },
+  { path: '/compare/monarch-vs-owned-map', type: 'comparison', rival: 'Monarch Money', primary: 'monarch money vs owned map', secondary: ['monarch money alternative', 'monarch money competitors'] },
   { path: '/privacy.html', type: 'legal' },
   { path: '/terms.html', type: 'legal' },
 ];
 
 /** Pages we intend to write, each with its own phrases, so nothing new can collide with what is live or with what is next. */
 export const PLANNED = [
-  { path: '/compare/empower-vs-owned-map.html', type: 'comparison', rival: 'Empower', primary: 'empower vs owned map', secondary: ['empower alternative', 'empower personal dashboard alternative'] },
-  { path: '/compare/spreadsheet-vs-owned-map.html', type: 'comparison', rival: 'Spreadsheets', primary: 'asset tracking spreadsheet vs owned map', secondary: ['asset tracking spreadsheet alternative', 'excel template for tracking assets'] },
-  { path: '/compare/best-net-worth-trackers-for-real-assets.html', type: 'roundup', primary: 'best net worth tracker for real estate', secondary: ['best app to track rental properties'] },
+  { path: '/compare/empower-vs-owned-map', type: 'comparison', rival: 'Empower', primary: 'empower vs owned map', secondary: ['empower alternative', 'empower personal dashboard alternative'] },
+  { path: '/compare/spreadsheet-vs-owned-map', type: 'comparison', rival: 'Spreadsheets', primary: 'asset tracking spreadsheet vs owned map', secondary: ['asset tracking spreadsheet alternative', 'excel template for tracking assets'] },
+  { path: '/compare/best-net-worth-trackers-for-real-assets', type: 'roundup', primary: 'best net worth tracker for real estate', secondary: ['best app to track rental properties'] },
 ];
 
 /** The phrases a page claims: its primary first, then its secondaries. */
