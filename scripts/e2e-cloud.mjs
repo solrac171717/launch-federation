@@ -35,6 +35,8 @@ const step = async (name, fn) => { try { await fn(); console.log(`ok   ${++n}. $
 const rows = async () => (await fetch(`${mock.origin}/__rows`)).json();
 const click = sel => ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)}); if(!e) throw new Error('no ${sel}'); e.click(); return true;})()`);
 const PW = 'correct-horse-9';
+const calm = async () => { await sleep(900); await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`); await sleep(200); };
+const openPlan = async () => { await click('#profile-btn'); await until(`document.getElementById('plan-btn')`, 'plan row in the profile menu'); await click('#plan-btn'); };
 const OWNER = 'carlosmartinezhold@gmail.com', OWNER_PW = 'e2e-owner-pw';
 const makeUser = email => fetch(`${mock.origin}/__user?email=${encodeURIComponent(email)}&password=${PW}`);
 const fillLogin = (email, pw) => ev(`(()=>{document.getElementById('auth-email').value=${JSON.stringify(email)}; document.getElementById('auth-password').value=${JSON.stringify(pw)}; document.getElementById('auth-form').requestSubmit();})()`);
@@ -267,7 +269,7 @@ await step('another user cannot see these assets (row isolation)', async () => {
   await until(`document.body.textContent.includes('Add your first asset')`, 'bob has an empty workspace');
 });
 await step('sign out returns to the sign-in screen and clears the session', async () => {
-  await ev(`[...document.querySelectorAll('#side-foot button')].find(b=>/Sign out/.test(b.textContent)).click()`);
+  await click('#profile-btn'); await until(`document.getElementById('am-signout')`, 'profile menu'); await click('#am-signout');
   await until(`!document.getElementById('auth').hidden`, 'auth after sign out');
   if (await ev(`localStorage.getItem('atlas.session.v1')`)) throw new Error('session still stored');
 });
@@ -547,6 +549,45 @@ await step('trusted person: a private link that opens only after the owner is aw
   if ((await (await fetch(`${mock.origin}/__heirs`)).json()).length !== 0) throw new Error('row not removed');
   await openLink(link2); if (!(await ev(`/does not work/.test(document.getElementById('boot').textContent)`))) throw new Error('a removed link must stop working');
 });
+await step('profile menu: opens from the sidebar card, shows the account, the language and the plan; closes with the X', async () => {
+  await ev(`localStorage.clear()`); await signIn('pia@example.com'); await calm();
+  await click('#profile-btn'); await until(`document.querySelector('.acct-modal')`, 'profile menu');
+  const t = await ev(`document.querySelector('.acct-modal').textContent`);
+  for (const want of ['pia@example.com', 'Password', 'Language', 'English', 'Plan and billing', 'Sign out']) if (!t.includes(want)) throw new Error(`"${want}" missing from the profile menu`);
+  if ((await ev(`document.getElementById('am-lang').disabled`)) !== true) throw new Error('the language box should not offer anything that does not exist');
+  await ev(`document.querySelector('.acct-modal .modal-x').click()`); await until(`!document.getElementById('modal').open`, 'closed');
+});
+await step('profile menu: change password checks length and match, saves, and the new password signs in', async () => {
+  const E = 'pwd@example.com'; await ev(`localStorage.clear()`); await signIn(E); await calm();
+  await click('#profile-btn'); await until(`document.getElementById('am-pw')`, 'password fields');
+  const setPw = (a, b) => ev(`(()=>{document.getElementById('am-pw').value=${JSON.stringify(a)}; document.getElementById('am-pw2').value=${JSON.stringify(b)}; document.querySelector('.am-form').requestSubmit();})()`);
+  await setPw('short', 'short'); await until(`/at least 10/.test(document.getElementById('am-pw-err').textContent)`, 'too short refused');
+  await setPw('a-long-enough-pw-1', 'a-different-pw-2'); await until(`/different/.test(document.getElementById('am-pw-err').textContent)`, 'mismatch refused');
+  await setPw('brand-new-pw-12345', 'brand-new-pw-12345'); await until(`/Password updated/.test(document.getElementById('toast').textContent)`, 'saved');
+  if (await ev(`document.getElementById('am-pw').value !== ''`)) throw new Error('the fields should be emptied after saving');
+  await click('#am-signout'); await until(`!document.getElementById('auth').hidden`, 'signed out');
+  await fillLogin(E, PW); await until(`/Incorrect email or password/.test(document.getElementById('auth-err').textContent)`, 'the old password no longer works');
+  await fillLogin(E, 'brand-new-pw-12345'); await until(`!document.getElementById('shell').hidden`, 'the new password works');
+});
+await step('profile menu: no plan has no cancel button; a trial can be cancelled with a second confirmation that leads to the Stripe portal; nothing is lost on the way back', async () => {
+  const E = 'cancel@example.com'; await ev(`localStorage.clear()`); await signIn(E); await calm();
+  await click('#profile-btn'); await until(`document.querySelector('.acct-modal')`, 'menu');
+  if (await ev(`!!document.getElementById('am-cancel')`)) throw new Error('someone with no plan has nothing to cancel');
+  if (!(await ev(`/Choose a plan/.test(document.getElementById('plan-btn')?.textContent || '')`))) throw new Error('the plan button should offer to choose a plan: ' + (await ev(`document.querySelector('.acct-modal')?.textContent.slice(0, 400)`)));
+  await ev(`document.querySelector('.acct-modal .modal-x').click()`);
+  await fetch(`${mock.origin}/__trial?email=${encodeURIComponent(E)}&assets=3`);
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'dashboard'); await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
+  await until(`/Trial/.test(document.getElementById('profile-btn').textContent)`, 'trial on the card');
+  await click('#profile-btn'); await until(`document.getElementById('am-cancel')`, 'cancel button is the last section');
+  const last = await ev(`(()=>{const secs=[...document.querySelectorAll('.acct-modal .am-sec')]; return secs[secs.length-1].classList.contains('am-danger');})()`);
+  if (!last) throw new Error('the cancel block must be the very last one');
+  await click('#am-cancel'); await until(`document.getElementById('am-keep')`, 'asks again');
+  await click('#am-keep'); await until(`document.getElementById('am-cancel')`, 'keeping the plan goes back');
+  await click('#am-cancel'); await until(`document.getElementById('am-keep')`, 'asks again');
+  await ev(`[...document.querySelectorAll('.acct-modal button')].find(b => /Continue to Stripe/.test(b.textContent)).click()`);
+  await until(`/__stripe_portal/.test(location.href)`, 'sent to the Stripe portal', 10000);
+  await fetch(`${mock.origin}/__untrial?email=${encodeURIComponent(E)}`);
+});
 await step('billing: limits stop extra assets without a plan; the free trial starts through checkout; a bigger plan, the portal and a cancelled plan behave; the super admin is never limited', async () => {
   const U = 'billing.u@example.com';
   await ev(`localStorage.clear()`); await signIn(U);
@@ -568,13 +609,13 @@ await step('billing: limits stop extra assets without a plan; the free trial sta
   if ((await importRows(['A1'])) !== 'ok') throw new Error('limits must be off until they are switched on');
   await fetch(`${mock.origin}/__enforce?on=1`);
   if ((await importRows(['A2'])) !== 'blocked') throw new Error('no plan, limits on: adding must be refused');
-  await until(`/No plan yet/.test(document.getElementById('plan-btn').textContent)`, 'plan button says no plan');
+  await until(`/No plan yet/.test(document.getElementById('profile-btn').textContent)`, 'plan button says no plan');
 
   // the free trial for 5 assets, through (pretend) Stripe checkout
-  await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan screen');
+  await openPlan(); await until(`document.getElementById('bl-range')`, 'plan screen');
   await slide(5); await until(`/\\$77 a month/.test(document.getElementById('bl-price').textContent)`, 'price follows the slider ($47 + 2 x $15)');
   await mbtn('Start 7-day free trial');
-  await until(`/Trial/.test(document.getElementById('plan-btn')?.textContent || '')`, 'trial started after coming back from checkout', 20000);
+  await until(`/Trial/.test(document.getElementById('profile-btn')?.textContent || '')`, 'trial started after coming back from checkout', 20000);
   const [row] = await subs();
   if (row.status !== 'trialing' || row.assets_allowed !== 5) throw new Error('plan not saved from the webhook: ' + JSON.stringify(row));
   const sent = (await (await fetch(`${mock.origin}/__log`)).json()).find(l => l[0] === 'stripe-checkout');
@@ -586,26 +627,26 @@ await step('billing: limits stop extra assets without a plan; the free trial sta
   const total = (await rows()).filter(r => /^A\d$/.test(r.name)).length; if (total !== 3) throw new Error('a refused import must add nothing, found ' + total);
 
   // a bigger plan
-  await click('#plan-btn'); await until(`document.getElementById('bl-range') && /Using 3 of 5/.test(document.getElementById('modal').textContent)`, 'usage shown');
+  await openPlan(); await until(`document.getElementById('bl-range') && /Using 3 of 5/.test(document.getElementById('modal').textContent)`, 'usage shown');
   await slide(8); await mbtn('Update plan'); await until(`/Plan updated/.test(document.getElementById('toast').textContent)`, 'plan updated');
   if ((await subs())[0].assets_allowed !== 8) throw new Error('the change did not reach the plan');
   if ((await importRows(['A4', 'A5', 'A6'])) !== 'ok') throw new Error('the bigger plan should have room');
 
   // the customer portal (Stripe hosts it)
-  await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan screen again'); await mbtn('Manage payment or cancel');
+  await openPlan(); await until(`document.getElementById('bl-range')`, 'plan screen again'); await mbtn('Manage payment or cancel');
   await until(`/__stripe_portal/.test(location.href)`, 'portal opened', 10000);
 
   // the plan ends: nothing is deleted, nothing more can be added
   await fetch(`${mock.origin}/__stripe_cancel?email=${encodeURIComponent(U)}`);
   await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'dashboard after the plan ended');
-  await until(`/No active plan/.test(document.getElementById('plan-btn').textContent)`, 'plan button says ended');
+  await until(`/No active plan/.test(document.getElementById('profile-btn').textContent)`, 'plan button says ended');
   if ((await rows()).filter(r => /^A\d$/.test(r.name)).length !== 6) throw new Error('assets must stay when a plan ends');
   if ((await importRows(['Z1'])) !== 'blocked') throw new Error('an ended plan cannot add');
 
   // the super admin is never limited
   await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'auth'); await fillLogin(OWNER, OWNER_PW);
   await until(`!document.getElementById('shell').hidden`, 'owner dashboard'); await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
-  await until(`/Super admin/.test(document.getElementById('plan-btn').textContent)`, 'super admin label');
+  await until(`/Super admin/.test(document.getElementById('profile-btn').textContent)`, 'super admin label');
   if ((await importRows(['S1', 'S2', 'S3', 'S4', 'S5'])) !== 'ok') throw new Error('the super admin has no limit');
   await fetch(`${mock.origin}/__enforce?on=0`);
 });
@@ -626,7 +667,7 @@ await step('start for free: the button opens Stripe checkout with no account, pa
   await ev(`(()=>{document.getElementById('wl-pw').value='buyer-password-1'; document.getElementById('wl-pw2').value='buyer-password-1'; document.getElementById('wl-form').requestSubmit();})()`);
   await until(`(document.getElementById('shell') && !document.getElementById('shell').hidden)`, 'dashboard after choosing the password', 15000);
   await ev(`document.getElementById('modal').open && document.querySelector('.wizard .modal-x')?.click()`);
-  await until(`/Trial/.test(document.getElementById('plan-btn')?.textContent || '')`, 'the new account is on a trial');
+  await until(`/Trial/.test(document.getElementById('profile-btn')?.textContent || '')`, 'the new account is on a trial');
   // the one chance to choose a password is gone: nobody can replay the page
   const replay = await fetch(`${mock.origin}/api/welcome`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'claim', sessionId: claim.session_id, password: 'attacker-password-1' }) });
   if (replay.status !== 409) throw new Error('the password could be chosen twice: ' + replay.status);

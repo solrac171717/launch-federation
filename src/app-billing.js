@@ -22,6 +22,8 @@ export function createBillingUi(ctx) {
   }
 
   const go = async (body, label2) => run(label2, async () => cloud.billing(body));
+  /** Stripe's customer portal: card, invoices, and cancelling. Leaves the page when it opens. */
+  const openPortal = async () => { const r = await go({ action: 'portal' }, 'Could not open the billing page'); if (r?.url) location.href = r.url; };
 
   function open() {
     const v = view();
@@ -36,7 +38,7 @@ export function createBillingUi(ctx) {
       ...(choosing ? [per] : []), h('p', { class: 'bl-sum' }, count, ' assets', choosing ? ' · ' : '', price), h('p', { class: 'hint' }, `${usd(PLAN.baseCents)} a month includes ${PLAN.included} assets, then ${usd(PLAN.extraCents)} for each extra one. Pay yearly and save ${Math.round(PLAN.yearlyOff * 100)}%. Up to ${PLAN.maxAssets} assets.`));
     const err = h('p', { class: 'err form-err', role: 'alert' });
     const btn = (text, fn, kind = 'btn btn-primary btn-sm') => { const b = h('button', { type: 'button', class: kind }, h('span', { class: 'lbl' }, text), h('span', { class: 'spin', 'aria-hidden': 'true' })); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('busy'); try { await fn(); } finally { b.disabled = false; b.classList.remove('busy'); } }); return b; };
-    const portal = btn(v.state === 'trial' ? 'Manage payment or cancel' : 'Manage payment and invoices', async () => { const r = await go({ action: 'portal' }, 'Could not open the billing page'); if (r?.url) location.href = r.url; }, 'btn btn-dark btn-sm');
+    const portal = btn(v.state === 'trial' ? 'Manage payment or cancel' : 'Manage payment and invoices', openPortal, 'btn btn-dark btn-sm');
     let body;
 
     if (v.state === 'comped') {
@@ -61,5 +63,5 @@ export function createBillingUi(ctx) {
       h('div', { class: 'modal-head' }, h('h2', { id: 'modal-title' }, 'Plan and billing'), h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')),
       body, h('p', { class: 'hint' }, 'Payments are handled by Stripe; we never see your card. Nothing is ever deleted if a plan ends or shrinks: you only cannot add more assets.')));
   }
-  return { open, load, label, waitForPlan, view };
+  return { open, load, label, waitForPlan, view, portal: openPortal };
 }

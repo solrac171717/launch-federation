@@ -97,6 +97,12 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/__members') return json(res, 200, members);
       if (path === '/__heirs') return json(res, 200, heirs);
       if (path === '/__subs') return json(res, 200, subs);
+      if (path === '/__untrial') { const u = users.get(url.searchParams.get('email')); const i = subs.findIndex(r => r.user_id === u?.id); if (i >= 0) subs.splice(i, 1); return json(res, 200, {}); }
+      if (path === '/__trial') { // put this account on a free trial without going through checkout (a shortcut for screens that only need the state)
+        const u = users.get(url.searchParams.get('email')); if (!u) return json(res, 404, {});
+        const end = new Date(Date.now() + 5 * 86400000).toISOString(); subs.push({ user_id: u.id, status: 'trialing', assets_allowed: Number(url.searchParams.get('assets')) || 3, trial_end: end, current_period_end: end, cancel_at_period_end: false, stripe_customer_id: `cus_mock_${u.id.slice(0, 6)}`, stripe_subscription_id: `sub_mock_${u.id.slice(0, 6)}`, last_event_at: 0, updated_at: new Date().toISOString() });
+        return json(res, 200, {});
+      }
       if (path === '/__claims') return json(res, 200, claims);
       if (path === '/__buyer') { buyer = url.searchParams.get('email') || buyer; return json(res, 200, { buyer }); }
       if (path === '/api/start') { setBillingEnv(); const mod = await import('../api/start.js'); return mod.default(req, res); }

@@ -24,6 +24,7 @@ import { showInvite } from './app-invite.js';
 import { showSetPassword } from './app-password.js';
 import { createHeirUi } from './app-heir.js';
 import { createBillingUi } from './app-billing.js';
+import { createAccountUi } from './app-account.js';
 import { isSuperadmin } from './plan.js';
 import { createMembersUi, loadShared, pickAccount, savedAccount, saveAccount, inviteTokenOf, accessFor, ROLES } from './app-members.js';
 
@@ -80,32 +81,33 @@ function showAuth(error) {
 }
 
 /* ------------------------------------------------------------------ the dashboard */
-// the account block at the bottom of the sidebar: who is signed in, what they are on, billing and sign out
+// the account card at the bottom of the sidebar: who is signed in and what they are on. It opens the profile menu (src/app-account.js)
 const ACCT_ICON = {
-  card: 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Zm0 3h18M7 15h3',
-  out: 'M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h11',
+  chev: 'M9 6l6 6-6 6',
   shield: 'M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Zm-3 9 2 2 4-4',
 };
 const acctIcon = key => svg('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true', class: 'acct-ico' }, svg('path', { d: ACCT_ICON[key] }));
 const initialsOf = email => { const n = String(email || '?').split('@')[0].split(/[._+-]+/).filter(Boolean); return ((n[0]?.[0] || '?') + (n[1]?.[0] || n[0]?.[1] || '')).toUpperCase(); };
+const whoAmI = () => {
+  const email = cloud.user()?.email || '', plan = planFor(email), admin = plan.key === 'superadmin';
+  return { email, initials: initialsOf(email), admin, mine: account.mine, role: admin ? plan.label : account.mine ? 'Owner' : ROLES[account.role], note: plan.note };
+};
 
 function renderFoot() {
   const f = clear($('side-foot'));
   if (!cloud.configured) { f.append(h('div', { class: 'acct-sync off' }, h('i', { 'aria-hidden': 'true' }), 'Saved on this device only')); return; }
-  const email = cloud.user()?.email || '', plan = planFor(email), admin = plan.key === 'superadmin';
-  const role = admin ? plan.label : account.mine ? 'Owner' : ROLES[account.role];
+  const me = whoAmI();
   if (shared.length) {
     const sel = h('select', { class: 'mini-sel sf-account', 'aria-label': 'Which portfolio to open', onchange: e => switchAccount(e.target.value) },
       h('option', { value: '' }, 'My portfolio'), ...shared.map(s => h('option', { value: s.ownerId }, `${s.ownerEmail} (${ROLES[s.role].toLowerCase()})`)));
     sel.value = account.mine ? '' : account.ownerId; f.append(sel);
   }
+  const line = me.admin ? me.role : me.mine && CONFIG.billing ? billingUi.label() : me.role; // what they are on, at a glance
   f.append(h('div', { class: 'acct' },
-    h('div', { class: 'acct-head' },
-      h('span', { class: 'acct-av' + (admin ? ' admin' : ''), 'aria-hidden': 'true' }, initialsOf(email)),
-      h('div', { class: 'acct-who' }, h('span', { class: 'acct-email', title: email }, email || 'Signed in'), h('span', { class: 'acct-role' + (admin ? ' admin' : ''), title: admin ? plan.note : '' }, admin ? acctIcon('shield') : null, role))),
-    h('div', { class: 'acct-actions' },
-      ...(CONFIG.billing && account.mine ? [h('button', { type: 'button', class: 'acct-row', id: 'plan-btn', title: 'Plan and billing', onclick: () => billingUi.open() }, acctIcon('card'), h('span', { class: 'acct-t' }, h('b', {}, 'Plan & billing'), h('small', {}, billingUi.label())))] : []),
-      h('button', { type: 'button', class: 'acct-row out', 'aria-label': 'Sign out', onclick: signOut }, acctIcon('out'), h('span', { class: 'acct-t' }, h('b', {}, 'Sign out')))),
+    h('button', { type: 'button', class: 'acct-head', id: 'profile-btn', 'aria-haspopup': 'dialog', title: 'Your account', onclick: () => accountUi.open() },
+      h('span', { class: 'acct-av' + (me.admin ? ' admin' : ''), 'aria-hidden': 'true' }, me.initials),
+      h('span', { class: 'acct-who' }, h('span', { class: 'acct-email', title: me.email }, me.email || 'Signed in'), h('span', { class: 'acct-role' + (me.admin ? ' admin' : ''), title: me.admin ? me.note : '' }, me.admin ? acctIcon('shield') : null, line)),
+      acctIcon('chev')),
     h('div', { class: 'acct-sync' }, h('i', { 'aria-hidden': 'true' }), 'Synced to your account')));
 }
 function renderBanner() {
@@ -634,6 +636,7 @@ const shareUi = createShareUi({ cloud, openModal, modal, toast, run, message });
 const membersUi = createMembersUi({ cloud, openModal, modal, toast, run, message });
 const heirUi = createHeirUi({ cloud, openModal, modal, toast, run, message });
 const billingUi = createBillingUi({ cloud, openModal, modal, toast, run, message, used: () => raw.filter(r => !r.isSample).length, superadmin: () => isSuperadmin(cloud.user()?.email) });
+const accountUi = createAccountUi({ cloud, openModal, modal, toast, message, billing: billingUi, billingOn: () => Boolean(CONFIG.billing), signOut, who: whoAmI });
 const settingsFacade = {
   get: async () => settings,
   save: async patch => {
