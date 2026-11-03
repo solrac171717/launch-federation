@@ -1,0 +1,5 @@
+name,type,location,value,cost,annual income,annual expenses,debt,monthly payment,ownership,owner,status,acquired on,notes
+Miami Beach Condo,house,"Miami, FL",640000,520000,38400,9600,310000,1850,100,,Leased,2021-03-15,Example asset: rented out all year
+Austin Duplex,house,"Austin, TX",910000,760000,62400,14200,480000,2740,50,You and partner,Occupied,2019-09-01,Example asset: half owned
+Tesla Model Y,car,"Austin, TX",34000,52000,0,2100,0,0,100,,Garaged,2022-05-20,Example asset: personal car
+Sailing Yacht Aurora,yacht,"Miami, FL",285000,240000,0,11800,60000,980,100,,Moored,2020-06-10,Example asset: weekend boat

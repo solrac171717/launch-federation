@@ -153,6 +153,19 @@ await step('step 2: import a CSV from the guide, then step 3 follows', async () 
   if ((await rows()).filter(r => /^Csv /.test(r.name)).length !== 2) throw new Error('rows missing');
 });
 
+await step('examples/example-assets.csv imports cleanly and the dashboard shows the four assets and their net worth', async () => {
+  await arrive(); await btn('Continue', '.wizard'); await btn('Import a spreadsheet', '.wizard'); await until(`document.getElementById('imp-file')`, 'import dialog');
+  await send('DOM.enable'); const doc = (await send('DOM.getDocument')).result.root.nodeId; const node = (await send('DOM.querySelector', { nodeId: doc, selector: '#imp-file' })).result.nodeId;
+  await send('DOM.setFileInputFiles', { nodeId: node, files: [join(process.cwd(), 'examples', 'example-assets.csv')] });
+  await until(`/4 ready/.test(document.querySelector('.imp-sum')?.textContent||'')`, 'all four rows ready');
+  await btn('Import 4', '#modal'); await until(wiz('Never miss a date'), 'step 3', 15000);
+  await btn('Finish setup', '.wizard'); await until(`!document.getElementById('modal').open`, 'finished'); await sleep(600);
+  if (process.env.SHOT) { const r = await send('Page.captureScreenshot', { format: 'png' }); (await import('node:fs')).writeFileSync(process.env.SHOT, Buffer.from(r.result.data, 'base64')); }
+  const names = (await rows()).map(r => r.name); for (const n of ['Miami Beach Condo', 'Austin Duplex', 'Tesla Model Y', 'Sailing Yacht Aurora']) if (!names.includes(n)) throw new Error(`${n} missing`);
+  const text = await ev(`document.body.textContent`); // the Map tab shows the selected asset; the totals count all four, the duplex at its 50% share
+  for (const want of ['Miami Beach Condo', '$1,414,000', '$804K']) if (!text.includes(want)) throw new Error(`${want} not on the dashboard`);
+});
+
 // ---- the same walk on a phone: every button must be reachable
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 780, deviceScaleFactor: 2, mobile: true });
 const noSideScroll = () => ev(`document.documentElement.scrollWidth <= innerWidth`);
