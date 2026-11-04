@@ -3,6 +3,8 @@
 // with the date we checked and a link to its own page. No invented customers, ratings or reviews: real quotes go in PROOF.quotes when we have them.
 import { PLAN, priceCents, usd, extraText } from '../src/billing-core.js';
 import { MONARCH } from './compare-monarch.mjs';
+import { STESSA } from './compare-stessa.mjs';
+import { EMPOWER } from './compare-empower.mjs';
 
 export const CHECKED = '2026-11-03';
 
@@ -21,6 +23,10 @@ export const SOURCES = [
   { n: 11, title: 'Monarch: net worth', publisher: 'Monarch', url: 'https://www.monarch.com/features/net-worth', says: 'Real estate by syncing Zillow Zestimates; vehicles listed in net worth; manual accounts for any asset not connected.' },
   { n: 12, title: 'Monarch: security', publisher: 'Monarch', url: 'https://www.monarch.com/security', says: 'It says it does not see or store login credentials, data is encrypted, and it has read-only permissions.' },
   { n: 13, title: 'What is a Zestimate?', publisher: 'Zillow', url: 'https://www.zillow.com/zestimate/', says: 'Zillow publishes the Zestimate\u2019s median error: roughly 7% for off-market homes, and wider in some metros.', via: 'Figures as summarized in search results for Zillow\u2019s pages; open the page for the current table.' },
+  { n: 14, title: 'Stessa: homepage', publisher: 'Stessa', url: 'https://www.stessa.com', says: 'Automated bookkeeping, a bank account per property, income statement, net cash flow and tenant ledger reports, tax package reports and online rent collection.' },
+  { n: 15, title: 'Stessa: pricing', publisher: 'Stessa', url: 'https://www.stessa.com/pricing', says: 'Essentials is free; Manage is $12 a month billed annually ($15 monthly) and Pro $28 ($35); unlimited properties; a Schedule E report on Manage; screening, lease and maintenance tools.' },
+  { n: 16, title: 'Empower: financial tools', publisher: 'Empower', url: 'https://www.empower.com/tools', says: 'The tools are described as completely free: retirement planner, net worth, budgeting and cash flow, portfolio analysis; wealth management for $1M+ and advisory above $250,000, with fees based on assets managed.' },
+  { n: 17, title: 'Empower: net worth', publisher: 'Empower', url: 'https://www.empower.com/tools/net-worth', says: 'It shows all your accounts in one place; the page does not list account types.' },
 ];
 const c = n => `<sup class="cite"><a href="#src-${n}" aria-label="Source ${n}">[${n}]</a></sup>`;
 
@@ -133,6 +139,8 @@ export const COMPARISONS = [
     ],
   },
   MONARCH,
+  STESSA,
+  EMPOWER,
 ];
 
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

@@ -21,6 +21,8 @@ Owned Map is a paid subscription product with a 7-day free trial (card required,
 - [Owned Map compared with other trackers](%SITE_URL%/compare/)
 - [Kubera vs Owned Map: which net worth tracker fits you?](%SITE_URL%/compare/kubera-vs-owned-map)
 - [Monarch Money vs Owned Map: budgeting app or asset manager?](%SITE_URL%/compare/monarch-vs-owned-map)
+- [Stessa vs Owned Map: landlord tool or asset manager?](%SITE_URL%/compare/stessa-vs-owned-map)
+- [Empower vs Owned Map: free dashboard or asset manager?](%SITE_URL%/compare/empower-vs-owned-map)
 - [Privacy Policy](%SITE_URL%/privacy.html)
 - [Terms of Service](%SITE_URL%/terms.html)
 

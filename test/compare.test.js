@@ -62,3 +62,18 @@ test('the public URLs have no extension, and the build writes the files they are
   assert.doesNotMatch(html, /href="\/compare\/[a-z0-9-]+\.html"/, 'internal links use the clean URL');
   assert.doesNotMatch(html, /https:\/\/ownedmap\.com\/compare\/[a-z0-9-]+\.html/, 'canonicals, og:url and structured data use the clean URL');
 });
+test('the Stessa and Empower examples add up, and the prices quoted are the ones charged', () => {
+  // duplex (50%) and house
+  assert.equal(54000 - 16800, 37200); assert.equal((37200 / 600000 * 100).toFixed(1), '6.2'); assert.equal((37200 / 720000 * 100).toFixed(1), '5.2'); assert.equal(((720000 - 600000) / 600000 * 100).toFixed(1), '20.0'); assert.equal(37200 - 2400 * 12, 8400);
+  assert.equal((720000 - 380000) * 0.5, 170000); assert.equal(8400 / 2, 4200); assert.equal(4200 / 12, 350);
+  assert.equal(26400 - 8100, 18300); assert.equal((18300 / 255000 * 100).toFixed(1), '7.2'); assert.equal((18300 / 310000 * 100).toFixed(1), '5.9'); assert.equal(310000 - 140000, 170000); assert.equal(18300 - 1100 * 12, 5100); assert.equal(5100 / 12, 425);
+  assert.equal(720000 * 0.5 + 310000, 670000); assert.equal(380000 * 0.5 + 140000, 330000); assert.equal(670000 - 330000, 340000); assert.equal(4200 + 5100, 9300); assert.equal(9300 / 12, 775);
+  assert.equal(28 * 12, 336); assert.ok(priceCents(3, 'year') > 33600);
+  // cabin, aircraft share, truck
+  assert.equal(23500 - 9100, 14400); assert.equal((14400 / 330000 * 100).toFixed(1), '4.4'); assert.equal((14400 / 395000 * 100).toFixed(1), '3.6'); assert.equal(395000 - 150000, 245000); assert.equal(((395000 - 330000) / 330000 * 100).toFixed(1), '19.7'); assert.equal(14400 - 1050 * 12, 1800); assert.equal(1800 / 12, 150);
+  assert.equal(120000 * 0.25, 30000); assert.equal((18000 / 120000 * 100).toFixed(1), '15.0'); assert.equal(18000 * 0.25, 4500); assert.equal(((41000 - 27500) / 41000 * 100).toFixed(1), '32.9');
+  assert.equal(395000 + 30000 + 27500, 452500); assert.equal(452500 - 150000, 302500);
+  const pages = renderAll('https://ownedmap.com'), get = s => pages.find(p => p.path.endsWith(`/${s}`)).html;
+  for (const t of ['$37,200 a year', '6.2%', '5.2%', '20.0%', '$170,000', '$350 a month', '$18,300 a year', '7.2%', '5.9%', '$5,100 a year, $425 a month', '$670,000', '$330,000', '$340,000', '$9,300 a year, $775 a month', '$336 a year', '$12 a month billed annually', '$28 a month billed annually']) assert.ok(get('stessa-vs-owned-map').includes(t), `stessa: ${t}`);
+  for (const t of ['$14,400 a year', '4.4%', '3.6%', '$245,000', '19.7%', '$1,800 a year, $150 a month', '$30,000', '15.0%', '$4,500', '32.9%', '$452,500', '$150,000', '$302,500', '$250,000', '$1 million']) assert.ok(get('empower-vs-owned-map').includes(t), `empower: ${t}`);
+});
