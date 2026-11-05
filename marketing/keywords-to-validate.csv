@@ -1,0 +1,45 @@
+keyword,target_page,wave,stage,intent_1to5_my_judgement,serp_competition_observed,volume_us_monthly,cpc_high_range_usd,notes
+rental property portfolio tracker,/solutions/rental-property-portfolio-tracker,1,bofu,5,low-medium,,,primary
+real estate portfolio tracker,/solutions/rental-property-portfolio-tracker,1,bofu,5,medium,,,same page as above
+real estate portfolio tracking software,/solutions/rental-property-portfolio-tracker,1,bofu,5,medium,,,same page as above
+rental portfolio tracker,/solutions/rental-property-portfolio-tracker,1,bofu,5,low-medium,,,same page as above
+net worth tracker without linking bank accounts,/solutions/net-worth-tracker-without-bank-linking,1,bofu,5,low,,,primary
+manual net worth tracker,/solutions/net-worth-tracker-without-bank-linking,1,bofu,5,low,,,same page as above
+net worth tracker no bank connection,/solutions/net-worth-tracker-without-bank-linking,1,bofu,5,low,,,same page as above
+private net worth tracker,/solutions/net-worth-tracker-without-bank-linking,1,bofu,4,low,,,same page as above
+best net worth tracker for real estate,/compare/best-net-worth-trackers-for-real-assets,1,mofu,4,medium,,,primary
+best app to track rental properties,/compare/best-net-worth-trackers-for-real-assets,1,mofu,4,medium,,,same page as above
+landlord studio vs owned map,/compare/landlord-studio-vs-owned-map,1,bofu,4,medium,,,verify their data first
+landlord studio alternative,/compare/landlord-studio-vs-owned-map,1,bofu,4,medium,,,same page as above
+baselane vs owned map,/compare/baselane-vs-owned-map,1,bofu,4,medium,,,verify their data first
+baselane alternative,/compare/baselane-vs-owned-map,1,bofu,4,medium,,,same page as above
+estate asset inventory template,/guides/estate-asset-inventory-template,1,mofu,3,low,,,primary; link magnet with the CSV template
+asset inventory for estate planning,/guides/estate-asset-inventory-template,1,mofu,3,low,,,same page as above
+list of assets for executor,/guides/estate-asset-inventory-template,1,mofu,3,low,,,same page as above
+boat ownership tracker app,/solutions/boat-ownership-tracker,2,bofu,5,low,,,primary
+boat maintenance and documents tracker,/solutions/boat-ownership-tracker,2,bofu,5,low,,,same page as above
+track boat expenses and registration,/solutions/boat-ownership-tracker,2,bofu,5,low,,,same page as above
+classic car collection tracker,/solutions/classic-car-collection-tracker,2,bofu,5,low,,,primary
+car collection value tracker,/solutions/classic-car-collection-tracker,2,bofu,5,low,,,same page as above
+track collector car documents,/solutions/classic-car-collection-tracker,2,bofu,4,low,,,same page as above
+aircraft ownership tracker,/solutions/aircraft-ownership-tracker,2,bofu,5,not checked,,,demand unverified
+aircraft records and inspection tracker,/solutions/aircraft-ownership-tracker,2,bofu,5,not checked,,,same page as above
+asset tracking spreadsheet vs owned map,/compare/spreadsheet-vs-owned-map,2,mofu,4,low-medium,,,primary
+asset tracking spreadsheet alternative,/compare/spreadsheet-vs-owned-map,2,mofu,4,low-medium,,,same page as above
+excel template for tracking assets,/compare/spreadsheet-vs-owned-map,2,mofu,4,low-medium,,,same page as above
+yield on cost vs cap rate,/guides/yield-on-cost-vs-cap-rate,3,tofu,2,medium,,,only if Search Console says so
+boat ownership costs per year,/guides/boat-ownership-costs,3,tofu,2,low,,,only if Search Console says so
+personal net worth statement template,/guides/personal-net-worth-statement,3,mofu,3,medium,,,
+copilot money vs owned map,/compare/copilot-vs-owned-map,3,bofu,4,medium,,,verify their data first
+kubera alternative,/compare/kubera-vs-owned-map,live,bofu,5,medium,,,already published (secondary)
+kubera pricing,/compare/kubera-vs-owned-map,live,bofu,4,not checked,,,answered on the Kubera page; NO page of its own
+stessa alternative,/compare/stessa-vs-owned-map,live,bofu,4,medium-high,,,already published (secondary)
+monarch money alternative,/compare/monarch-vs-owned-map,live,bofu,4,not checked,,,already published (secondary)
+empower alternative,/compare/empower-vs-owned-map,live,bofu,3,not checked,,,already published (secondary)
+asset tracker,/,live,bofu,3,not checked,,,home
+personal asset tracker,/,live,bofu,3,low,,,home
+best net worth tracker,(none yet),later,mofu,3,very high,,,do NOT target in wave 1
+free net worth tracker,(none),never,tofu,1,high,,,attracts people who will not pay
+asset tracking software,(none),never,tofu,1,high,,,mostly business equipment tracking (my inference; check)
+home inventory app,(none),never,tofu,1,high,,,different product: household contents for insurance
+property management software for landlords,(none),never,tofu,1,very high,,,not what we are
