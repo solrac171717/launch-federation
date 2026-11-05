@@ -15,6 +15,7 @@
     { "source": "/compare/index.html", "destination": "/compare/", "permanent": true },
     { "source": "/compare/owned-map-vs-kubera(.html)?", "destination": "/compare/kubera-vs-owned-map", "permanent": true },
     { "source": "/compare/:slug.html", "destination": "/compare/:slug", "permanent": true },
+    { "source": "/solutions/:slug.html", "destination": "/solutions/:slug", "permanent": true },
     {
       "source": "/(.*)",
       "has": [{ "type": "host", "value": "www.ownedmap.com" }],
@@ -23,7 +24,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/compare/:slug", "destination": "/compare/:slug.html" }
+    { "source": "/compare/:slug", "destination": "/compare/:slug.html" },
+    { "source": "/solutions/:slug", "destination": "/solutions/:slug.html" }
   ],
   "headers": [
     {

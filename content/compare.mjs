@@ -15,7 +15,7 @@ export const SOURCES = [
   { n: 3, title: 'Kubera: security', publisher: 'Kubera', url: 'https://www.kubera.com/security', says: 'How accounts connect through aggregators; Kubera says it does not store bank credentials.' },
   { n: 4, title: 'Kubera pricing', publisher: 'Toolradar', url: 'https://toolradar.com/tools/kubera/pricing', says: 'Lists Essentials at $250 a year; says prices were confirmed on kubera.com on October 29, 2026.' },
   { n: 5, title: 'Capitalization rate', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Capitalization_rate', says: 'The cap rate is net operating income divided by current value, not the original price.' },
-  { n: 6, title: 'Publication 527, Residential Rental Property (2025)', publisher: 'Internal Revenue Service', url: 'https://www.irs.gov/publications/p527', says: 'You cannot simply deduct mortgage principal payments; keep accurate records and separate repairs from improvements.' },
+  { n: 6, title: 'Publication 527, Residential Rental Property (2025)', publisher: 'Internal Revenue Service', url: 'https://www.irs.gov/publications/p527', says: 'You cannot simply deduct mortgage principal payments; separate the costs of repairs and improvements and keep accurate records; residential rental property is depreciated over 27.5 years under GDS.' },
   { n: 7, title: 'Wills Survey 2025', publisher: 'Caring.com, with YouGov', url: 'https://www.caring.com/resources/wills-survey/', says: '24% of respondents have a will, down from 33% in 2022 (more than 2,500 US adults).' },
   { n: 8, title: 'Before the Storm: Don\u2019t Wait Until It\u2019s Too Late', publisher: 'Nebraska Department of Insurance', url: 'https://doi.nebraska.gov/sites/default/files/doc/BeforeTheStorm-Don%27tWaitUntilItsTooLate.pdf', says: 'An inventory should record brand, price, purchase date, model, serial number and receipts, with photos.' },
   { n: 9, title: 'Monarch: homepage', publisher: 'Monarch', url: 'https://www.monarch.com', says: 'Budgeting, goals, 13,000+ institutions, collaboration with a partner or advisor at no extra cost, web, iOS and Android.' },
@@ -23,6 +23,7 @@ export const SOURCES = [
   { n: 11, title: 'Monarch: net worth', publisher: 'Monarch', url: 'https://www.monarch.com/features/net-worth', says: 'Real estate by syncing Zillow Zestimates; vehicles listed in net worth; manual accounts for any asset not connected.' },
   { n: 12, title: 'Monarch: security', publisher: 'Monarch', url: 'https://www.monarch.com/security', says: 'It says it does not see or store login credentials, data is encrypted, and it has read-only permissions.' },
   { n: 13, title: 'What is a Zestimate?', publisher: 'Zillow', url: 'https://www.zillow.com/zestimate/', says: 'Zillow publishes the Zestimate\u2019s median error: roughly 7% for off-market homes, and wider in some metros.', via: 'Figures as summarized in search results for Zillow\u2019s pages; open the page for the current table.' },
+  { n: 18, title: 'Changes in U.S. Family Finances from 2022 to 2025: Evidence from the Survey of Consumer Finances', publisher: 'Federal Reserve Board', url: 'https://www.federalreserve.gov/publications/files/scf26.pdf', says: 'Between 2022 and 2025, real median net worth rose by 2 percent, while real mean net worth rose by 7 percent.' },
   { n: 14, title: 'Stessa: homepage', publisher: 'Stessa', url: 'https://www.stessa.com', says: 'Automated bookkeeping, a bank account per property, income statement, net cash flow and tenant ledger reports, tax package reports and online rent collection.' },
   { n: 15, title: 'Stessa: pricing', publisher: 'Stessa', url: 'https://www.stessa.com/pricing', says: 'Essentials is free; Manage is $12 a month billed annually ($15 monthly) and Pro $28 ($35); unlimited properties; a Schedule E report on Manage; screening, lease and maintenance tools.' },
   { n: 16, title: 'Empower: financial tools', publisher: 'Empower', url: 'https://www.empower.com/tools', says: 'The tools are described as completely free: retirement planner, net worth, budgeting and cash flow, portfolio analysis; wealth management for $1M+ and advisory above $250,000, with fees based on assets managed.' },
@@ -144,8 +145,8 @@ export const COMPARISONS = [
 ];
 
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-/** The Sources section of each page, built from SOURCES. Citations are numbered per page by first appearance, so the numbers in the text and the list cannot drift apart. */
-for (const cmp of COMPARISONS) {
+/** The Sources section of a page, built from SOURCES. Citations are numbered per page by first appearance, so the numbers in the text and the list cannot drift apart. */
+export function finalizeCitations(cmp) {
   const order = [];
   for (const sec of cmp.sections) for (const mt of sec.html.matchAll(/href="#src-(\d+)"/g)) if (!order.includes(Number(mt[1]))) order.push(Number(mt[1]));
   const num = id => order.indexOf(id) + 1;
@@ -153,5 +154,6 @@ for (const cmp of COMPARISONS) {
   cmp.sources = order;
   cmp.sections.push({ id: 'sources', h2: 'Sources', html: `<ol class="cmp-sources">${order.map((id, i) => { const r = SOURCES.find(x => x.n === id); return `<li id="src-${i + 1}"><a href="${r.url}" rel="noopener" target="_blank">${r.title}</a>, ${r.publisher}. <span>${r.says} ${r.via || `Read ${longDate(CHECKED)}.`}</span></li>`; }).join('')}</ol>` });
 }
+for (const cmp of COMPARISONS) finalizeCitations(cmp);
 
 export const bySlug = Object.fromEntries(COMPARISONS.map(c => [c.slug, c]));

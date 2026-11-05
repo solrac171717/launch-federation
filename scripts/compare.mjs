@@ -1,6 +1,8 @@
 // Turns content/compare.mjs into static pages (/compare/<slug> and the /compare/ index; the files are <slug>.html, served without the extension): article on the left, a sticky call to start on the right
 // (a bottom bar on phones), breadcrumbs, table of contents and structured data (Article, BreadcrumbList, FAQPage). Used by scripts/build.mjs.
 import { COMPARISONS, CHECKED, CTA, PROOF, SOURCES } from '../content/compare.mjs';
+import { SOLUTIONS, SOLUTIONS_DATE } from '../content/solutions.mjs';
+import { groupLinks } from '../content/seo-map.mjs';
 
 const wordsOf = c => [c.lead, ...c.sections.map(s => s.html), ...c.faq.flat()].join(' ').replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ').split(/\s+/).filter(Boolean).length;
 
@@ -50,6 +52,10 @@ ${footer()}
 `;
 }
 
+const PAGES = Object.fromEntries([...COMPARISONS.map(c => [`/compare/${c.slug}`, c]), ...SOLUTIONS.map(x => [`/solutions/${x.slug}`, x])]);
+/** The pages this one points to inside its group (see CLUSTERS in content/seo-map.mjs): the link text is the target's own title. */
+const related = path => { const items = groupLinks(path).filter(p => PAGES[p]); return items.length ? `<section class="cmp-more">\n<h2>Keep reading</h2>\n<ul class="g-related">${items.map(p => `<li><a href="${p}">${esc(PAGES[p].h1)}</a><span>${esc(PAGES[p].description)}</span></li>`).join('')}</ul>\n</section>` : ''; };
+
 const crumbs = items => `<nav class="g-crumbs" aria-label="Breadcrumb">${items.map(([label, href], i) => (href && i < items.length - 1 ? `<a href="${href}">${esc(label)}</a>` : `<span aria-current="page">${esc(label)}</span>`)).join('<i aria-hidden="true">/</i>')}</nav>`;
 
 const proof = () => `${PROOF.quotes.map(q => `<blockquote class="cmp-quote"><p>&ldquo;${esc(q.quote)}&rdquo;</p><footer>${esc(q.name)}${q.role ? `, ${esc(q.role)}` : ''}</footer></blockquote>`).join('')}<ul class="cmp-proof">${PROOF.points.map(([t, d]) => `<li><strong>${esc(t)}</strong><span>${esc(d)}</span></li>`).join('')}</ul>`;
@@ -73,10 +79,7 @@ ${c.sections.map(s => `<section id="${s.id}">\n<h2>${esc(s.h2)}</h2>\n${s.html}\
 <h2>Frequently asked questions</h2>
 ${c.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('\n')}
 </section>
-${COMPARISONS.length > 1 ? `<section class="cmp-more">
-<h2>More comparisons</h2>
-<ul class="g-related">${COMPARISONS.filter(o => o.slug !== c.slug).map(o => `<li><a href="/compare/${o.slug}">${esc(o.h1)}</a><span>${esc(o.description)}</span></li>`).join('')}</ul>
-</section>` : ''}
+${related(path)}
 <p class="g-note">${esc(c.rival)} is a trademark of its owner. We are not affiliated with it. This page is general information, not financial advice.</p>
 </article>
 ${side()}
@@ -94,6 +97,42 @@ ${bar()}`;
     ],
   } : null;
   return { path, file, html: shell({ site, path, title: c.title, description: c.description, jsonld, body }) };
+}
+
+export function renderSolution(x, site) {
+  const path = `/solutions/${x.slug}`, file = `${path}.html`, url = site ? `${site}${path}` : '';
+  const body = `<main class="wrap cmp-layout">
+<article class="legal cmp-article">
+${crumbs([['Home', '/'], [x.crumb, path]])}
+<p class="eyebrow">Solution</p>
+<h1>${esc(x.h1)}</h1>
+<p class="updated">Updated ${longDate(SOLUTIONS_DATE)} &middot; By the Owned Map team</p>
+<p class="intro">${x.lead}</p>
+<aside class="cmp-take" aria-label="Key takeaways"><strong>Key takeaways</strong><ul>${x.takeaways.map(t => `<li>${esc(t)}</li>`).join('')}</ul></aside>
+<nav class="cmp-toc" aria-label="On this page"><strong>On this page</strong><ol>${x.toc.map(([id, label]) => `<li><a href="#${id}">${esc(label)}</a></li>`).join('')}</ol></nav>
+${x.sections.map(s => `<section id="${s.id}">\n<h2>${esc(s.h2)}</h2>\n${s.html}\n</section>`).join('\n')}
+<aside class="g-cta" aria-label="Try Owned Map"><h2>${esc(CTA.title)}</h2><p>${esc(CTA.text)}</p><a class="btn btn-primary btn-lg" href="${CTA.href}">${esc(CTA.button)}</a></aside>
+<section class="g-faq" id="faq">
+<h2>Frequently asked questions</h2>
+${x.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('\n')}
+</section>
+${related(path)}
+<p class="g-note">This page is general information, not financial, tax or legal advice.</p>
+</article>
+${side()}
+</main>
+${bar()}`;
+  const jsonld = site ? {
+    '@context': 'https://schema.org',
+    '@graph': [
+      { '@type': 'Article', '@id': `${url}#article`, headline: x.h1, description: x.description, datePublished: SOLUTIONS_DATE, dateModified: SOLUTIONS_DATE, inLanguage: 'en-US', isAccessibleForFree: true, articleSection: 'Solutions', wordCount: wordsOf(x), mainEntityOfPage: url, image: `${site}/assets/og-image.png`, author: { '@id': `${site}/#org` }, publisher: { '@id': `${site}/#org` },
+        about: x.about.map(name => ({ '@type': 'Thing', name })), mentions: [{ '@id': `${site}/#app` }],
+        citation: (x.sources || []).map(n => SOURCES.find(r => r.n === n)).map(r => ({ '@type': 'WebPage', name: r.title, url: r.url, publisher: { '@type': 'Organization', name: r.publisher } })) },
+      { '@type': 'BreadcrumbList', itemListElement: [['Home', `${site}/`], [x.h1, url]].map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })) },
+      { '@type': 'FAQPage', mainEntity: x.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
+    ],
+  } : null;
+  return { path, file, html: shell({ site, path, title: x.title, description: x.description, jsonld, body }) };
 }
 
 export function renderHub(site) {
@@ -119,6 +158,6 @@ ${bar()}`;
 }
 
 /** Every page this module makes: [{ path: '/compare/x', file: '/compare/x.html', html }]. */
-export const renderAll = site => [renderHub(site), ...COMPARISONS.map(c => renderComparison(c, site))];
-/** Public URLs for the sitemap. */
-export const compareUrls = () => ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}`)];
+export const renderAll = site => [renderHub(site), ...COMPARISONS.map(c => renderComparison(c, site)), ...SOLUTIONS.map(x => renderSolution(x, site))];
+/** Public URLs for the sitemap: the comparison pages and the solution pages. */
+export const compareUrls = () => ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}`), ...SOLUTIONS.map(x => `/solutions/${x.slug}`)];

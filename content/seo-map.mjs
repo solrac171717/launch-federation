@@ -20,6 +20,8 @@ export const SEO_MAP = [
   { path: '/compare/monarch-vs-owned-map', type: 'comparison', rival: 'Monarch Money', primary: 'monarch money vs owned map', secondary: ['monarch money alternative', 'monarch money competitors'] },
   { path: '/compare/empower-vs-owned-map', type: 'comparison', rival: 'Empower', primary: 'empower vs owned map', secondary: ['empower alternative', 'empower personal dashboard alternative'] },
   { path: '/compare/stessa-vs-owned-map', type: 'comparison', rival: 'Stessa', primary: 'stessa vs owned map', secondary: ['stessa alternative', 'stessa competitors'] },
+  { path: '/solutions/rental-property-portfolio-tracker', type: 'solution', primary: 'rental property portfolio tracker', secondary: ['real estate portfolio tracker', 'real estate portfolio tracking software', 'rental portfolio tracker', 'rental property equity tracker', 'track equity across rental properties'] },
+  { path: '/solutions/net-worth-tracker-without-bank-linking', type: 'solution', primary: 'net worth tracker without linking bank accounts', secondary: ['manual net worth tracker', 'net worth tracker no bank connection', 'private net worth tracker'] },
   { path: '/privacy.html', type: 'legal' },
   { path: '/terms.html', type: 'legal' },
 ];
@@ -29,8 +31,6 @@ export const SEO_MAP = [
  *  Several wordings of one search are ONE page: the secondaries are the other wordings, and they are answered on that page, never on a page of their own. */
 export const PLANNED = [
   // wave 1: the pages closest to a purchase, on searches where today's results are weak or off-target
-  { wave: 1, stage: 'bofu', path: '/solutions/rental-property-portfolio-tracker', type: 'solution', primary: 'rental property portfolio tracker', secondary: ['real estate portfolio tracker', 'real estate portfolio tracking software', 'rental portfolio tracker', 'rental property equity tracker', 'track equity across rental properties'] },
-  { wave: 1, stage: 'bofu', path: '/solutions/net-worth-tracker-without-bank-linking', type: 'solution', primary: 'net worth tracker without linking bank accounts', secondary: ['manual net worth tracker', 'net worth tracker no bank connection', 'private net worth tracker'] },
   { wave: 1, stage: 'mofu', path: '/compare/best-net-worth-trackers-for-real-assets', type: 'roundup', primary: 'best net worth tracker for real estate', secondary: ['best app to track rental properties'] },
   { wave: 1, stage: 'bofu', path: '/compare/landlord-studio-vs-owned-map', type: 'comparison', rival: 'Landlord Studio', primary: 'landlord studio vs owned map', secondary: ['landlord studio alternative'] },
   { wave: 1, stage: 'bofu', path: '/compare/baselane-vs-owned-map', type: 'comparison', rival: 'Baselane', primary: 'baselane vs owned map', secondary: ['baselane alternative'] },
@@ -53,3 +53,29 @@ export const PLANNED = [
 
 /** The phrases a page claims: its primary first, then its secondaries. */
 export const phrases = e => [e.primary, ...(e.secondary || [])].filter(Boolean);
+
+/** The groups (topic clusters). A pillar is the page that owns the group's main search; a spoke owns a narrower one and points up to its pillar.
+ *  Link rules, checked by test/seo-map.test.js:
+ *   - a spoke links to its pillar and to at most two sibling spokes; the pillar links to every live spoke of its group;
+ *   - only pages that are live are linked (a link to a page that does not exist yet would break the build);
+ *   - the link text is the target's own title, so it carries the target's phrase and never another page's;
+ *   - the best-net-worth roundup is a bridge: it is a spoke of both groups, so the two groups feed each other through it. */
+export const CLUSTERS = [
+  { id: 'rental', name: 'Rental and real estate portfolio', pillar: '/solutions/rental-property-portfolio-tracker', spokes: ['/compare/stessa-vs-owned-map', '/compare/landlord-studio-vs-owned-map', '/compare/baselane-vs-owned-map', '/compare/best-net-worth-trackers-for-real-assets', '/solutions/co-owned-property-tracker', '/solutions/insurance-renewal-tracker-for-rental-properties', '/guides/yield-on-cost-vs-cap-rate', '/solutions/track-real-estate-in-multiple-countries'] },
+  { id: 'networth', name: 'Net worth without bank linking', pillar: '/solutions/net-worth-tracker-without-bank-linking', spokes: ['/compare/kubera-vs-owned-map', '/compare/monarch-vs-owned-map', '/compare/empower-vs-owned-map', '/compare/spreadsheet-vs-owned-map', '/compare/copilot-vs-owned-map', '/compare/best-net-worth-trackers-for-real-assets'] },
+  { id: 'vehicles', name: 'Vehicles, boats and collections', pillar: '/solutions/property-and-vehicle-records-app', spokes: ['/solutions/boat-ownership-tracker', '/solutions/classic-car-collection-tracker', '/solutions/aircraft-ownership-tracker', '/guides/boat-ownership-costs'] },
+  { id: 'estate', name: 'Estate and family records', pillar: '/guides/estate-asset-inventory-template', spokes: ['/solutions/property-and-vehicle-records-app', '/guides/personal-net-worth-statement'] },
+];
+
+/** The pages `path` links to inside its groups, among the live ones, in a fixed order. */
+export function groupLinks(path, live = SEO_MAP.map(e => e.path)) {
+  const isLive = new Set(live), out = [];
+  for (const cl of CLUSTERS) {
+    if (cl.pillar === path) out.push(...cl.spokes.filter(p => isLive.has(p)));
+    else if (cl.spokes.includes(path)) {
+      if (isLive.has(cl.pillar)) out.push(cl.pillar);
+      out.push(...cl.spokes.filter(p => p !== path && isLive.has(p)).slice(0, 2));
+    }
+  }
+  return [...new Set(out)].filter(p => p !== path);
+}

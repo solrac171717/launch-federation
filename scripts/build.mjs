@@ -57,7 +57,7 @@ for (const page of INDEXABLE) {
   await writeFile(`dist/${page}`, html);
 }
 // The comparison pages (content/compare.mjs) become static pages, and the inventory template is made from the same columns the app imports.
-await mkdir('dist/compare', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
+await mkdir('dist/compare', { recursive: true }); await mkdir('dist/solutions', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
 for (const g of renderAll(site)) await writeFile(`dist${g.file}`, g.html);
 await writeFile('dist/downloads/asset-inventory-template.csv', TEMPLATE_CSV);
 

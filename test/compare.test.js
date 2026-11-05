@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { COMPARISONS, PROOF, CTA } from '../content/compare.mjs';
+import { SOLUTIONS } from '../content/solutions.mjs';
 import { renderAll, compareUrls } from '../scripts/compare.mjs';
 import { PLAN, priceCents, usd } from '../src/billing-core.js';
 
@@ -20,8 +21,8 @@ test('every comparison has what search engines need and enough to say', () => {
 });
 test('the rendered pages are indexable, structured and carry the sticky call to the pricing section', () => {
   const pages = renderAll('https://ownedmap.com');
-  assert.deepEqual(pages.map(p => p.path).sort(), ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}`)].sort());
-  assert.equal(compareUrls().length, COMPARISONS.length + 1);
+  assert.deepEqual(pages.map(p => p.path).sort(), ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}`), ...SOLUTIONS.map(x => `/solutions/${x.slug}`)].sort());
+  assert.equal(compareUrls().length, COMPARISONS.length + SOLUTIONS.length + 1);
   assert.equal(CTA.href, '/#pricing');
   for (const { path, html } of pages) {
     assert.equal((html.match(/<h1[ >]/g) || []).length, 1, `${path} has exactly one h1`);
@@ -56,11 +57,11 @@ test('the Monarch example adds up (house, boat, car) and quotes the prices charg
   assert.ok(priceCents(3, 'year') / 9999 > 3.9 && priceCents(3, 'year') / 9999 < 4.0, 'about four times, as the page says');
 });
 test('the public URLs have no extension, and the build writes the files they are rewritten to', () => {
-  for (const p of renderAll('https://ownedmap.com')) { assert.doesNotMatch(p.path, /\.html$/); assert.match(p.file, /^\/compare\/[a-z0-9-]+\.html$/); }
+  for (const p of renderAll('https://ownedmap.com')) { assert.doesNotMatch(p.path, /\.html$/); assert.match(p.file, /^\/(compare|solutions)\/[a-z0-9-]+\.html$/); }
   for (const u of compareUrls()) assert.doesNotMatch(u, /\.html/);
   const html = renderAll('https://ownedmap.com').map(p => p.html).join(' ');
-  assert.doesNotMatch(html, /href="\/compare\/[a-z0-9-]+\.html"/, 'internal links use the clean URL');
-  assert.doesNotMatch(html, /https:\/\/ownedmap\.com\/compare\/[a-z0-9-]+\.html/, 'canonicals, og:url and structured data use the clean URL');
+  assert.doesNotMatch(html, /href="\/(compare|solutions)\/[a-z0-9-]+\.html"/, 'internal links use the clean URL');
+  assert.doesNotMatch(html, /https:\/\/ownedmap\.com\/(compare|solutions)\/[a-z0-9-]+\.html/, 'canonicals, og:url and structured data use the clean URL');
 });
 test('the Stessa and Empower examples add up, and the prices quoted are the ones charged', () => {
   // duplex (50%) and house
