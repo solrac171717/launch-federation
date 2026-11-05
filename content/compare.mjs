@@ -5,6 +5,9 @@ import { PLAN, priceCents, usd, extraText } from '../src/billing-core.js';
 import { MONARCH } from './compare-monarch.mjs';
 import { STESSA } from './compare-stessa.mjs';
 import { EMPOWER } from './compare-empower.mjs';
+import { LANDLORD } from './compare-landlord.mjs';
+import { BASELANE } from './compare-baselane.mjs';
+import { ROUNDUP } from './compare-roundup.mjs';
 
 export const CHECKED = '2026-11-03';
 
@@ -28,6 +31,12 @@ export const SOURCES = [
   { n: 15, title: 'Stessa: pricing', publisher: 'Stessa', url: 'https://www.stessa.com/pricing', says: 'Essentials is free; Manage is $12 a month billed annually ($15 monthly) and Pro $28 ($35); unlimited properties; a Schedule E report on Manage; screening, lease and maintenance tools.' },
   { n: 16, title: 'Empower: financial tools', publisher: 'Empower', url: 'https://www.empower.com/tools', says: 'The tools are described as completely free: retirement planner, net worth, budgeting and cash flow, portfolio analysis; wealth management for $1M+ and advisory above $250,000, with fees based on assets managed.' },
   { n: 17, title: 'Empower: net worth', publisher: 'Empower', url: 'https://www.empower.com/tools/net-worth', says: 'It shows all your accounts in one place; the page does not list account types.' },
+  { n: 19, title: 'Landlord Studio: homepage', publisher: 'Landlord Studio', url: 'https://www.landlordstudio.com', says: 'Property management software for independent landlords: tenant listings and screening, online rent, bank feeds, receipt scanning, P&L and Schedule E reports.' },
+  { n: 20, title: 'Landlord Studio: pricing', publisher: 'Landlord Studio', url: 'https://www.landlordstudio.com/pricing', says: 'Go is free for 3 units; Pro $15 a month ($144 a year) and Pro Plus $35 ($336 a year), with $1.20 per extra unit; 14-day trial of Pro. The page shows both pounds and dollars.' },
+  { n: 21, title: 'How to set ownership percentages for your properties', publisher: 'Landlord Studio help centre', url: 'https://help.landlordstudio.com/en/articles/14253443-how-to-set-ownership-percentages-for-your-properties', says: 'Ownership percentages for co-owned properties, in the context of the UK Making Tax Digital for Income Tax; they must total 100%.' },
+  { n: 22, title: 'Baselane: homepage', publisher: 'Baselane', url: 'https://www.baselane.com', says: 'Banking and bookkeeping for landlords: unlimited property-specific accounts, automated tagging, rent collection, tax packages; not an FDIC-insured bank; banking services by Thread Bank, Member FDIC.' },
+  { n: 23, title: 'Baselane: pricing', publisher: 'Baselane', url: 'https://www.baselane.com/pricing', says: 'Core $0; Smart $20 a month on an annual plan with a 30-day trial; fees such as $2 for ACH rent, 3.49% for card rent, tenant screening from $24.99.' },
+  { n: 24, title: 'Baselane vs. Stessa', publisher: 'Baselane (its own comparison)', url: 'https://www.baselane.com/resources/baselane-vs-stessa/', says: 'A comparison written by Baselane, updated October 29, 2026.' },
 ];
 const c = n => `<sup class="cite"><a href="#src-${n}" aria-label="Source ${n}">[${n}]</a></sup>`;
 
@@ -142,6 +151,9 @@ export const COMPARISONS = [
   MONARCH,
   STESSA,
   EMPOWER,
+  LANDLORD,
+  BASELANE,
+  ROUNDUP,
 ];
 
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

@@ -80,7 +80,7 @@ ${c.sections.map(s => `<section id="${s.id}">\n<h2>${esc(s.h2)}</h2>\n${s.html}\
 ${c.faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('\n')}
 </section>
 ${related(path)}
-<p class="g-note">${esc(c.rival)} is a trademark of its owner. We are not affiliated with it. This page is general information, not financial advice.</p>
+<p class="g-note">${esc(c.note || `${c.rival} is a trademark of its owner. We are not affiliated with it. This page is general information, not financial advice.`)}</p>
 </article>
 ${side()}
 </main>
@@ -90,7 +90,7 @@ ${bar()}`;
     '@graph': [
       { '@type': 'Article', '@id': `${url}#article`, headline: c.h1, description: c.description, datePublished: CHECKED, dateModified: CHECKED, inLanguage: 'en-US', isAccessibleForFree: true, articleSection: 'Comparisons', wordCount: wordsOf(c), mainEntityOfPage: url, image: `${site}/assets/og-image.png`, author: { '@id': `${site}/#org` }, publisher: { '@id': `${site}/#org` },
         about: [{ '@type': 'Thing', name: 'Net worth tracking' }, { '@type': 'Thing', name: 'Asset management software' }],
-        mentions: [{ '@type': 'SoftwareApplication', name: c.rival, applicationCategory: 'FinanceApplication', url: c.rivalUrl }, { '@id': `${site}/#app` }],
+        mentions: [...(c.mentions || [{ '@type': 'SoftwareApplication', name: c.rival, applicationCategory: 'FinanceApplication', url: c.rivalUrl }]), { '@id': `${site}/#app` }],
         citation: (c.sources || []).map(n => SOURCES.find(r => r.n === n)).map(r => ({ '@type': 'WebPage', name: r.title, url: r.url, publisher: { '@type': 'Organization', name: r.publisher } })) },
       { '@type': 'BreadcrumbList', itemListElement: [['Home', `${site}/`], ['Compare', `${site}/compare/`], [c.h1, url]].map(([name, item], i) => ({ '@type': 'ListItem', position: i + 1, name, item })) },
       { '@type': 'FAQPage', mainEntity: c.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },

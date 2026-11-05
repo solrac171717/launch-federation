@@ -78,3 +78,22 @@ test('the Stessa and Empower examples add up, and the prices quoted are the ones
   for (const t of ['$37,200 a year', '6.2%', '5.2%', '20.0%', '$170,000', '$350 a month', '$18,300 a year', '7.2%', '5.9%', '$5,100 a year, $425 a month', '$670,000', '$330,000', '$340,000', '$9,300 a year, $775 a month', '$336 a year', '$12 a month billed annually', '$28 a month billed annually']) assert.ok(get('stessa-vs-owned-map').includes(t), `stessa: ${t}`);
   for (const t of ['$14,400 a year', '4.4%', '3.6%', '$245,000', '19.7%', '$1,800 a year, $150 a month', '$30,000', '15.0%', '$4,500', '32.9%', '$452,500', '$150,000', '$302,500', '$250,000', '$1 million']) assert.ok(get('empower-vs-owned-map').includes(t), `empower: ${t}`);
 });
+test('the Landlord Studio, Baselane and roundup numbers add up, and the prices quoted are the ones listed or charged', () => {
+  const p = (value, cost, rent, exp, debt, pay) => { const noi = rent - exp; return { noi, gross: (rent / value * 100).toFixed(1), net: (noi / value * 100).toFixed(1), onCost: (noi / cost * 100).toFixed(1), cash: noi - pay * 12, equity: value - debt, ltv: (debt / value * 100).toFixed(1), payback: (cost / noi).toFixed(1), appr: ((value - cost) / cost * 100).toFixed(1) }; };
+  assert.deepEqual(p(1150000, 890000, 108000, 41400, 620000, 4100), { noi: 66600, gross: '9.4', net: '5.8', onCost: '7.5', cash: 17400, equity: 530000, ltv: '53.9', payback: '13.4', appr: '29.2' });
+  assert.deepEqual(p(620000, 505000, 57600, 22100, 350000, 2350), { noi: 35500, gross: '9.3', net: '5.7', onCost: '7.0', cash: 7300, equity: 270000, ltv: '56.5', payback: '14.2', appr: '22.8' });
+  assert.deepEqual(p(395000, 330000, 31200, 10700, 225000, 1500), { noi: 20500, gross: '7.9', net: '5.2', onCost: '6.2', cash: 2500, equity: 170000, ltv: '57.0', payback: '16.1', appr: '19.7' });
+  assert.equal(1150000 + 620000 + 395000, 2165000); assert.equal(620000 + 350000 + 225000, 1195000); assert.equal(2165000 - 1195000, 970000); assert.equal(17400 + 7300 + 2500, 27200); assert.equal(Math.round(27200 / 12), 2267); assert.equal(Math.round(7300 / 12), 608); assert.equal(Math.round(2500 / 12), 208);
+  assert.equal((15 + 9 * 1.2).toFixed(2), '25.80');
+  assert.deepEqual(p(780000, 650000, 72000, 19500, 410000, 2900), { noi: 52500, gross: '9.2', net: '6.7', onCost: '8.1', cash: 17700, equity: 370000, ltv: '52.6', payback: '12.4', appr: '20.0' });
+  assert.deepEqual(p(350000, 280000, 28800, 9600, 190000, 1200), { noi: 19200, gross: '8.2', net: '5.5', onCost: '6.9', cash: 4800, equity: 160000, ltv: '54.3', payback: '14.6', appr: '25.0' });
+  assert.equal(((118000 - 92000) / 118000 * 100).toFixed(1), '22.0'); assert.equal((11500 / 92000 * 100).toFixed(1), '12.5'); assert.equal(Math.round(11500 / 12), 958);
+  assert.equal(780000 + 350000 * 0.5 + 92000, 1047000); assert.equal(410000 + 190000 * 0.5, 505000); assert.equal(1047000 - 505000, 542000); assert.equal(17700 + 4800 / 2, 20100); assert.equal(20100 / 12, 1675); assert.equal(20 * 12, 240);
+  const pages = renderAll('https://ownedmap.com'), get = s => pages.find(q => q.path.endsWith(`/${s}`)).html;
+  for (const x of ['$66,600 a year', '9.4%', '5.8%', '7.5%', '$17,400 a year, $1,450 a month', '53.9%', '13.4 years', '29.2%', '$35,500 a year', '$7,300 a year, $608 a month', '16.1 years', '$2,165,000', '$1,195,000', '$970,000', '$27,200 a year, $2,267 a month', '$25.80 a month', '$144 a year', '$336 a year', '$1.20']) assert.ok(get('landlord-studio-vs-owned-map').includes(x), `landlord: ${x}`);
+  for (const x of ['$52,500 a year', '9.2%', '6.7%', '8.1%', '$17,700 a year, $1,475 a month', '52.6%', '12.4 years', '$2,400 a year, $200 a month', '$80,000', '54.3%', '14.6 years', '22.0%', '12.5%', '$958 a month', '$1,047,000', '$505,000', '$542,000', '$20,100 a year, $1,675 a month', '$24.99', '$20 a month', 'Thread Bank, Member FDIC']) assert.ok(get('baselane-vs-owned-map').includes(x), `baselane: ${x}`);
+  const r = get('best-net-worth-trackers-for-real-assets');
+  for (const x of ['$15.00 a month', '$23.40 a month', '$41.40 a month', usd(priceCents(3)), usd(priceCents(10)), usd(priceCents(25)), usd(priceCents(25, 'year')), '$2,500 a year', '$99.99']) assert.ok(r.includes(x), `roundup: ${x}`);
+  assert.equal((15 + 7 * 1.2).toFixed(2), '23.40'); assert.equal((15 + 22 * 1.2).toFixed(2), '41.40');
+  assert.ok(/we make Owned Map/i.test(r), 'the roundup says whose product Owned Map is');
+});

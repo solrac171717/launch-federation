@@ -20,6 +20,9 @@ export const SEO_MAP = [
   { path: '/compare/monarch-vs-owned-map', type: 'comparison', rival: 'Monarch Money', primary: 'monarch money vs owned map', secondary: ['monarch money alternative', 'monarch money competitors'] },
   { path: '/compare/empower-vs-owned-map', type: 'comparison', rival: 'Empower', primary: 'empower vs owned map', secondary: ['empower alternative', 'empower personal dashboard alternative'] },
   { path: '/compare/stessa-vs-owned-map', type: 'comparison', rival: 'Stessa', primary: 'stessa vs owned map', secondary: ['stessa alternative', 'stessa competitors'] },
+  { path: '/compare/landlord-studio-vs-owned-map', type: 'comparison', rival: 'Landlord Studio', primary: 'landlord studio vs owned map', secondary: ['landlord studio alternative'] },
+  { path: '/compare/baselane-vs-owned-map', type: 'comparison', rival: 'Baselane', primary: 'baselane vs owned map', secondary: ['baselane alternative'] },
+  { path: '/compare/best-net-worth-trackers-for-real-assets', type: 'roundup', primary: 'best net worth tracker for real estate', secondary: ['best app to track rental properties'] },
   { path: '/solutions/rental-property-portfolio-tracker', type: 'solution', primary: 'rental property portfolio tracker', secondary: ['real estate portfolio tracker', 'real estate portfolio tracking software', 'rental portfolio tracker', 'rental property equity tracker', 'track equity across rental properties'] },
   { path: '/solutions/net-worth-tracker-without-bank-linking', type: 'solution', primary: 'net worth tracker without linking bank accounts', secondary: ['manual net worth tracker', 'net worth tracker no bank connection', 'private net worth tracker'] },
   { path: '/privacy.html', type: 'legal' },
@@ -31,9 +34,6 @@ export const SEO_MAP = [
  *  Several wordings of one search are ONE page: the secondaries are the other wordings, and they are answered on that page, never on a page of their own. */
 export const PLANNED = [
   // wave 1: the pages closest to a purchase, on searches where today's results are weak or off-target
-  { wave: 1, stage: 'mofu', path: '/compare/best-net-worth-trackers-for-real-assets', type: 'roundup', primary: 'best net worth tracker for real estate', secondary: ['best app to track rental properties'] },
-  { wave: 1, stage: 'bofu', path: '/compare/landlord-studio-vs-owned-map', type: 'comparison', rival: 'Landlord Studio', primary: 'landlord studio vs owned map', secondary: ['landlord studio alternative'] },
-  { wave: 1, stage: 'bofu', path: '/compare/baselane-vs-owned-map', type: 'comparison', rival: 'Baselane', primary: 'baselane vs owned map', secondary: ['baselane alternative'] },
   { wave: 1, stage: 'mofu', path: '/guides/estate-asset-inventory-template', type: 'guide', primary: 'estate asset inventory template', secondary: ['asset inventory for estate planning', 'list of assets for executor'] },
   // wave 2: narrower audiences, high value per customer
   { wave: 2, stage: 'bofu', path: '/solutions/boat-ownership-tracker', type: 'solution', primary: 'boat ownership tracker app', secondary: ['track boat expenses and registration', 'boat documents and insurance tracker'] },
