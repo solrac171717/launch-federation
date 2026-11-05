@@ -160,3 +160,45 @@ Un **CPC alto** indica que hay anunciantes dispuestos a pagar por ese clic, y es
 - Las páginas de comparación y de solución pueden traer los primeros clics cuando Google las indexe (días a semanas) y se posicionen en las búsquedas de baja competencia. Las búsquedas amplias llegarán más tarde, cuando haya enlaces.
 - Los primeros clientes seguirán viniendo, sobre todo, del contacto directo. El SEO suma a partir del mes 3 a 9.
 - Tu mejor palanca para acelerarlo es **conseguir enlaces**: directorios (Twelve Tools ya está), una mención en el listado de otros, y la plantilla de inventario como gancho.
+
+---
+
+## 10. Actualización (5 nov 2026): lista de palabras con intención de compra y poca competencia
+
+**¿Páginas VS o palabras clave?** Son lo mismo. Una página VS es una palabra clave de tipo "X alternative". La diferencia es de qué tipo de persona la busca:
+
+- **"X vs Owned Map" no tiene búsquedas** (nadie conoce aún la marca). Esas páginas rankean por la variante **"X alternative"** (que va en la misma URL). Solo valen la pena donde alguien busca de verdad esa alternativa: Kubera, Stessa, Landlord Studio y Baselane sí; Copilot, no hasta verificar.
+- **Las páginas de solución** ("rental property portfolio tracker") capturan a quien busca **la categoría**, no una marca. Son las de más intención y menos competencia: van **antes** que más páginas VS.
+
+Orden: 1) las 2 de solución de la ola 1; 2) las comparaciones de Landlord Studio y Baselane; 3) el listado y la plantilla de herencia.
+
+### Lista (competencia observada en los resultados reales; volumen por validar)
+
+| # | Palabra clave | Página | Intención | Competencia | Encaje con el producto |
+|---|---|---|---|---|---|
+| 1 | rental property portfolio tracker (+ real estate portfolio tracker, rental portfolio tracker) | solución | 5 | Baja a media | Alto |
+| 2 | rental property equity tracker (+ track equity across rental properties) | **misma página que 1** | 5 | Baja a media | Alto |
+| 3 | net worth tracker without linking bank accounts (+ manual / private net worth tracker) | solución | 5 | Baja | Alto |
+| 4 | stessa alternative | publicada | 4 | Media a alta | Alto |
+| 5 | kubera alternative | publicada | 5 | Media | Alto |
+| 6 | landlord studio alternative | VS por hacer | 4 | Media | Medio |
+| 7 | baselane alternative | VS por hacer | 4 | Media | Medio |
+| 8 | co-owned property tracker (+ shared property ownership tracker) | solución | 4 | **Baja** | Parcial: llevamos la parte de cada socio, no el libro de aportaciones |
+| 9 | best net worth tracker for real estate (+ best app to track rental properties) | listado | 4 | Media | Alto |
+| 10 | estate asset inventory template (+ list of assets for executor) | guía + CSV | 3 | Baja | Alto |
+| 11 | app to manage property and vehicle records (+ organize family asset documents) | solución | 3 | Baja a media (Quicken ya publica aquí) | Alto |
+| 12 | boat ownership tracker app (+ track boat expenses and registration) | solución | 4 | Baja | Parcial: no somos un diario de mantenimiento de motor |
+| 13 | classic car collection tracker (+ car collection value tracker) | solución | 5 | Baja | Alto |
+| 14 | asset tracking spreadsheet alternative (+ excel template for tracking assets) | VS | 4 | Baja a media | Alto |
+| 15 | track real estate in multiple countries | solución | 4 | Baja a media | **Comprobar primero** si la app soporta varias monedas |
+| 16 | insurance renewal tracker for rental properties | solución | 3 | Baja a media | Parcial: guardamos las fechas, no gestionamos pólizas |
+
+### Lo que descarté tras esta segunda ronda
+
+- **aircraft ownership tracker**: los resultados los ocupan apps de bitácora y mantenimiento (HobbsMate, Coflyt, FlightBoss y otras). Owned Map no es una bitácora. Pasa a ola 3 y solo con el ángulo de coste, valor y documentos.
+- **short term rental portfolio tracker**: lo ocupan hojas de cálculo y herramientas de analítica de reservas (ocupación, tarifa diaria). Nosotros no hacemos eso.
+- **Cualquier "property management software"**: otro producto.
+
+### Honestidad sobre el encaje
+
+Las filas 8, 12, 15 y 16 tienen encaje parcial. La competencia es baja, pero si la página promete algo que el producto no hace (un libro de aportaciones entre socios, un diario de motor, monedas múltiples), traerá clics que no convierten. **Cada una de esas páginas dirá con claridad qué hace Owned Map y qué no.**

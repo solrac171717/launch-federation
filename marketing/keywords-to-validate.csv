@@ -17,13 +17,11 @@ estate asset inventory template,/guides/estate-asset-inventory-template,1,mofu,3
 asset inventory for estate planning,/guides/estate-asset-inventory-template,1,mofu,3,low,,,same page as above
 list of assets for executor,/guides/estate-asset-inventory-template,1,mofu,3,low,,,same page as above
 boat ownership tracker app,/solutions/boat-ownership-tracker,2,bofu,5,low,,,primary
-boat maintenance and documents tracker,/solutions/boat-ownership-tracker,2,bofu,5,low,,,same page as above
 track boat expenses and registration,/solutions/boat-ownership-tracker,2,bofu,5,low,,,same page as above
 classic car collection tracker,/solutions/classic-car-collection-tracker,2,bofu,5,low,,,primary
 car collection value tracker,/solutions/classic-car-collection-tracker,2,bofu,5,low,,,same page as above
 track collector car documents,/solutions/classic-car-collection-tracker,2,bofu,4,low,,,same page as above
-aircraft ownership tracker,/solutions/aircraft-ownership-tracker,2,bofu,5,not checked,,,demand unverified
-aircraft records and inspection tracker,/solutions/aircraft-ownership-tracker,2,bofu,5,not checked,,,same page as above
+aircraft ownership tracker,/solutions/aircraft-ownership-tracker,3,bofu,3,medium-high,,,logbook apps own this SERP; fit partial
 asset tracking spreadsheet vs owned map,/compare/spreadsheet-vs-owned-map,2,mofu,4,low-medium,,,primary
 asset tracking spreadsheet alternative,/compare/spreadsheet-vs-owned-map,2,mofu,4,low-medium,,,same page as above
 excel template for tracking assets,/compare/spreadsheet-vs-owned-map,2,mofu,4,low-medium,,,same page as above
@@ -43,3 +41,18 @@ free net worth tracker,(none),never,tofu,1,high,,,attracts people who will not p
 asset tracking software,(none),never,tofu,1,high,,,mostly business equipment tracking (my inference; check)
 home inventory app,(none),never,tofu,1,high,,,different product: household contents for insurance
 property management software for landlords,(none),never,tofu,1,very high,,,not what we are
+co-owned property tracker,/solutions/co-owned-property-tracker,2,bofu,4,low,,,fit partial: ownership share yes; contribution ledger no
+shared property ownership tracker,/solutions/co-owned-property-tracker,2,bofu,4,low,,,same page as above
+co-ownership property tracking app,/solutions/co-owned-property-tracker,2,bofu,4,low,,,same page as above
+rental property equity tracker,/solutions/rental-property-portfolio-tracker,1,bofu,5,low-medium,,,same page as the portfolio tracker
+track equity across rental properties,/solutions/rental-property-portfolio-tracker,1,bofu,5,low-medium,,,same page as the portfolio tracker
+app to manage property and vehicle records,/solutions/property-and-vehicle-records-app,2,mofu,3,low-medium,,,Quicken publishes in this space
+organize family asset documents,/solutions/property-and-vehicle-records-app,2,mofu,3,low,,,same page as above
+digital asset records for family,/solutions/property-and-vehicle-records-app,2,mofu,3,low,,,same page as above
+boat documents and insurance tracker,/solutions/boat-ownership-tracker,2,bofu,4,low,,,fit partial: not a maintenance logbook
+aircraft ownership cost tracker,/solutions/aircraft-ownership-tracker,3,bofu,3,medium-high,,,logbook apps (HobbsMate Coflyt etc) own this SERP; fit partial
+track real estate in multiple countries,/solutions/track-real-estate-in-multiple-countries,3,bofu,4,low-medium,,,check currencies support first
+net worth tracker for international property,/solutions/track-real-estate-in-multiple-countries,3,bofu,4,low-medium,,,same page as above
+insurance renewal tracker for rental properties,/solutions/insurance-renewal-tracker-for-rental-properties,3,mofu,3,low-medium,,,fit partial
+track property insurance renewal dates,/solutions/insurance-renewal-tracker-for-rental-properties,3,mofu,3,low-medium,,,same page as above
+short term rental portfolio tracker,(none),never,bofu,2,medium,,,spreadsheets/analytics own it; we do not do bookings or occupancy

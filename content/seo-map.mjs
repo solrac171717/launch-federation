@@ -29,18 +29,22 @@ export const SEO_MAP = [
  *  Several wordings of one search are ONE page: the secondaries are the other wordings, and they are answered on that page, never on a page of their own. */
 export const PLANNED = [
   // wave 1: the pages closest to a purchase, on searches where today's results are weak or off-target
-  { wave: 1, stage: 'bofu', path: '/solutions/rental-property-portfolio-tracker', type: 'solution', primary: 'rental property portfolio tracker', secondary: ['real estate portfolio tracker', 'real estate portfolio tracking software', 'rental portfolio tracker'] },
+  { wave: 1, stage: 'bofu', path: '/solutions/rental-property-portfolio-tracker', type: 'solution', primary: 'rental property portfolio tracker', secondary: ['real estate portfolio tracker', 'real estate portfolio tracking software', 'rental portfolio tracker', 'rental property equity tracker', 'track equity across rental properties'] },
   { wave: 1, stage: 'bofu', path: '/solutions/net-worth-tracker-without-bank-linking', type: 'solution', primary: 'net worth tracker without linking bank accounts', secondary: ['manual net worth tracker', 'net worth tracker no bank connection', 'private net worth tracker'] },
   { wave: 1, stage: 'mofu', path: '/compare/best-net-worth-trackers-for-real-assets', type: 'roundup', primary: 'best net worth tracker for real estate', secondary: ['best app to track rental properties'] },
   { wave: 1, stage: 'bofu', path: '/compare/landlord-studio-vs-owned-map', type: 'comparison', rival: 'Landlord Studio', primary: 'landlord studio vs owned map', secondary: ['landlord studio alternative'] },
   { wave: 1, stage: 'bofu', path: '/compare/baselane-vs-owned-map', type: 'comparison', rival: 'Baselane', primary: 'baselane vs owned map', secondary: ['baselane alternative'] },
   { wave: 1, stage: 'mofu', path: '/guides/estate-asset-inventory-template', type: 'guide', primary: 'estate asset inventory template', secondary: ['asset inventory for estate planning', 'list of assets for executor'] },
   // wave 2: narrower audiences, high value per customer
-  { wave: 2, stage: 'bofu', path: '/solutions/boat-ownership-tracker', type: 'solution', primary: 'boat ownership tracker app', secondary: ['boat maintenance and documents tracker', 'track boat expenses and registration'] },
+  { wave: 2, stage: 'bofu', path: '/solutions/boat-ownership-tracker', type: 'solution', primary: 'boat ownership tracker app', secondary: ['track boat expenses and registration', 'boat documents and insurance tracker'] },
   { wave: 2, stage: 'bofu', path: '/solutions/classic-car-collection-tracker', type: 'solution', primary: 'classic car collection tracker', secondary: ['car collection value tracker', 'track collector car documents'] },
-  { wave: 2, stage: 'bofu', path: '/solutions/aircraft-ownership-tracker', type: 'solution', primary: 'aircraft ownership tracker', secondary: ['aircraft records and inspection tracker'] },
   { wave: 2, stage: 'mofu', path: '/compare/spreadsheet-vs-owned-map', type: 'comparison', rival: 'Spreadsheets', primary: 'asset tracking spreadsheet vs owned map', secondary: ['asset tracking spreadsheet alternative', 'excel template for tracking assets'] },
+  { wave: 2, stage: 'bofu', path: '/solutions/co-owned-property-tracker', type: 'solution', primary: 'co-owned property tracker', secondary: ['shared property ownership tracker', 'co-ownership property tracking app'] },
+  { wave: 2, stage: 'mofu', path: '/solutions/property-and-vehicle-records-app', type: 'solution', primary: 'app to manage property and vehicle records', secondary: ['organize family asset documents', 'digital asset records for family'] },
   // wave 3: only after the data from Search Console says which of these earns clicks
+  { wave: 3, stage: 'bofu', path: '/solutions/aircraft-ownership-tracker', type: 'solution', primary: 'aircraft ownership tracker', secondary: ['aircraft ownership cost tracker'] }, // dedicated logbook apps own this SERP; Owned Map is not a logbook, so only the cost, value and documents angle
+  { wave: 3, stage: 'bofu', path: '/solutions/track-real-estate-in-multiple-countries', type: 'solution', primary: 'track real estate in multiple countries', secondary: ['net worth tracker for international property'] }, // needs a product check first: currencies
+  { wave: 3, stage: 'mofu', path: '/solutions/insurance-renewal-tracker-for-rental-properties', type: 'solution', primary: 'insurance renewal tracker for rental properties', secondary: ['track property insurance renewal dates'] },
   { wave: 3, stage: 'tofu', path: '/guides/yield-on-cost-vs-cap-rate', type: 'guide', primary: 'yield on cost vs cap rate', secondary: ['cap rate vs yield on cost', 'yield on cost real estate'] },
   { wave: 3, stage: 'tofu', path: '/guides/boat-ownership-costs', type: 'guide', primary: 'boat ownership costs per year', secondary: ['true cost of owning a boat'] },
   { wave: 3, stage: 'mofu', path: '/guides/personal-net-worth-statement', type: 'guide', primary: 'personal net worth statement template', secondary: ['net worth statement for a loan'] },
