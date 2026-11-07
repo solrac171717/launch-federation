@@ -1095,3 +1095,4 @@ tr.on .rico .ico, .app-tbl tbody tr:hover .rico .ico { color: var(--blue); }
 @media (max-width: 900px) { .px-main > .px-per { order: 0; margin-bottom: 14px; } }
 .px-save { margin-left: 8px; color: #0B6B3A; font-weight: 700; white-space: nowrap; } .px-save::before { content: '\00b7'; margin-right: 8px; color: var(--text-3); font-weight: 400; }
 .foot-badge { display: inline-block; line-height: 0; margin-top: 4px; opacity: .85; transition: opacity .3s; } .foot-badge:hover { opacity: 1; } .foot-badge img { display: block; width: 118px; height: 32px; }
+.foot-ts { margin-top: 8px; line-height: 0; } .foot-ts img { display: block; max-width: 100%; height: auto; }
