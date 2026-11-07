@@ -202,3 +202,21 @@ Orden: 1) las 2 de solución de la ola 1; 2) las comparaciones de Landlord Studi
 ### Honestidad sobre el encaje
 
 Las filas 8, 12, 15 y 16 tienen encaje parcial. La competencia es baja, pero si la página promete algo que el producto no hace (un libro de aportaciones entre socios, un diario de motor, monedas múltiples), traerá clics que no convierten. **Cada una de esas páginas dirá con claridad qué hace Owned Map y qué no.**
+
+## 11. Segunda ronda (7 nov 2026): más palabras con compra y poca competencia
+
+No tengo volúmenes reales; la competencia sale de leer los resultados de Google de EEUU. Pasa `keywords-to-validate.csv` por Keyword Planner antes de escribir.
+
+| Prioridad | Página nueva (wave 4) | Palabra principal | Por qué |
+|---|---|---|---|
+| 1 | /guides/schedule-of-real-estate-owned-template | schedule of real estate owned template | Inversores que piden un préstamo y deben listar sus propiedades. Los resultados son plantillas de StackSource, PropertyMetrics, OfferMarket y PDFs de bancos. Un export SREO gratis desde Owned Map es el gancho de enlaces. |
+| 2 | /compare/projectionlab-vs-owned-map | projectionlab vs owned map | Su plan gratis no enlaza cuentas: compite con nuestro pilar sin bancos. |
+| 3 | /compare/quicken-simplifi-vs-owned-map | quicken simplifi vs owned map | Simplifi exige añadir inmuebles a mano; hay mucho tráfico de comparativas. |
+| 4 | /solutions/luxury-asset-portfolio-tracker | luxury asset portfolio tracker | No encontré un rival de precio consumidor: solo software de family office para empresas y Aleta/EstateSpace. Encaje parcial: no hay cuentas de inversión. |
+| 5 | /guides/rental-portfolio-ltv-calculator | rental portfolio ltv calculator | Hay herramientas pequeñas (Landager, DoorVault). Una calculadora gratis atrae enlaces y lleva al pilar de alquileres. |
+
+Descartadas: "mint alternative…" (Mint cerró en marzo 2024, la demanda baja y Kubera ya tiene blog), "free net worth tracker for rental properties" (quien busca gratis no paga; Richify y PortfolioPilot lo dan gratis) y "when to sell a rental property" (Investopedia y BiggerPockets mandan; solo si Search Console lo pide).
+
+Dato útil: en BiggerPockets un inversor dice que solo una hoja de cálculo le manejaba los porcentajes de propiedad. Respalda la página de copropiedad ya planificada.
+
+Aviso: una fuente pone Kubera personal en $150/año y otras en $250/año. Confirma el precio en su web antes de citarlo en el listado.
