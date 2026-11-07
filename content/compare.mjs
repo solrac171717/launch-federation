@@ -8,6 +8,8 @@ import { EMPOWER } from './compare-empower.mjs';
 import { LANDLORD } from './compare-landlord.mjs';
 import { BASELANE } from './compare-baselane.mjs';
 import { ROUNDUP } from './compare-roundup.mjs';
+import { PROJECTIONLAB } from './compare-projectionlab.mjs';
+import { SIMPLIFI } from './compare-simplifi.mjs';
 
 export const CHECKED = '2026-11-03';
 
@@ -37,6 +39,20 @@ export const SOURCES = [
   { n: 22, title: 'Baselane: homepage', publisher: 'Baselane', url: 'https://www.baselane.com', says: 'Banking and bookkeeping for landlords: unlimited property-specific accounts, automated tagging, rent collection, tax packages; not an FDIC-insured bank; banking services by Thread Bank, Member FDIC.' },
   { n: 23, title: 'Baselane: pricing', publisher: 'Baselane', url: 'https://www.baselane.com/pricing', says: 'Core $0; Smart $20 a month on an annual plan with a 30-day trial; fees such as $2 for ACH rent, 3.49% for card rent, tenant screening from $24.99.' },
   { n: 24, title: 'Baselane vs. Stessa', publisher: 'Baselane (its own comparison)', url: 'https://www.baselane.com/resources/baselane-vs-stessa/', says: 'A comparison written by Baselane, updated October 29, 2026.' },
+  { n: 25, title: 'ProjectionLab: pricing', publisher: 'ProjectionLab', url: 'https://projectionlab.com/pricing', says: 'Basic is $0 a year; Premium is $129 a year; Pro, for advisors and coaches, is $549 a year. Monthly prices are not stated on the page.' },
+  { n: 26, title: 'ProjectionLab: plugins', publisher: 'ProjectionLab help centre', url: 'https://projectionlab.com/help/plugins', says: 'ProjectionLab does not support linking financial accounts directly; optional third-party plugins exist for Lunch Money, YNAB and Monarch (page updated June 23, 2026).' },
+  { n: 27, title: 'ProjectionLab: net worth', publisher: 'ProjectionLab', url: 'https://projectionlab.com/net-worth', says: 'Add financial accounts, real estate, debt and other items to track assets, liabilities and net worth.' },
+  { n: 28, title: 'ProjectionLab: data security', publisher: 'ProjectionLab help centre', url: 'https://projectionlab.com/help/data-security', says: 'Runs on Google Cloud and Firebase, encrypted at rest and in transit; does not require linking financial accounts and does not sell planning data.' },
+  { n: 29, title: 'Quicken Simplifi', publisher: 'Quicken', url: 'https://www.quicken.com/products/simplifi/', says: 'Simplifi connects to over 14,000 financial institutions and has reminders for bills and paychecks.' },
+  { n: 30, title: 'Quicken: plans and pricing', publisher: 'Quicken', url: 'https://www.quicken.com/products/pricing-comparison-products/', says: 'Simplifi shows $3.99 and $6.99 a month billed annually; Quicken Business & Personal $4.99 and $8.99; 30-day refund; renewal at the then-current price.' },
+  { n: 31, title: 'Tracking Real Estate as an Asset', publisher: 'Quicken help centre', url: 'https://info.quicken.com/sim/using-zillow-to-track-your-real-estate-market-valu', says: 'Real estate is added through Zillow or manually; Zestimates refresh about every 7 days; works for homes, rentals, land and commercial property.' },
+  { n: 32, title: 'Tracking a vehicle as an asset', publisher: 'Quicken help centre', url: 'https://info.quicken.com/sim/tracking-a-vehicle-as-an-asset', says: 'Vehicle values come from Kelley Blue Book using make, model or VIN, year, mileage, condition and zip code; mileage does not update automatically; manual entry is possible.' },
+  { n: 33, title: 'Managing a rental property portfolio', publisher: 'Quicken help centre', url: 'https://info.quicken.com/sim/managing-a-rental-property-portfolio', says: 'Rental properties are added as business real estate accounts, with mortgages as liabilities; the page is marked Quicken Business & Personal only.' },
+  { n: 34, title: 'Schedule of Real Estate Owned (SREO)', publisher: 'REtipster', url: 'https://retipster.com/terms/sreo', says: 'An SREO lists each property an investor owns, in part or in full, with its debt: property, ownership, value, loan terms, occupancy and NOI; lenders may have their own forms.' },
+  { n: 35, title: 'Schedule of Real Estate Owned', publisher: 'PropertyMetrics', url: 'https://propertymetrics.com/schedule-of-real-estate-owned/', says: 'A template for commercial investors covering ownership percentage, annual rents, debt service, cash flow, loan balance, interest rate, recourse, maturity, lender and DSCR.' },
+  { n: 36, title: 'EstateSpace', publisher: 'EstateSpace', url: 'https://estatespace.com/', says: 'Physical asset management for private estates: real estate, art, vehicles, vessels and aircraft; plans listed at $340, $870 and $1,100 a month with a one-year commitment.' },
+  { n: 37, title: 'Private Assets Overview', publisher: 'Aleta', url: 'https://aleta.vercel.app/private-assets-overview', says: 'A private-assets module of a family office platform: art, cars, wine, aircraft and collectibles; aimed at family offices and principals; demo on request.' },
+  { n: 38, title: 'Masttro: pricing', publisher: 'Masttro', url: 'https://www.masttro.com/pricing', says: 'Family office software that connects to 750+ custodians and covers real estate, collections and motor vehicles; pricing on request.' },
 ];
 const c = n => `<sup class="cite"><a href="#src-${n}" aria-label="Source ${n}">[${n}]</a></sup>`;
 
@@ -154,6 +170,8 @@ export const COMPARISONS = [
   LANDLORD,
   BASELANE,
   ROUNDUP,
+  PROJECTIONLAB,
+  SIMPLIFI,
 ];
 
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

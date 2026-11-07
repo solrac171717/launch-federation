@@ -1,0 +1,98 @@
+// /guides/schedule-of-real-estate-owned-template. Lender requirements are described only as far as the two pages in SOURCES (34, 35) describe them; no lender limits are quoted.
+import { c, priceTable, priceText, trialFaq } from './solutions-shared.mjs';
+
+export const SREO = {
+  slug: 'schedule-of-real-estate-owned-template',
+  dir: 'guides',
+  date: '2026-11-07',
+  kind: 'guide',
+  crumb: 'Schedule of real estate owned template',
+  title: 'Schedule of Real Estate Owned Template (Free SREO CSV)',
+  description: 'A schedule of real estate owned template with every column lenders ask for, a worked example for three properties and a free CSV you can reuse each year.',
+  h1: 'Schedule of real estate owned template: the columns lenders ask for, and a free CSV',
+  primary: 'schedule of real estate owned template',
+  about: ['Schedule of real estate owned', 'Real estate investing', 'Loan applications'],
+  takeaways: [
+    'A schedule of real estate owned (SREO) lists every property you own, in whole or in part, with the debt on each. Lenders read it next to your personal financial statement.',
+    'The same few facts are asked for on every property: what it is, who holds the title, what it is worth and since when, what you owe, what you pay, and what it earns.',
+    'The free CSV below has 21 columns built from those facts, two example rows and formulas for NOI and loan-to-value. Fill it once and update it yearly.',
+    'Lenders often have their own form. Treat this template as your master record and copy it across, so every form you fill agrees with the last.',
+  ],
+  lead: 'A schedule of real estate owned template is the one-page list a lender asks for when you own more than a property or two: every building, who holds the title, what it is worth, what you owe and what it earns. The pain is not the form but the collecting. The numbers sit in a loan portal, a lease, a tax bill and an old appraisal, and each new application means gathering them again, and then wondering why two forms from the same year disagree. This guide lists the columns, explains each, works through an example for three properties, and gives you a free CSV so the collecting happens once.',
+  toc: [['verdict', 'The short answer'], ['what', 'What an SREO is'], ['when', 'When you will be asked for one'], ['columns', 'The columns, one by one'], ['example', 'A worked example: three properties'], ['reading', 'Reading the example'], ['accuracy', 'Getting the numbers right'], ['shares', 'Co-owned properties and entities'], ['routine', 'Keep it current without a project'], ['template', 'The free CSV'], ['ownedmap', 'Where Owned Map helps, and where it does not'], ['price', 'Price and who it is for'], ['method', 'How we checked'], ['sources', 'Sources']],
+  sections: [
+    { id: 'verdict', h2: 'The short answer', html: `<ul><li><strong>Download the CSV</strong> below if you need a clean list now. It works in Excel and Google Sheets, with formulas for NOI and loan-to-value already in place.</li><li><strong>Use your lender&rsquo;s form</strong> if they give you one. REtipster notes that lenders often have their own SREO forms, with HUD, Freddie Mac and Fannie Mae named as examples.${c(34)} Keep this template as the master and copy across.</li><li><strong>Use Owned Map</strong> if the real work is keeping the figures current for more than a handful of properties, with partners, entities and documents attached. It is not a loan-document generator.</li></ul>
+<p>Everything on this page is a general explanation. A lender decides what it needs, and an accountant or attorney decides what is right for your situation.</p>` },
+    { id: 'what', h2: 'What an SREO is', html: `<p>REtipster defines an SREO as a document listing all the properties an investor currently owns in part or in full, along with the debt on each.${c(34)} It is also called an REO schedule. Lenders use it to see the shape of your portfolio: how much you own, how much of it is financed, and whether the properties pay for themselves.</p>
+<p>It is not a tax document and not an accounting statement. It is a snapshot, as of one date, of what you own and what you owe on it. That is why it goes stale quickly: a refinance, a sale or a new tenant changes a line.</p>
+<p>It usually travels with a personal financial statement, which covers the rest of your balance sheet: cash, investments and other debts. The SREO covers the property side in detail, which is why investors with more than a few properties are asked for it separately.</p>` },
+    { id: 'when', h2: 'When you will be asked for one', html: `<p>The usual moments are the ones where a lender decides how much risk you carry across all your properties, not just the one in front of it.</p>
+<ul><li><strong>A new loan.</strong> A purchase or refinance on investment property, especially when you already have several.</li><li><strong>A line of credit or a portfolio loan.</strong> Where the lender looks at the portfolio as a whole.</li><li><strong>A renewal.</strong> Some lenders ask for an updated schedule each year to keep a loan or line in place.</li><li><strong>A partner or investor.</strong> Anyone putting money alongside you will want to see what else you hold.</li></ul>
+<p>Because the request often arrives with a deadline, the investors who cope best are the ones whose list already exists and is no more than a few months old.</p>` },
+    { id: 'columns', h2: 'The columns, one by one', html: `<p>REtipster groups the contents of an SREO into personal, property, ownership and financial information, with occupancy and net operating income for rentals.${c(34)} PropertyMetrics, writing for commercial investors, adds annual rents, debt service, cash flow, loan balance, interest rate, recourse, maturity, lender and debt service coverage ratio per loan.${c(35)} The free CSV below combines them into these columns.</p>
+<table><thead><tr><th>Column</th><th>What goes in it</th></tr></thead><tbody>
+<tr><td>Property, type, units, address</td><td>A name you recognize, the kind of property (house, duplex, condo, retail), the number of units and the full street address.</td></tr>
+<tr><td>Acquired on</td><td>The purchase date.</td></tr>
+<tr><td>Title held by</td><td>The entity or person on the deed. Lenders want to know which entity holds the title.${c(34)}</td></tr>
+<tr><td>Your ownership %</td><td>Your percentage of that entity or property.</td></tr>
+<tr><td>Market value, value source and date</td><td>What the property is worth, where the figure comes from (appraisal, broker opinion, your estimate) and when. REtipster advises using the latest appraisal and its date.${c(34)}</td></tr>
+<tr><td>Original loan amount and date</td><td>What you borrowed, and when.</td></tr>
+<tr><td>Current loan balance</td><td>What you owe today, from the lender&rsquo;s statement.</td></tr>
+<tr><td>Interest rate and monthly payment</td><td>From the loan agreement or statement.</td></tr>
+<tr><td>Loan maturity date and lender</td><td>When the loan ends, and who to contact. REtipster suggests keeping the lender&rsquo;s name and contact details at hand.${c(34)}</td></tr>
+<tr><td>Occupancy %</td><td>Share of units let. Lenders ask this for rentals.${c(34)}</td></tr>
+<tr><td>Annual rent, annual expenses, annual NOI</td><td>Net operating income is rent minus operating expenses, before the loan. REtipster says to use recent actual numbers, not projections.${c(34)}</td></tr>
+<tr><td>Loan-to-value %</td><td>Loan balance divided by market value. A formula in the CSV.</td></tr></tbody></table>
+<p>Net operating income is the number people most often get wrong. It leaves out the loan payment on purpose, so properties with different financing can be compared, and divided by <em>current</em> value it gives the capitalization rate.${c(5)} It is also not taxable profit: the IRS says plainly that you cannot simply deduct mortgage principal payments, and that repairs and improvements must be separated.${c(6)} Keep the three ideas apart: NOI for the schedule, cash flow for you, taxable income for your accountant.</p>` },
+    { id: 'example', h2: 'A worked example: three properties', html: `<p>Here is a small schedule filled in. The inputs per property are the value, the loan balance and monthly payment, and the rent and expenses for the year.</p>
+<table><thead><tr><th></th><th>Duplex</th><th>Condo</th><th>House</th></tr></thead><tbody>
+<tr><td>Title held by</td><td>Maple Holdings LLC</td><td>Me</td><td>Me and a partner</td></tr>
+<tr><td>Your ownership</td><td>100%</td><td>100%</td><td>40%</td></tr>
+<tr><td>Market value</td><td>$540,000</td><td>$265,000</td><td>$400,000</td></tr>
+<tr><td>Loan balance</td><td>$290,000</td><td>$175,000</td><td>$200,000</td></tr>
+<tr><td>Loan payment a month</td><td>$1,980</td><td>$1,150</td><td>$1,350</td></tr>
+<tr><td>Rent a year</td><td>$48,000</td><td>$21,000</td><td>$36,000</td></tr>
+<tr><td>Expenses a year</td><td>$15,600</td><td>$9,800</td><td>$11,500</td></tr></tbody></table>
+<p>The calculated columns:</p>
+<table><thead><tr><th></th><th>Duplex</th><th>Condo</th><th>House</th></tr></thead><tbody>
+<tr><td>NOI</td><td>$32,400 a year</td><td>$11,200 a year</td><td>$24,500 a year</td></tr>
+<tr><td>Loan-to-value</td><td>53.7%</td><td>66.0%</td><td>50.0%</td></tr>
+<tr><td>Equity</td><td>$250,000</td><td>$90,000</td><td>$200,000 (your 40%: $80,000)</td></tr>
+<tr><td>Debt service a year</td><td>$23,760</td><td>$13,800</td><td>$16,200</td></tr>
+<tr><td>NOI &divide; debt service</td><td>1.36</td><td>0.81</td><td>1.51</td></tr></tbody></table>
+<p>For the whole portfolio, counting each property in full: value <strong>$1,205,000</strong>, loans <strong>$665,000</strong>, equity <strong>$540,000</strong>, loan-to-value <strong>55.2%</strong>. NOI is <strong>$68,100</strong> against debt service of <strong>$53,760</strong>, a ratio of <strong>1.27</strong>. On your share, the house counts for 40%: value <strong>$965,000</strong>, loans <strong>$545,000</strong>, equity <strong>$420,000</strong>.</p>` },
+    { id: 'reading', h2: 'Reading the example', html: `<p>A lender reads this table the way you should. The portfolio as a whole is at 55.2% loan-to-value, which looks comfortable, but it hides a spread: the condo sits at 66.0% and has an NOI of only 0.81 times its debt service, meaning the rent after expenses does not cover the loan payment. The duplex and the house cover theirs at 1.36 and 1.51.</p>
+<p>Notice the two ways to count the house. The whole-property row shows $200,000 of equity. Your share is $80,000. A schedule that mixes the two without saying so is the commonest reason a lender comes back with questions. State your ownership percentage on every line, and say whether a total is whole-property or your share.</p>
+<p>The ratio of NOI to debt service is a lender idea, and PropertyMetrics lists the debt service coverage ratio among the per-loan fields in its template.${c(35)} Different lenders calculate and require it differently, so treat our figure as a guide to where you stand, not as a lender&rsquo;s result.</p>` },
+    { id: 'accuracy', h2: 'Getting the numbers right', html: `<p>An SREO is only useful if the numbers survive a question. These habits cover most of the risk.</p>
+<ol><li><strong>Use actual income and expenses.</strong> REtipster says to use recent actual numbers for NOI, not projections.${c(34)} Take a trailing twelve months from your records.</li><li><strong>State where each value comes from and when.</strong> An appraisal from last year is a different statement from your own estimate today. Zillow publishes a median error of about 7% for off-market homes on its automated estimate, and more in some places, so an automated figure is a starting point only.${c(13)}</li><li><strong>Match the loan balance to a statement.</strong> Not to your memory of the original amount.</li><li><strong>Keep the lender and the loan paper together.</strong> You will be asked for the agreement more often than you expect.</li><li><strong>Do not include what you no longer own.</strong> REtipster notes sold properties are not required, though a separate list of them can support your track record.${c(34)}</li><li><strong>Keep the same definitions every year.</strong> If NOI excludes the loan this year, it should next year.</li></ol>
+<p>The paperwork behind each line matters as much as the line. The Nebraska Department of Insurance, writing about home inventories, advises recording price, purchase date and receipts, with photos, and keeping copies away from the property itself.${c(8)} The same discipline applies to a deed, a lease and a loan agreement.</p>` },
+    { id: 'shares', h2: 'Co-owned properties and entities', html: `<p>Two things make a schedule harder than a list: who holds the title and what share is yours.</p>
+<p><strong>Entities.</strong> If an LLC holds the deed, the schedule should say so, and the percentage of that entity you hold. REtipster lists the entity holding the deed and your percentage of it as part of the ownership information.${c(34)} Group your properties by entity in the file so the picture is easy to read.</p>
+<p><strong>Partners.</strong> For a property held 40% with a partner, record the whole property&rsquo;s value and loan, then your percentage, and compute your share separately, as in the example above. PropertyMetrics gives ownership percentage by principal and each party&rsquo;s share of cash flow and loan balance as separate fields.${c(35)} If you keep only your share, say so in a note.</p>
+<p>Owned Map applies your ownership percentage to every figure on an asset, and also tracks the legal owner, so it can group your net worth by owner. We explain how it works for shared assets in the <a href="/solutions/rental-property-portfolio-tracker">rental property portfolio tracker</a> guide.</p>` },
+    { id: 'routine', h2: 'Keep it current without a project', html: `<p>The best schedule is the one you update in ten minutes, not the one you rebuild in a weekend. A routine that works for most investors:</p>
+<ul><li><strong>Once a year</strong> (after year-end): refresh rent and expenses for the year, and mark every value with its source and date.</li><li><strong>Each time a loan changes</strong> (refinance, sale, payoff): edit that row the same week.</li><li><strong>Before any application:</strong> update balances from the latest statements, check occupancy, and set the date at the top.</li><li><strong>Always:</strong> save the version you sent, so you can answer &ldquo;why does this differ from last year?&rdquo;.</li></ul>
+<p>REtipster makes the same point: it is important to update the schedule regularly.${c(34)} A stale schedule is worse than none, because the lender will notice the mismatch before you do.</p>` },
+    { id: 'template', h2: 'The free CSV', html: `<p><a href="/downloads/schedule-of-real-estate-owned-template.csv">Download the schedule of real estate owned template (CSV)</a>. It opens in Excel and Google Sheets and has 21 columns: property, type, units, address, acquisition date, who holds the title, your ownership percentage, market value, where the value comes from and when, original loan amount and date, current balance, interest rate, monthly payment, maturity date, lender, occupancy, annual rent, annual expenses, NOI and loan-to-value.</p>
+<p>The first two rows are the duplex and condo from the example. NOI and loan-to-value are formulas, so they update when you change the inputs. Delete the examples and add your own properties underneath. It is a master record, not a lender form: if your lender supplies one, copy the figures across. We have not designed it to match any specific lender&rsquo;s layout.</p>` },
+    { id: 'ownedmap', h2: 'Where Owned Map helps, and where it does not', html: `<p>You do not need software for three properties and one lender. A spreadsheet is the right answer, and this CSV is that spreadsheet. The case for a tool starts when the list is long, shared or attached to a pile of paper.</p>
+<p>Owned Map keeps each property as a pin with its value, purchase cost, income, expenses, loan balance, your ownership percentage and legal owner, and from those calculates NOI, yield, cash flow, equity and loan-to-value. It keeps the deed, lease and loan agreement on the property and holds the dates (insurance, tax, loan) with reminders. You can export the whole portfolio to Excel, CSV or PDF.</p>
+<p><strong>What it does not do.</strong> The Excel export includes the fields above that Owned Map holds for every asset (name, type, location, status, legal owner, ownership percentage, acquisition cost, value, debt, equity, loan-to-value, income, expenses, NOI, acquisition date and notes), but it does not have columns for interest rate, monthly payment, maturity date, lender or occupancy. You add those from this template. It does not produce a lender&rsquo;s form, it does not connect to your bank or lender, and it does not read your credit. It does not do bookkeeping or tax forms either; for those, see how a landlord tool compares in <a href="/compare/stessa-vs-owned-map">Stessa vs Owned Map</a>.</p>` },
+    { id: 'price', h2: 'Price and who it is for', html: `<p>${priceText}</p>${priceTable}
+<p>It makes sense from about the fourth property, or sooner if you share ownership or hold properties in more than one entity. For one or two properties, use the CSV.</p>` },
+    { id: 'method', h2: 'How we checked', html: `<p>We wrote this page on November 7, 2026. What we say about what an SREO contains comes from two public pages: REtipster&rsquo;s explanation of the schedule and PropertyMetrics&rsquo; template for commercial investors. Neither is a lender, and neither shows a publication date. We tried to read two more pages, a Fannie Mae eligibility matrix and a consumer-finance definition of loan-to-value, and they did not load, so we quote no lender limits and no loan-to-value thresholds. Ask your lender what it requires.</p>
+<p>What we say about Owned Map is what the product does today. Every outside claim is numbered and listed under Sources below. If you spot something out of date, email <a href="mailto:support@ownedmap.com">support@ownedmap.com</a> and we will correct it.</p>` },
+  ],
+  faq: [
+    ['What is a schedule of real estate owned?', 'It is a list of every property you own, in whole or in part, with the debt on each. Lenders read it with your personal financial statement to see the shape of your portfolio.'],
+    ['What should an SREO include?', 'For each property: name, type, units and address; who holds the title and your ownership percentage; market value and its source and date; loan amount, balance, rate, payment, maturity and lender; and for rentals, occupancy and net operating income.'],
+    ['Do I have to use the lender’s form?', 'Often yes. Lenders can have their own forms, so check first. Keep a master list and copy the figures across so every form agrees.'],
+    ['Should I list properties I have sold?', 'Sold properties are generally not required on the schedule. A separate list of past sales can support your track record.'],
+    ['What value should I use for a property?', 'The latest appraisal, with its date, where you have one. Otherwise say clearly that it is your estimate or a broker’s opinion, and when it was made.'],
+    ['How often should I update it?', 'At least once a year, whenever a loan changes, and before any application. A stale schedule can be worse than none.'],
+    ['Does Owned Map generate a lender’s SREO form?', 'No. It holds the property figures and exports to Excel, CSV and PDF, and you copy the lender-specific fields from this template.'],
+    trialFaq,
+  ],
+  sources: [],
+};

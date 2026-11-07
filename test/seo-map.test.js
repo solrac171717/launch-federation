@@ -25,7 +25,7 @@ for (const [path, pg] of Object.entries(pages)) {
 
 test('the map covers every indexable page, and only those', () => {
   assert.deepEqual(SEO_MAP.map(e => e.path).sort(), Object.keys(pages).sort());
-  assert.deepEqual(compareUrls().sort(), SEO_MAP.filter(e => /^\/(compare|solutions)\//.test(e.path)).map(e => e.path).sort());
+  assert.deepEqual(compareUrls().sort(), SEO_MAP.filter(e => /^\/(compare|solutions|guides)\//.test(e.path)).map(e => e.path).sort());
   const all = [...SEO_MAP, ...PLANNED]; assert.equal(new Set(all.map(e => e.path)).size, all.length, 'a path is mapped once');
 });
 

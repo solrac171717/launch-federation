@@ -21,7 +21,7 @@ test('every comparison has what search engines need and enough to say', () => {
 });
 test('the rendered pages are indexable, structured and carry the sticky call to the pricing section', () => {
   const pages = renderAll('https://ownedmap.com');
-  assert.deepEqual(pages.map(p => p.path).sort(), ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}`), ...SOLUTIONS.map(x => `/solutions/${x.slug}`)].sort());
+  assert.deepEqual(pages.map(p => p.path).sort(), ['/compare/', ...COMPARISONS.map(c => `/compare/${c.slug}`), ...SOLUTIONS.map(x => `/${x.dir || 'solutions'}/${x.slug}`)].sort());
   assert.equal(compareUrls().length, COMPARISONS.length + SOLUTIONS.length + 1);
   assert.equal(CTA.href, '/#pricing');
   for (const { path, html } of pages) {
@@ -57,7 +57,7 @@ test('the Monarch example adds up (house, boat, car) and quotes the prices charg
   assert.ok(priceCents(3, 'year') / 9999 > 3.9 && priceCents(3, 'year') / 9999 < 4.0, 'about four times, as the page says');
 });
 test('the public URLs have no extension, and the build writes the files they are rewritten to', () => {
-  for (const p of renderAll('https://ownedmap.com')) { assert.doesNotMatch(p.path, /\.html$/); assert.match(p.file, /^\/(compare|solutions)\/[a-z0-9-]+\.html$/); }
+  for (const p of renderAll('https://ownedmap.com')) { assert.doesNotMatch(p.path, /\.html$/); assert.match(p.file, /^\/(compare|solutions|guides)\/[a-z0-9-]+\.html$/); }
   for (const u of compareUrls()) assert.doesNotMatch(u, /\.html/);
   const html = renderAll('https://ownedmap.com').map(p => p.html).join(' ');
   assert.doesNotMatch(html, /href="\/(compare|solutions)\/[a-z0-9-]+\.html"/, 'internal links use the clean URL');
@@ -96,4 +96,37 @@ test('the Landlord Studio, Baselane and roundup numbers add up, and the prices q
   for (const x of ['$15.00 a month', '$23.40 a month', '$41.40 a month', usd(priceCents(3)), usd(priceCents(10)), usd(priceCents(25)), usd(priceCents(25, 'year')), '$2,500 a year', '$99.99']) assert.ok(r.includes(x), `roundup: ${x}`);
   assert.equal((15 + 7 * 1.2).toFixed(2), '23.40'); assert.equal((15 + 22 * 1.2).toFixed(2), '41.40');
   assert.ok(/we make Owned Map/i.test(r), 'the roundup says whose product Owned Map is');
+});
+
+test('the ProjectionLab, Simplifi, SREO, LTV and luxury examples add up, and the pages quote what they computed', () => {
+  const p = (value, cost, rent, exp, debt, pay) => { const noi = rent - exp; return { noi, gross: (rent / value * 100).toFixed(1), net: (noi / value * 100).toFixed(1), onCost: (noi / cost * 100).toFixed(1), cash: noi - pay * 12, equity: value - debt, ltv: (debt / value * 100).toFixed(1), payback: (cost / noi).toFixed(1), appr: ((value - cost) / cost * 100).toFixed(1) }; };
+  const pages = renderAll('https://ownedmap.com'), get = s => pages.find(q => q.path.endsWith(`/${s}`)).html;
+  assert.deepEqual(p(420000, 350000, 30000, 10500, 250000, 1500), { noi: 19500, gross: '7.1', net: '4.6', onCost: '5.6', cash: 1500, equity: 170000, ltv: '59.5', payback: '17.9', appr: '20.0' });
+  assert.equal((20000 / 70000 * 100).toFixed(1), '28.6'); assert.equal((1200 / 90000 * 100).toFixed(1), '1.3'); assert.equal((16000 / 80000 * 100).toFixed(1), '20.0'); assert.equal((6400 / 64000 * 100).toFixed(1), '10.0'); assert.equal(Math.round(6400 / 12), 533);
+  assert.equal(420000 + 90000 + 64000, 574000); assert.equal(574000 - 250000, 324000); assert.equal(1500 - 1200 - 6400, -6100);
+  for (const x of ['$19,500 a year', '7.1%', '4.6%', '5.6%', '$1,500 a year, $125 a month', '59.5%', '17.9 years', '28.6%', '$574,000', '$324,000', '$129 a year', '$549 a year']) assert.ok(get('projectionlab-vs-owned-map').includes(x), `projectionlab: ${x}`);
+  assert.deepEqual(p(520000, 430000, 46800, 15300, 310000, 2100), { noi: 31500, gross: '9.0', net: '6.1', onCost: '7.3', cash: 6300, equity: 210000, ltv: '59.6', payback: '13.7', appr: '20.9' });
+  assert.equal((22000 / 96000 * 100).toFixed(1), '22.9'); assert.equal((5400 / 118000 * 100).toFixed(1), '4.6'); assert.equal(210000 / 3, 70000); assert.equal(18000 / 3, 6000); assert.equal((6000 / 70000 * 100).toFixed(1), '8.6'); assert.equal((30000 / 240000 * 100).toFixed(1), '12.5');
+  assert.equal(520000 + 118000 + 70000, 708000); assert.equal(708000 - 310000, 398000); assert.equal(6300 - 5400 - 6000, -5100); assert.equal(5400 + 6000, 11400);
+  for (const x of ['$31,500 a year', '9.0%', '6.1%', '7.3%', '$6,300 a year, $525 a month', '59.6%', '13.7 years', '$708,000', '$398,000', '$3.99', '$6.99', 'Quicken Business']) assert.ok(get('quicken-simplifi-vs-owned-map').includes(x), `simplifi: ${x}`);
+  // SREO example
+  const loan = [[540000, 290000, 1980, 48000, 15600], [265000, 175000, 1150, 21000, 9800], [400000, 200000, 1350, 36000, 11500]];
+  assert.deepEqual(loan.map(([v, d]) => (d / v * 100).toFixed(1)), ['53.7', '66.0', '50.0']); assert.deepEqual(loan.map(([, , pay, r, e]) => ((r - e) / (pay * 12)).toFixed(2)), ['1.36', '0.81', '1.51']);
+  const tv = loan.reduce((n, l) => n + l[0], 0), td = loan.reduce((n, l) => n + l[1], 0), noi = loan.reduce((n, l) => n + l[3] - l[4], 0), ds = loan.reduce((n, l) => n + l[2] * 12, 0);
+  assert.deepEqual([tv, td, tv - td, (td / tv * 100).toFixed(1), noi, ds, (noi / ds).toFixed(2)], [1205000, 665000, 540000, '55.2', 68100, 53760, '1.27']); assert.equal(540000 + 265000 + 160000, 965000); assert.equal(290000 + 175000 + 80000, 545000); assert.equal(965000 - 545000, 420000);
+  for (const x of ['$1,205,000', '$665,000', '$540,000', '55.2%', '$68,100', '$53,760', '1.27', '$965,000', '$545,000', '$420,000', '1.36', '0.81', '1.51']) assert.ok(get('schedule-of-real-estate-owned-template').includes(x), `sreo: ${x}`);
+  // LTV example
+  const v4 = [540000, 265000, 400000, 85000], d4 = [290000, 175000, 200000, 0], sum = a => a.reduce((n, x) => n + x, 0);
+  assert.equal((sum(d4) / sum(v4) * 100).toFixed(1), '51.6'); assert.equal((sum(v4.map((v, i) => d4[i] / v * 100)) / 4).toFixed(1), '42.4'); assert.equal((sum(v4.slice(0, 3).map((v, i) => d4[i] / v * 100)) / 3).toFixed(1), '56.6');
+  assert.equal((250000 / (420000 * 0.93) * 100).toFixed(1), '64.0'); assert.equal((sum(d4) / (sum(v4) * 0.9) * 100).toFixed(1), '57.3'); assert.equal((175000 / (265000 * 0.9) * 100).toFixed(1), '73.4'); assert.equal(sum(v4) * 0.1, 129000); assert.equal(sum(v4) * 0.9 - sum(d4), 496000);
+  assert.deepEqual(v4.map((v, i) => v * 0.6 - d4[i]), [34000, -16000, 40000, 51000]); assert.equal(sum(v4) * 0.6 - sum(d4), 109000);
+  assert.equal((545000 / 1050000 * 100).toFixed(1), '51.9'); assert.equal(1050000 - 545000, 505000);
+  for (const x of ['51.6%', '42.4%', '56.6%', '$1,290,000', '$625,000', '64.0%', '57.3%', '73.4%', '$1,161,000', '$496,000', '$109,000', '51.9%', '$505,000']) assert.ok(get('rental-portfolio-ltv-calculator').includes(x), `ltv: ${x}`);
+  assert.match(get('rental-portfolio-ltv-calculator'), /id="ltv-calc"/);
+  // luxury example
+  const val = [725000, 423000, 380000, 130000, 220000], tot = sum(val);
+  assert.equal(tot, 1878000); assert.equal(tot - 410000, 1468000); assert.equal(14000 + 12600 + 46000 + 9000 + 3400, 85000); assert.equal((85000 / tot * 100).toFixed(1), '4.5');
+  assert.deepEqual([(380000 / tot * 100).toFixed(1), (46000 / 85000 * 100).toFixed(1), (46000 / 380000 * 100).toFixed(1), (70000 / 450000 * 100).toFixed(1), (20000 / 150000 * 100).toFixed(1), (9000 / 130000 * 100).toFixed(1), (93000 / 330000 * 100).toFixed(1), (12600 / 423000 * 100).toFixed(1), (40000 / 180000 * 100).toFixed(1), (3400 / 220000 * 100).toFixed(1), (725000 / tot * 100).toFixed(1), (200000 / 725000 * 100).toFixed(1)], ['20.2', '54.1', '12.1', '15.6', '13.3', '6.9', '28.2', '3.0', '22.2', '1.5', '38.6', '27.6']);
+  for (const x of ['$1,878,000', '$410,000', '$1,468,000', '$85,000', '4.5%', '54.1%', '20.2%', '$340', '$870', '$1,100']) assert.ok(get('luxury-asset-portfolio-tracker').includes(x), `luxury: ${x}`);
+  assert.doesNotMatch(get('luxury-asset-portfolio-tracker'), /connects? to your bank accounts? automatically|syncs? your accounts/i);
 });

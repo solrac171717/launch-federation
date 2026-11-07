@@ -3,6 +3,9 @@
 // Citations use the ids of SOURCES in compare.mjs; finalizeCitations numbers them per page, in order of appearance.
 import { PLAN, priceCents, usd, extraText } from '../src/billing-core.js';
 import { finalizeCitations } from './compare.mjs';
+import { SREO } from './guide-sreo.mjs';
+import { LTV } from './guide-ltv.mjs';
+import { LUXURY } from './solution-luxury.mjs';
 
 export const SOLUTIONS_DATE = '2026-11-05';
 
@@ -185,4 +188,5 @@ ${priceTable}
   },
 ];
 
+SOLUTIONS.push(SREO, LTV, LUXURY);
 for (const s of SOLUTIONS) finalizeCitations(s);

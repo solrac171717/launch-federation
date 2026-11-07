@@ -23,6 +23,11 @@ export const SEO_MAP = [
   { path: '/compare/landlord-studio-vs-owned-map', type: 'comparison', rival: 'Landlord Studio', primary: 'landlord studio vs owned map', secondary: ['landlord studio alternative'] },
   { path: '/compare/baselane-vs-owned-map', type: 'comparison', rival: 'Baselane', primary: 'baselane vs owned map', secondary: ['baselane alternative'] },
   { path: '/compare/best-net-worth-trackers-for-real-assets', type: 'roundup', primary: 'best net worth tracker for real estate', secondary: ['best app to track rental properties'] },
+  { path: '/compare/projectionlab-vs-owned-map', type: 'comparison', rival: 'ProjectionLab', primary: 'projectionlab vs owned map', secondary: ['projectionlab alternative'] },
+  { path: '/compare/quicken-simplifi-vs-owned-map', type: 'comparison', rival: 'Quicken Simplifi', primary: 'quicken simplifi vs owned map', secondary: ['quicken simplifi alternative'] },
+  { path: '/guides/schedule-of-real-estate-owned-template', type: 'guide', primary: 'schedule of real estate owned template', secondary: ['sreo template', 'real estate owned schedule for lenders'] },
+  { path: '/guides/rental-portfolio-ltv-calculator', type: 'guide', primary: 'rental portfolio ltv calculator', secondary: ['portfolio loan to value calculator'] },
+  { path: '/solutions/luxury-asset-portfolio-tracker', type: 'solution', primary: 'luxury asset portfolio tracker', secondary: ['passion assets tracker', 'family office software for individuals'] },
   { path: '/solutions/rental-property-portfolio-tracker', type: 'solution', primary: 'rental property portfolio tracker', secondary: ['real estate portfolio tracker', 'real estate portfolio tracking software', 'rental portfolio tracker', 'rental property equity tracker', 'track equity across rental properties'] },
   { path: '/solutions/net-worth-tracker-without-bank-linking', type: 'solution', primary: 'net worth tracker without linking bank accounts', secondary: ['manual net worth tracker', 'net worth tracker no bank connection', 'private net worth tracker'] },
   { path: '/privacy.html', type: 'legal' },
@@ -49,12 +54,6 @@ export const PLANNED = [
   { wave: 3, stage: 'tofu', path: '/guides/boat-ownership-costs', type: 'guide', primary: 'boat ownership costs per year', secondary: ['true cost of owning a boat'] },
   { wave: 3, stage: 'mofu', path: '/guides/personal-net-worth-statement', type: 'guide', primary: 'personal net worth statement template', secondary: ['net worth statement for a loan'] },
   { wave: 3, stage: 'bofu', path: '/compare/copilot-vs-owned-map', type: 'comparison', rival: 'Copilot Money', primary: 'copilot money vs owned map', secondary: ['copilot money alternative'] },
-  // wave 4 (7 Nov 2026 research round): investors who must show lenders a list of properties, free-and-manual rivals, and the passion-asset owner
-  { wave: 4, stage: 'mofu', path: '/guides/schedule-of-real-estate-owned-template', type: 'guide', primary: 'schedule of real estate owned template', secondary: ['sreo template', 'real estate owned schedule for lenders'] },
-  { wave: 4, stage: 'mofu', path: '/guides/rental-portfolio-ltv-calculator', type: 'guide', primary: 'rental portfolio ltv calculator', secondary: ['portfolio loan to value calculator'] },
-  { wave: 4, stage: 'bofu', path: '/compare/projectionlab-vs-owned-map', type: 'comparison', rival: 'ProjectionLab', primary: 'projectionlab vs owned map', secondary: ['projectionlab alternative'] },
-  { wave: 4, stage: 'bofu', path: '/compare/quicken-simplifi-vs-owned-map', type: 'comparison', rival: 'Quicken Simplifi', primary: 'quicken simplifi vs owned map', secondary: ['quicken simplifi alternative'] },
-  { wave: 4, stage: 'bofu', path: '/solutions/luxury-asset-portfolio-tracker', type: 'solution', primary: 'luxury asset portfolio tracker', secondary: ['passion assets tracker', 'family office software for individuals'] },
 ];
 
 /** The phrases a page claims: its primary first, then its secondaries. */
@@ -68,7 +67,7 @@ export const phrases = e => [e.primary, ...(e.secondary || [])].filter(Boolean);
  *   - the best-net-worth roundup is a bridge: it is a spoke of both groups, so the two groups feed each other through it. */
 export const CLUSTERS = [
   { id: 'rental', name: 'Rental and real estate portfolio', pillar: '/solutions/rental-property-portfolio-tracker', spokes: ['/compare/stessa-vs-owned-map', '/compare/landlord-studio-vs-owned-map', '/compare/baselane-vs-owned-map', '/compare/best-net-worth-trackers-for-real-assets', '/solutions/co-owned-property-tracker', '/solutions/insurance-renewal-tracker-for-rental-properties', '/guides/yield-on-cost-vs-cap-rate', '/solutions/track-real-estate-in-multiple-countries', '/guides/schedule-of-real-estate-owned-template', '/guides/rental-portfolio-ltv-calculator'] },
-  { id: 'networth', name: 'Net worth without bank linking', pillar: '/solutions/net-worth-tracker-without-bank-linking', spokes: ['/compare/kubera-vs-owned-map', '/compare/monarch-vs-owned-map', '/compare/empower-vs-owned-map', '/compare/spreadsheet-vs-owned-map', '/compare/copilot-vs-owned-map', '/compare/projectionlab-vs-owned-map', '/compare/quicken-simplifi-vs-owned-map', '/compare/best-net-worth-trackers-for-real-assets'] },
+  { id: 'networth', name: 'Net worth without bank linking', pillar: '/solutions/net-worth-tracker-without-bank-linking', spokes: ['/compare/kubera-vs-owned-map', '/compare/monarch-vs-owned-map', '/compare/empower-vs-owned-map', '/compare/spreadsheet-vs-owned-map', '/compare/copilot-vs-owned-map', '/compare/projectionlab-vs-owned-map', '/compare/quicken-simplifi-vs-owned-map', '/solutions/luxury-asset-portfolio-tracker', '/compare/best-net-worth-trackers-for-real-assets'] },
   { id: 'vehicles', name: 'Vehicles, boats and collections', pillar: '/solutions/property-and-vehicle-records-app', spokes: ['/solutions/boat-ownership-tracker', '/solutions/classic-car-collection-tracker', '/solutions/aircraft-ownership-tracker', '/guides/boat-ownership-costs', '/solutions/luxury-asset-portfolio-tracker'] },
   { id: 'estate', name: 'Estate and family records', pillar: '/guides/estate-asset-inventory-template', spokes: ['/solutions/property-and-vehicle-records-app', '/guides/personal-net-worth-statement'] },
 ];

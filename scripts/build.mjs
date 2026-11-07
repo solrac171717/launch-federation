@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { PLAN, priceCents, extraText } from '../src/billing-core.js';
 import { TEMPLATE_CSV } from '../src/csv-import.js';
+import { SREO_CSV } from '../content/sreo-template.mjs';
 import { renderAll, compareUrls } from './compare.mjs';
 
 const check = f => {
@@ -57,9 +58,10 @@ for (const page of INDEXABLE) {
   await writeFile(`dist/${page}`, html);
 }
 // The comparison pages (content/compare.mjs) become static pages, and the inventory template is made from the same columns the app imports.
-await mkdir('dist/compare', { recursive: true }); await mkdir('dist/solutions', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
+await mkdir('dist/compare', { recursive: true }); await mkdir('dist/solutions', { recursive: true }); await mkdir('dist/guides', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
 for (const g of renderAll(site)) await writeFile(`dist${g.file}`, g.html);
 await writeFile('dist/downloads/asset-inventory-template.csv', TEMPLATE_CSV);
+await writeFile('dist/downloads/schedule-of-real-estate-owned-template.csv', SREO_CSV);
 
 if (site) {
   const today = new Date().toISOString().slice(0, 10);
