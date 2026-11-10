@@ -149,3 +149,28 @@ test('the co-owned and spreadsheet examples add up, and the pages quote what the
   assert.equal(3420 - 5800 - 2700 - 675, -5755); assert.equal(263000 + (120000 - 54000), 329000); assert.equal((66000 / 263000 * 100).toFixed(1), '25.1'); assert.equal(Math.round(3420 / 12), 285);
   for (const x of ['$18,300', '8.9%', '5.9%', '7.2%', '$3,420', '$285', '61.3%', '13.9 years', '19.4%', '29.5%', '33.3%', '$453,000', '$263,000', '$329,000', '$66,000', '25.1%', '49 of 54', '88% of 113']) assert.ok(get('spreadsheet-vs-owned-map').includes(x), `spreadsheet: ${x}`);
 });
+
+test('boat, classic car and Copilot pages: the arithmetic and the quoted facts are right', () => {
+  const pages = renderAll('https://ownedmap.com'), get = slug => pages.find(q => q.path.endsWith(`/${slug}`)).html.replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ');
+  // boats
+  assert.equal(5400 + 1650 + 2200 + 4100 + 1300, 14650); assert.equal(1200 + 780 + 1600 + 1420, 5000); assert.equal(14650 + 5000, 19650);
+  assert.equal(((142000 - 165000) / 165000 * 100).toFixed(1), '-13.9'); assert.equal(((38000 - 46000) / 46000 * 100).toFixed(1), '-17.4'); assert.equal(((180000 - 211000) / 211000 * 100).toFixed(1), '-14.7');
+  assert.equal((19650 / 180000 * 100).toFixed(1), '10.9'); assert.equal((14650 / 142000 * 100).toFixed(1), '10.3'); assert.equal((5000 / 38000 * 100).toFixed(1), '13.2');
+  assert.equal(19650 + 620 * 12, 27090); assert.equal(Math.round(27090 / 12), 2258); assert.equal(Math.round(19650 / 40), 491); assert.equal(Math.round(27090 / 40), 677); assert.equal((5400 / 14650 * 100).toFixed(1), '36.9');
+  for (const x of ['$14,650', '$19,650 a year', '$27,090 a year', '$2,258 a month', '$491 a day', '$677 a day', '$132,000', 'CG-1280', '1 and 5 years', 'less than five net tons', 'agreed hull value']) assert.ok(get('boat-ownership-tracker').includes(x), x);
+  // cars
+  assert.equal(1850 + 3000 + 1800, 6650); assert.equal(720 + 2400 + 1100, 4220); assert.equal(480 + 1200 + 750, 2430); assert.equal(6650 + 4220 + 2430, 13300);
+  assert.equal(185000 + 62000 + 36000, 283000); assert.equal(140000 + 48000 + 41000, 229000); assert.equal(((283000 - 229000) / 229000 * 100).toFixed(1), '23.6');
+  assert.equal((45000 / 140000 * 100).toFixed(1), '32.1'); assert.equal((14000 / 48000 * 100).toFixed(1), '29.2'); assert.equal((-5000 / 41000 * 100).toFixed(1), '-12.2');
+  assert.equal((13300 / 283000 * 100).toFixed(1), '4.7'); assert.equal((6650 / 185000 * 100).toFixed(1), '3.6'); assert.equal((4220 / 62000 * 100).toFixed(1), '6.8'); assert.equal((2430 / 36000 * 100).toFixed(1), '6.8');
+  assert.equal((45000 / 185000 * 100).toFixed(1), '24.3'); assert.equal((2000 / 62000 * 100).toFixed(1), '3.2'); assert.equal((185000 / 283000 * 100).toFixed(1), '65.4');
+  for (const x of ['$283,000', '$229,000', '$54,000', '$13,300 a year', '24.3%', '65.4%', 'whichever is less', 'not tax deductible']) assert.ok(get('classic-car-collection-tracker').includes(x), x);
+  // Copilot
+  assert.equal(30000 - 9600, 20400); assert.equal((30000 / 410000 * 100).toFixed(1), '7.3'); assert.equal((20400 / 410000 * 100).toFixed(1), '5.0'); assert.equal((20400 / 340000 * 100).toFixed(1), '6.0');
+  assert.equal(20400 - 1640 * 12, 720); assert.equal((255000 / 410000 * 100).toFixed(1), '62.2'); assert.equal(((410000 - 340000) / 340000 * 100).toFixed(1), '20.6');
+  assert.equal(((70000 - 82000) / 82000 * 100).toFixed(1), '-14.6'); assert.equal((3900 / 70000 * 100).toFixed(1), '5.6');
+  assert.equal(13500 - 3600, 9900); assert.equal(9900 - 720 * 12 / 2, 5580); assert.equal((9900 / 150000 * 100).toFixed(1), '6.6'); assert.equal((19800 / 300000 * 100).toFixed(1), '6.6'); assert.equal((45000 / 150000 * 100).toFixed(1), '30.0');
+  assert.equal(410000 + 70000 + 150000, 630000); assert.equal(255000 + 45000, 300000); assert.equal(630000 - 300000, 330000); assert.equal(720 - 3900 + 5580, 2400);
+  assert.equal(410000 + 70000 + 300000 - 255000 - 90000, 435000); assert.equal(((435000 - 330000) / 330000 * 100).toFixed(1), '31.8');
+  for (const x of ['$330,000', '$2,400 a year', '$435,000', '31.8%', '$109', '16,000', 'auto valuation integration', 'Cash account']) assert.ok(get('copilot-vs-owned-map').includes(x), x);
+});

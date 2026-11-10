@@ -11,6 +11,7 @@ import { ROUNDUP } from './compare-roundup.mjs';
 import { PROJECTIONLAB } from './compare-projectionlab.mjs';
 import { SIMPLIFI } from './compare-simplifi.mjs';
 import { SPREADSHEET } from './compare-spreadsheet.mjs';
+import { COPILOT } from './compare-copilot.mjs';
 
 export const CHECKED = '2026-11-03';
 
@@ -60,6 +61,18 @@ export const SOURCES = [
   { n: 42, title: 'Sidebar: Oops', publisher: 'Computerworld', url: 'https://www.computerworld.com/article/1704893/sidebar-oops.html', says: 'Recent audits of 54 spreadsheets found that 49 (91%) had errors, according to research by Raymond Panko of the University of Hawaii (article dated May 24, 2004).' },
   { n: 43, title: 'How to debug Excel spreadsheets', publisher: 'Journal of Accountancy', url: 'https://www.journalofaccountancy.com/issues/2015/nov/how-to-debug-excel-spreadsheets/', says: 'Field audits compiled by Ray Panko showed errors in 88% of 113 spreadsheets audited between 1995 and 2007 (article dated November 1, 2015).' },
   { n: 44, title: 'Spreadsheet Errors: What We Know. What We Think We Can Do', publisher: 'Raymond R. Panko, arXiv', url: 'https://arxiv.org/abs/0802.3457', says: 'A review of fifteen years of research showing spreadsheet errors are common; cell-by-cell code inspection is the only technique shown to be effective so far (submitted February 23, 2008).' },
+  { n: 45, title: 'Copilot pricing', publisher: 'Copilot Money', url: 'https://www.copilot.money/pricing', says: 'Shows $9 a month on the yearly toggle and $109 billed yearly instead of $119; "No tiers, no add-ons, no AI credits"; iPhone, iPad, Mac and Web included; connects to 16,000+ banks. A trial length is not stated on the page.', via: 'Read November 10, 2026.' },
+  { n: 46, title: 'Copilot Money: homepage', publisher: 'Copilot Money', url: 'https://www.copilot.money/', says: 'Works with 16,000+ institutions on iPhone, Mac, iPad and Web; a Households feature that shares an account with a partner.', via: 'Read November 10, 2026.' },
+  { n: 47, title: 'Real estate accounts', publisher: 'Copilot Money help center', url: 'https://help.copilot.money/en/articles/8047816-real-estate-accounts', says: 'Owned properties can be added with a Zillow, RentCast or manual value; Zillow values update once a month; a mortgage can be manual or linked; real estate accounts are treated as investment accounts (article dated April 30, 2026).', via: 'Read November 10, 2026.' },
+  { n: 48, title: 'Tracking your car and other physical assets', publisher: 'Copilot Money help center', url: 'https://help.copilot.money/en/articles/10760871-tracking-your-car-and-other-physical-assets', says: 'No auto valuation integration; the workaround is a manual Cash account for the asset, also suggested for art, jewelry and precious metals (article dated September 8, 2026).', via: 'Read November 10, 2026.' },
+  { n: 49, title: 'Creating manual accounts', publisher: 'Copilot Money help center', url: 'https://help.copilot.money/en/articles/4537532-creating-manual-accounts', says: 'Accounts are added with Track manually; the fields are institution name, card name, last four digits, balance, card limit and colour; balances and manual transactions can be edited (article dated August 20, 2026).', via: 'Read November 10, 2026.' },
+  { n: 50, title: '46 U.S. Code § 12105, Certificates of documentation', publisher: 'Cornell Legal Information Institute', url: 'https://www.law.cornell.edu/uscode/text/46/12105', says: 'The owner of a recreational vessel may choose a period of effectiveness of between 1 and 5 years for a certificate of documentation or its renewal; the owner must report changes to the Coast Guard within 30 days or the certificate terminates.', via: 'Read November 10, 2026.' },
+  { n: 51, title: '46 CFR § 67.163, Renewal of endorsements', publisher: 'Cornell Legal Information Institute', url: 'https://www.law.cornell.edu/cfr/text/46/67.163', says: 'The owner must apply for renewal before expiry on the form CG-1280, sent to the National Vessel Documentation Center; a recreational certificate is effective for 1, 2, 3, 4 or 5 years.', via: 'Read November 10, 2026.' },
+  { n: 52, title: '46 CFR § 67.9, Vessels excluded or exempt', publisher: 'Cornell Legal Information Institute', url: 'https://www.law.cornell.edu/cfr/text/46/67.9', says: 'A vessel of less than five net tons is excluded from documentation; a vessel that does not operate on navigable waters may be documented at the owner’s option.', via: 'Read November 10, 2026.' },
+  { n: 53, title: 'Agreed hull value', publisher: 'BoatUS', url: 'https://www.boatus.com/products-and-services/boat-insurance/agreed-hull-value', says: 'The coverage pays to replace the boat up to its agreed hull value, determined when the policy starts; mechanical breakdown coverage is available with agreed hull coverage only.', via: 'Read November 10, 2026.' },
+  { n: 54, title: 'Boat insurance FAQ', publisher: 'BoatUS', url: 'https://www.boatus.com/faq/boat-insurance', says: 'Premium depends on the type of boat, length, number of engines and horsepower, and how and where it is stored.', via: 'Read November 10, 2026.' },
+  { n: 55, title: 'What is agreed or guaranteed value insurance?', publisher: 'Hagerty', url: 'https://www.hagerty.com/resources/insurance-guides/what-is-agreed-or-guaranteed-value-insurance', says: 'Agreed value is set from appraisals, photos or other documentation; stated value pays whichever is less of the stated value or actual cash value; values should be checked at every renewal (page dated April 22, 2022).', via: 'Read November 10, 2026.' },
+  { n: 56, title: 'Topic no. 409, Capital gains and losses', publisher: 'Internal Revenue Service', url: 'https://www.irs.gov/taxtopics/tc409', says: 'Losses from the sale of personal-use property, such as your home or car, are not tax deductible; you have a capital gain if you sell an asset for more than your adjusted basis (page updated November 9, 2026).', via: 'Read November 10, 2026.' },
 ];
 const c = n => `<sup class="cite"><a href="#src-${n}" aria-label="Source ${n}">[${n}]</a></sup>`;
 
@@ -180,6 +193,7 @@ export const COMPARISONS = [
   PROJECTIONLAB,
   SIMPLIFI,
   SPREADSHEET,
+  COPILOT,
 ];
 
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

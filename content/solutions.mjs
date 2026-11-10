@@ -7,6 +7,8 @@ import { SREO } from './guide-sreo.mjs';
 import { LTV } from './guide-ltv.mjs';
 import { LUXURY } from './solution-luxury.mjs';
 import { COOWNED } from './solution-coowned.mjs';
+import { BOAT } from './solution-boat.mjs';
+import { CLASSIC_CAR } from './solution-classic-car.mjs';
 
 export const SOLUTIONS_DATE = '2026-11-05';
 
@@ -189,5 +191,5 @@ ${priceTable}
   },
 ];
 
-SOLUTIONS.push(SREO, LTV, LUXURY, COOWNED);
+SOLUTIONS.push(SREO, LTV, LUXURY, COOWNED, BOAT, CLASSIC_CAR);
 for (const s of SOLUTIONS) finalizeCitations(s);
