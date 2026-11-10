@@ -10,6 +10,7 @@ import { BASELANE } from './compare-baselane.mjs';
 import { ROUNDUP } from './compare-roundup.mjs';
 import { PROJECTIONLAB } from './compare-projectionlab.mjs';
 import { SIMPLIFI } from './compare-simplifi.mjs';
+import { SPREADSHEET } from './compare-spreadsheet.mjs';
 
 export const CHECKED = '2026-11-03';
 
@@ -20,7 +21,7 @@ export const SOURCES = [
   { n: 3, title: 'Kubera: security', publisher: 'Kubera', url: 'https://www.kubera.com/security', says: 'How accounts connect through aggregators; Kubera says it does not store bank credentials.' },
   { n: 4, title: 'Kubera pricing', publisher: 'Toolradar', url: 'https://toolradar.com/tools/kubera/pricing', says: 'Lists Essentials at $250 a year; says prices were confirmed on kubera.com on October 29, 2026.' },
   { n: 5, title: 'Capitalization rate', publisher: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Capitalization_rate', says: 'The cap rate is net operating income divided by current value, not the original price.' },
-  { n: 6, title: 'Publication 527, Residential Rental Property (2025)', publisher: 'Internal Revenue Service', url: 'https://www.irs.gov/publications/p527', says: 'You cannot simply deduct mortgage principal payments; separate the costs of repairs and improvements and keep accurate records; residential rental property is depreciated over 27.5 years under GDS.' },
+  { n: 6, title: 'Publication 527, Residential Rental Property (2025)', publisher: 'Internal Revenue Service', url: 'https://www.irs.gov/publications/p527', says: 'You cannot simply deduct mortgage principal payments; separate the costs of repairs and improvements and keep accurate records; residential rental property is depreciated over 27.5 years under GDS; if you own a part interest in rental property you deduct the expenses you paid according to your percentage of ownership and report your part of the rental income.' },
   { n: 7, title: 'Wills Survey 2025', publisher: 'Caring.com, with YouGov', url: 'https://www.caring.com/resources/wills-survey/', says: '24% of respondents have a will, down from 33% in 2022 (more than 2,500 US adults).' },
   { n: 8, title: 'Before the Storm: Don\u2019t Wait Until It\u2019s Too Late', publisher: 'Nebraska Department of Insurance', url: 'https://doi.nebraska.gov/sites/default/files/doc/BeforeTheStorm-Don%27tWaitUntilItsTooLate.pdf', says: 'An inventory should record brand, price, purchase date, model, serial number and receipts, with photos.' },
   { n: 9, title: 'Monarch: homepage', publisher: 'Monarch', url: 'https://www.monarch.com', says: 'Budgeting, goals, 13,000+ institutions, collaboration with a partner or advisor at no extra cost, web, iOS and Android.' },
@@ -53,6 +54,12 @@ export const SOURCES = [
   { n: 36, title: 'EstateSpace', publisher: 'EstateSpace', url: 'https://estatespace.com/', says: 'Physical asset management for private estates: real estate, art, vehicles, vessels and aircraft; plans listed at $340, $870 and $1,100 a month with a one-year commitment.' },
   { n: 37, title: 'Private Assets Overview', publisher: 'Aleta', url: 'https://aleta.vercel.app/private-assets-overview', says: 'A private-assets module of a family office platform: art, cars, wine, aircraft and collectibles; aimed at family offices and principals; demo on request.' },
   { n: 38, title: 'Masttro: pricing', publisher: 'Masttro', url: 'https://www.masttro.com/pricing', says: 'Family office software that connects to 750+ custodians and covers real estate, collections and motor vehicles; pricing on request.' },
+  { n: 39, title: 'Net worth app recommendations', publisher: 'BiggerPockets forum', url: 'https://www.biggerpockets.com/forums/519/topics/1096680-net-worth-app-recommendations', says: 'An investor with several entities and different ownership percentages says he could not find an app that takes percentages of ownership and gives an accurate net worth, so he uses a spreadsheet (thread started February 13, 2023).' },
+  { n: 40, title: 'Rental Property Software or MS Excel?', publisher: 'BiggerPockets forum', url: 'https://www.biggerpockets.com/forums/56/topics/111825-rental-property-software-or-ms-excel', says: 'Landlords compare building their own Excel sheets (free but time-consuming) with software that makes balance sheets and cash flow reports easier; the right choice depends on how many rentals you have (thread started January 6, 2014).' },
+  { n: 41, title: 'Tenancy in common', publisher: 'Legal Information Institute, Cornell Law School', url: 'https://www.law.cornell.edu/wex/tenancy_in_common', says: 'In a tenancy in common the shares may be of unequal size, can be freely transferred, and there is typically no right of survivorship (page last reviewed April 2025).' },
+  { n: 42, title: 'Sidebar: Oops', publisher: 'Computerworld', url: 'https://www.computerworld.com/article/1704893/sidebar-oops.html', says: 'Recent audits of 54 spreadsheets found that 49 (91%) had errors, according to research by Raymond Panko of the University of Hawaii (article dated May 24, 2004).' },
+  { n: 43, title: 'How to debug Excel spreadsheets', publisher: 'Journal of Accountancy', url: 'https://www.journalofaccountancy.com/issues/2015/nov/how-to-debug-excel-spreadsheets/', says: 'Field audits compiled by Ray Panko showed errors in 88% of 113 spreadsheets audited between 1995 and 2007 (article dated November 1, 2015).' },
+  { n: 44, title: 'Spreadsheet Errors: What We Know. What We Think We Can Do', publisher: 'Raymond R. Panko, arXiv', url: 'https://arxiv.org/abs/0802.3457', says: 'A review of fifteen years of research showing spreadsheet errors are common; cell-by-cell code inspection is the only technique shown to be effective so far (submitted February 23, 2008).' },
 ];
 const c = n => `<sup class="cite"><a href="#src-${n}" aria-label="Source ${n}">[${n}]</a></sup>`;
 
@@ -172,6 +179,7 @@ export const COMPARISONS = [
   ROUNDUP,
   PROJECTIONLAB,
   SIMPLIFI,
+  SPREADSHEET,
 ];
 
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });

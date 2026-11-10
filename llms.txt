@@ -31,6 +31,8 @@ Owned Map is a paid subscription product with a 7-day free trial (card required,
 - [Schedule of real estate owned template (free CSV)](%SITE_URL%/guides/schedule-of-real-estate-owned-template)
 - [Rental portfolio LTV calculator](%SITE_URL%/guides/rental-portfolio-ltv-calculator)
 - [Luxury asset portfolio tracker for homes, cars, boats and aircraft](%SITE_URL%/solutions/luxury-asset-portfolio-tracker)
+- [Asset tracking spreadsheet vs Owned Map: when a spreadsheet stops being enough](%SITE_URL%/compare/spreadsheet-vs-owned-map)
+- [Co-owned property tracker: your share of every value, loan and return](%SITE_URL%/solutions/co-owned-property-tracker)
 - [Rental property portfolio tracker: every property, its return and its papers](%SITE_URL%/solutions/rental-property-portfolio-tracker)
 - [Net worth tracker without linking bank accounts](%SITE_URL%/solutions/net-worth-tracker-without-bank-linking)
 - [Privacy Policy](%SITE_URL%/privacy.html)

@@ -130,3 +130,22 @@ test('the ProjectionLab, Simplifi, SREO, LTV and luxury examples add up, and the
   for (const x of ['$1,878,000', '$410,000', '$1,468,000', '$85,000', '4.5%', '54.1%', '20.2%', '$340', '$870', '$1,100']) assert.ok(get('luxury-asset-portfolio-tracker').includes(x), `luxury: ${x}`);
   assert.doesNotMatch(get('luxury-asset-portfolio-tracker'), /connects? to your bank accounts? automatically|syncs? your accounts/i);
 });
+
+test('the co-owned and spreadsheet examples add up, and the pages quote what they computed', () => {
+  const p = (value, cost, rent, exp, debt, pay) => { const noi = rent - exp; return { noi, gross: (rent / value * 100).toFixed(1), net: (noi / value * 100).toFixed(1), onCost: (noi / cost * 100).toFixed(1), cash: noi - pay * 12, equity: value - debt, ltv: (debt / value * 100).toFixed(1), payback: (cost / noi).toFixed(1), appr: ((value - cost) / cost * 100).toFixed(1) }; };
+  const pages = renderAll('https://ownedmap.com'), get = s => pages.find(q => q.path.endsWith(`/${s}`)).html;
+  // co-owned: house 40%, cabin 50%, building 25%
+  assert.deepEqual(p(400000, 320000, 36000, 11500, 200000, 1350), { noi: 24500, gross: '9.0', net: '6.1', onCost: '7.7', cash: 8300, equity: 200000, ltv: '50.0', payback: '13.1', appr: '25.0' });
+  assert.deepEqual(p(1200000, 1000000, 144000, 54000, 700000, 4200), { noi: 90000, gross: '12.0', net: '7.5', onCost: '9.0', cash: 39600, equity: 500000, ltv: '58.3', payback: '11.1', appr: '20.0' });
+  assert.equal(8300 * 0.4, 3320); assert.equal(Math.round(3320 / 12), 277); assert.equal(39600 * 0.25, 9900); assert.equal(9900 / 12, 825);
+  assert.equal(400000 * 0.4 + 380000 * 0.5 + 1200000 * 0.25, 650000); assert.equal(200000 * 0.4 + 120000 * 0.5 + 700000 * 0.25, 315000); assert.equal(650000 - 315000, 335000);
+  assert.equal(400000 + 380000 + 1200000, 1980000); assert.equal(200000 + 120000 + 700000, 1020000); assert.equal(1980000 - 1020000, 960000); assert.equal(960000 - 335000, 625000);
+  assert.equal(3320 - 9600 / 2 + 9900, 8420); assert.equal(Math.round(8420 / 12), 702); assert.equal(8300 - 9600 + 39600, 38300); assert.equal(((380000 - 300000) / 300000 * 100).toFixed(1), '26.7');
+  for (const x of ['$960,000', '$335,000', '$625,000', '$650,000', '$315,000', '$1,980,000', '$1,020,000', '$8,420', '$702', '$3,320', '$277', '$825', '$9,900', '58.3%', '26.7%', '13.1 years', '11.1 years']) assert.ok(get('co-owned-property-tracker').includes(x), `co-owned: ${x}`);
+  // spreadsheet: house, sailboat, pickup, land 45%
+  assert.deepEqual(p(310000, 255000, 27600, 9300, 190000, 1240), { noi: 18300, gross: '8.9', net: '5.9', onCost: '7.2', cash: 3420, equity: 120000, ltv: '61.3', payback: '13.9', appr: '21.6' });
+  assert.deepEqual([((72000 - 58000) / 72000 * 100).toFixed(1), (5800 / 58000 * 100).toFixed(1), ((44000 - 31000) / 44000 * 100).toFixed(1), (2700 / 31000 * 100).toFixed(1), ((120000 - 90000) / 90000 * 100).toFixed(1)], ['19.4', '10.0', '29.5', '8.7', '33.3']);
+  assert.equal(120000 * 0.45, 54000); assert.equal(90000 * 0.45, 40500); assert.equal(1500 * 0.45, 675); assert.equal(310000 + 58000 + 31000 + 54000, 453000); assert.equal(453000 - 190000, 263000);
+  assert.equal(3420 - 5800 - 2700 - 675, -5755); assert.equal(263000 + (120000 - 54000), 329000); assert.equal((66000 / 263000 * 100).toFixed(1), '25.1'); assert.equal(Math.round(3420 / 12), 285);
+  for (const x of ['$18,300', '8.9%', '5.9%', '7.2%', '$3,420', '$285', '61.3%', '13.9 years', '19.4%', '29.5%', '33.3%', '$453,000', '$263,000', '$329,000', '$66,000', '25.1%', '49 of 54', '88% of 113']) assert.ok(get('spreadsheet-vs-owned-map').includes(x), `spreadsheet: ${x}`);
+});

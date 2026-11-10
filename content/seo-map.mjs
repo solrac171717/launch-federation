@@ -28,6 +28,8 @@ export const SEO_MAP = [
   { path: '/guides/schedule-of-real-estate-owned-template', type: 'guide', primary: 'schedule of real estate owned template', secondary: ['sreo template', 'real estate owned schedule for lenders'] },
   { path: '/guides/rental-portfolio-ltv-calculator', type: 'guide', primary: 'rental portfolio ltv calculator', secondary: ['portfolio loan to value calculator'] },
   { path: '/solutions/luxury-asset-portfolio-tracker', type: 'solution', primary: 'luxury asset portfolio tracker', secondary: ['passion assets tracker', 'family office software for individuals'] },
+  { path: '/compare/spreadsheet-vs-owned-map', type: 'comparison', rival: 'Spreadsheets', primary: 'asset tracking spreadsheet vs owned map', secondary: ['asset tracking spreadsheet alternative', 'excel template for tracking assets'] },
+  { path: '/solutions/co-owned-property-tracker', type: 'solution', primary: 'co-owned property tracker', secondary: ['shared property ownership tracker', 'co-ownership property tracking app'] },
   { path: '/solutions/rental-property-portfolio-tracker', type: 'solution', primary: 'rental property portfolio tracker', secondary: ['real estate portfolio tracker', 'real estate portfolio tracking software', 'rental portfolio tracker', 'rental property equity tracker', 'track equity across rental properties'] },
   { path: '/solutions/net-worth-tracker-without-bank-linking', type: 'solution', primary: 'net worth tracker without linking bank accounts', secondary: ['manual net worth tracker', 'net worth tracker no bank connection', 'private net worth tracker'] },
   { path: '/privacy.html', type: 'legal' },
@@ -43,8 +45,6 @@ export const PLANNED = [
   // wave 2: narrower audiences, high value per customer
   { wave: 2, stage: 'bofu', path: '/solutions/boat-ownership-tracker', type: 'solution', primary: 'boat ownership tracker app', secondary: ['track boat expenses and registration', 'boat documents and insurance tracker'] },
   { wave: 2, stage: 'bofu', path: '/solutions/classic-car-collection-tracker', type: 'solution', primary: 'classic car collection tracker', secondary: ['car collection value tracker', 'track collector car documents'] },
-  { wave: 2, stage: 'mofu', path: '/compare/spreadsheet-vs-owned-map', type: 'comparison', rival: 'Spreadsheets', primary: 'asset tracking spreadsheet vs owned map', secondary: ['asset tracking spreadsheet alternative', 'excel template for tracking assets'] },
-  { wave: 2, stage: 'bofu', path: '/solutions/co-owned-property-tracker', type: 'solution', primary: 'co-owned property tracker', secondary: ['shared property ownership tracker', 'co-ownership property tracking app'] },
   { wave: 2, stage: 'mofu', path: '/solutions/property-and-vehicle-records-app', type: 'solution', primary: 'app to manage property and vehicle records', secondary: ['organize family asset documents', 'digital asset records for family'] },
   // wave 3: only after the data from Search Console says which of these earns clicks
   { wave: 3, stage: 'bofu', path: '/solutions/aircraft-ownership-tracker', type: 'solution', primary: 'aircraft ownership tracker', secondary: ['aircraft ownership cost tracker'] }, // dedicated logbook apps own this SERP; Owned Map is not a logbook, so only the cost, value and documents angle

@@ -6,6 +6,7 @@ import { finalizeCitations } from './compare.mjs';
 import { SREO } from './guide-sreo.mjs';
 import { LTV } from './guide-ltv.mjs';
 import { LUXURY } from './solution-luxury.mjs';
+import { COOWNED } from './solution-coowned.mjs';
 
 export const SOLUTIONS_DATE = '2026-11-05';
 
@@ -188,5 +189,5 @@ ${priceTable}
   },
 ];
 
-SOLUTIONS.push(SREO, LTV, LUXURY);
+SOLUTIONS.push(SREO, LTV, LUXURY, COOWNED);
 for (const s of SOLUTIONS) finalizeCitations(s);
