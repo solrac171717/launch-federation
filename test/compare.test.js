@@ -174,3 +174,28 @@ test('boat, classic car and Copilot pages: the arithmetic and the quoted facts a
   assert.equal(410000 + 70000 + 300000 - 255000 - 90000, 435000); assert.equal(((435000 - 330000) / 330000 * 100).toFixed(1), '31.8');
   for (const x of ['$330,000', '$2,400 a year', '$435,000', '31.8%', '$109', '16,000', 'auto valuation integration', 'Cash account']) assert.ok(get('copilot-vs-owned-map').includes(x), x);
 });
+
+test('Tiller, Lunch Money, DoorLoop and RentRedi pages: the arithmetic and the quoted facts are right', () => {
+  const pages = renderAll('https://ownedmap.com'), get = slug => pages.find(q => q.path.endsWith(`/${slug}`)).html.replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ');
+  const f = (n, d = 1) => n.toFixed(d);
+  // a rental: [value, cost, rent, expenses, loan, monthly payment] -> noi, gross, net, on cost, cash flow, ltv, appreciation
+  const r = ([v, k, rent, ex, loan, pay]) => ({ noi: rent - ex, gross: f(rent / v * 100), net: f((rent - ex) / v * 100), onCost: f((rent - ex) / k * 100), cash: rent - ex - pay * 12, ltv: f(loan / v * 100), appr: f((v - k) / k * 100) });
+  assert.deepEqual(r([280000, 225000, 24600, 8100, 170000, 1150]), { noi: 16500, gross: '8.8', net: '5.9', onCost: '7.3', cash: 2700, ltv: '60.7', appr: '24.4' });
+  assert.equal(f((14000 - 19500) / 19500 * 100), '-28.2'); assert.equal(f(1150 / 14000 * 100), '8.2'); assert.equal(f(25000 / 70000 * 100), '35.7'); assert.equal(f(1300 / 95000 * 100), '1.4');
+  assert.equal(280000 + 14000 + 95000, 389000); assert.equal(389000 - 170000, 219000); assert.equal(2700 - 1150 - 1300, 250); assert.equal(0 - 170000, -170000); assert.equal(219000 + 170000, 389000);
+  for (const x of ['$16,500 a year', '$219,000', '$389,000', '$250 a year', '$99', '30 days', 'Class set to Asset', '$350,000', '$150,000']) assert.ok(get('tiller-vs-owned-map').includes(x), x);
+  assert.deepEqual(r([360000, 300000, 28800, 9300, 210000, 1420]), { noi: 19500, gross: '8.0', net: '5.4', onCost: '6.5', cash: 2460, ltv: '58.3', appr: '20.0' });
+  assert.equal(f((55000 - 68000) / 68000 * 100), '-19.1'); assert.equal(f(6200 / 55000 * 100), '11.3');
+  assert.equal(24000 - 5600, 18400); assert.equal(f(18400 / 200000 * 100), '9.2'); assert.equal(f(46000 / 500000 * 100), '9.2'); assert.equal(18400 - 7200, 11200); assert.equal(f(80000 / 200000 * 100), '40.0');
+  assert.equal(360000 + 55000 + 200000, 615000); assert.equal(210000 + 80000, 290000); assert.equal(615000 - 290000, 325000); assert.equal(2460 - 6200 + 11200, 7460); assert.equal(2460 - 6200, -3740);
+  assert.equal(360000 + 55000 + 500000 - 210000 - 200000, 505000); assert.equal(f((505000 - 325000) / 325000 * 100), '55.4');
+  for (const x of ['$7,460 a year', '$325,000', '$505,000', '55.4%', '$10 a month', '$100 a year', 'real estate or a vehicle', 'multi-currency']) assert.ok(get('lunch-money-vs-owned-map').includes(x), x);
+  assert.deepEqual(r([720000, 610000, 62400, 22900, 480000, 3050]), { noi: 39500, gross: '8.7', net: '5.5', onCost: '6.5', cash: 2900, ltv: '66.7', appr: '18.0' });
+  assert.deepEqual(r([310000, 255000, 22800, 7700, 140000, 980]), { noi: 15100, gross: '7.4', net: '4.9', onCost: '5.9', cash: 3340, ltv: '45.2', appr: '21.6' });
+  assert.equal(f((38000 - 29000) / 29000 * 100), '31.0'); assert.equal(f(1900 / 38000 * 100), '5.0'); assert.equal(720000 + 310000 + 38000, 1068000); assert.equal(480000 + 140000, 620000); assert.equal(1068000 - 620000, 448000); assert.equal(2900 + 3340 - 1900, 4340); assert.equal(f(720000 / 1068000 * 100), '67.4'); assert.equal(5 * 2.5, 12.5);
+  for (const x of ['$39,500 a year', '$448,000', '$4,340 a year', '67.4%', '$2.50', '$4.00', '$5.00', '25%', 'minimum spend']) assert.ok(get('doorloop-vs-owned-map').includes(x), x);
+  assert.deepEqual(r([450000, 370000, 38400, 12900, 290000, 1900]), { noi: 25500, gross: '8.5', net: '5.7', onCost: '6.9', cash: 2700, ltv: '64.4', appr: '21.6' });
+  assert.deepEqual(r([190000, 150000, 15600, 5100, 95000, 700]), { noi: 10500, gross: '8.2', net: '5.5', onCost: '7.0', cash: 2100, ltv: '50.0', appr: '26.7' });
+  assert.equal(f((85000 - 120000) / 120000 * 100), '-29.2'); assert.equal(f(4600 / 85000 * 100), '5.4'); assert.equal(450000 + 190000 + 85000, 725000); assert.equal(290000 + 95000, 385000); assert.equal(725000 - 385000, 340000); assert.equal(2700 + 2100 - 4600, 200); assert.equal(12 * 12, 144);
+  for (const x of ['$25,500 a year', '$340,000', '$200 a year', '$29.95', '$12 a month', '$144 a year', 'unlimited', '30-day money-back']) assert.ok(get('rentredi-vs-owned-map').includes(x), x);
+});

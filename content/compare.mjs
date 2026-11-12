@@ -12,6 +12,10 @@ import { PROJECTIONLAB } from './compare-projectionlab.mjs';
 import { SIMPLIFI } from './compare-simplifi.mjs';
 import { SPREADSHEET } from './compare-spreadsheet.mjs';
 import { COPILOT } from './compare-copilot.mjs';
+import { TILLER } from './compare-tiller.mjs';
+import { LUNCHMONEY } from './compare-lunchmoney.mjs';
+import { DOORLOOP } from './compare-doorloop.mjs';
+import { RENTREDI } from './compare-rentredi.mjs';
 
 export const CHECKED = '2026-11-03';
 
@@ -73,6 +77,19 @@ export const SOURCES = [
   { n: 54, title: 'Boat insurance FAQ', publisher: 'BoatUS', url: 'https://www.boatus.com/faq/boat-insurance', says: 'Premium depends on the type of boat, length, number of engines and horsepower, and how and where it is stored.', via: 'Read November 10, 2026.' },
   { n: 55, title: 'What is agreed or guaranteed value insurance?', publisher: 'Hagerty', url: 'https://www.hagerty.com/resources/insurance-guides/what-is-agreed-or-guaranteed-value-insurance', says: 'Agreed value is set from appraisals, photos or other documentation; stated value pays whichever is less of the stated value or actual cash value; values should be checked at every renewal (page dated April 22, 2022).', via: 'Read November 10, 2026.' },
   { n: 56, title: 'Topic no. 409, Capital gains and losses', publisher: 'Internal Revenue Service', url: 'https://www.irs.gov/taxtopics/tc409', says: 'Losses from the sale of personal-use property, such as your home or car, are not tax deductible; you have a capital gain if you sell an asset for more than your adjusted basis (page updated November 9, 2026).', via: 'Read November 10, 2026.' },
+  { n: 57, title: 'Tiller pricing', publisher: 'Tiller', url: 'https://tiller.com/pricing/', says: '"After 30 days, Tiller is just $99/year"; a 30-day free trial followed by another 30 days backed by a full refund; the card is not charged until the trial ends.', via: 'Read November 12, 2026.' },
+  { n: 58, title: 'Tiller: homepage', publisher: 'Tiller', url: 'https://tiller.com/', says: 'Syncs accounts to private spreadsheets you own, on Google Sheets; prebuilt templates for budgets, expenses, debt, net worth and savings; automatic bank connections. The page does not state a price or a number of institutions.', via: 'Read November 12, 2026.' },
+  { n: 59, title: 'How to Track Your Complete Net Worth with Tiller', publisher: 'Tiller (blog, August 4, 2022)', url: 'https://tiller.com/how-to-track-the-true-net-worth-of-all-your-assets-with-tiller/', says: 'A house or a vehicle is added as a manual account with Class Asset and Type Other and a value you update yourself; a $350,000 house with a $200,000 mortgage adds $150,000 to net worth; at the time of writing manual accounts existed only in the Google Sheets template, not the Excel one.', via: 'Read November 12, 2026.' },
+  { n: 60, title: 'New! Add & Manage Manual Accounts on the Tiller Console', publisher: 'Tiller (blog, August 8, 2025)', url: 'https://tiller.com/new-add-manage-manual-accounts-on-the-tiller-console/', says: 'Manual accounts can be added and managed in the Tiller Console and show in Hello, Money; described as a stepping stone for more improvements to come; manual accounts tracked through Money Feeds remain local to the spreadsheet.', via: 'Read November 12, 2026.' },
+  { n: 61, title: 'Lunch Money pricing', publisher: 'Lunch Money', url: 'https://lunchmoney.app/pricing', says: '$10 a month or $100 a year; a 30-day free trial; bank syncing, multi-currency, crypto tracking and API access included.', via: 'Read November 12, 2026.' },
+  { n: 62, title: 'Lunch Money: homepage', publisher: 'Lunch Money', url: 'https://lunchmoney.app/', says: 'Bank import, CSV upload and an API; budgets by category, a rules engine and a companion mobile app; net worth tracked month over month; connects crypto wallets and ledgers.', via: 'Read November 12, 2026.' },
+  { n: 63, title: 'Adding accounts', publisher: 'Lunch Money support', url: 'https://support.lunchmoney.app/setup/accounts/adding-accounts', says: 'You can track any account or asset, including real estate or a vehicle, by creating it manually; the balance is updated by hand and is not synced; the fields are account type, subtype, name, institution, display name and balance.', via: 'Read November 12, 2026.' },
+  { n: 64, title: 'Net Worth Tracker', publisher: 'Lunch Money', url: 'https://lunchmoney.app/features/net-worth', says: 'Captures a snapshot of account balances at the end of every month, including manually managed accounts and crypto portfolios; history can be exported as CSV.', via: 'Read November 12, 2026.' },
+  { n: 65, title: 'DoorLoop pricing', publisher: 'DoorLoop', url: 'https://www.doorloop.com/pricing', says: 'Plans at $2.50, $4.00 and $5.00 per unit per month (as low as $1.50 per unit above 100 units on the first); all plans have minimum spend and unit requirements; yearly billing saves up to 25%; tenant screening listed at $35; a trial length is not stated.', via: 'Read November 12, 2026.' },
+  { n: 66, title: 'DoorLoop: homepage', publisher: 'DoorLoop', url: 'https://www.doorloop.com/', says: 'Cloud-based property management software for landlords, property managers and investors; accounting with bank sync and QuickBooks integration; rent collection; maintenance work orders; owner and tenant portals. Vehicles, boats and ownership percentages are not stated.', via: 'Read November 12, 2026.' },
+  { n: 67, title: 'DoorLoop: features', publisher: 'DoorLoop', url: 'https://www.doorloop.com/features', says: 'Owner portal, custom reports, file storage and mobile apps on the App Store and Google Play.', via: 'Read November 12, 2026.' },
+  { n: 68, title: 'RentRedi pricing', publisher: 'RentRedi', url: 'https://www.rentredi.com/pricing', says: '$29.95 a month, $20 a month billed every six months or $12 a month billed annually; unlimited properties, tenants and teammates; no free trial but a 30-day money-back guarantee; tenant screening paid by the tenant at $39.99 or $49.99.', via: 'Read November 12, 2026.' },
+  { n: 69, title: 'RentRedi: homepage', publisher: 'RentRedi', url: 'https://www.rentredi.com/', says: 'Rental property management software to collect rent, screen tenants and track taxes; auto-pay and reminders; maintenance management; unlimited units. Vehicles, other assets and ownership percentages are not stated.', via: 'Read November 12, 2026.' },
 ];
 const c = n => `<sup class="cite"><a href="#src-${n}" aria-label="Source ${n}">[${n}]</a></sup>`;
 
@@ -194,6 +211,10 @@ export const COMPARISONS = [
   SIMPLIFI,
   SPREADSHEET,
   COPILOT,
+  TILLER,
+  LUNCHMONEY,
+  DOORLOOP,
+  RENTREDI,
 ];
 
 const longDate = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
