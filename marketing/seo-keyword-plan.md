@@ -220,3 +220,47 @@ Descartadas: "mint alternative…" (Mint cerró en marzo 2024, la demanda baja y
 Dato útil: en BiggerPockets un inversor dice que solo una hoja de cálculo le manejaba los porcentajes de propiedad. Respalda la página de copropiedad ya planificada.
 
 Aviso: una fuente pone Kubera personal en $150/año y otras en $250/año. Confirma el precio en su web antes de citarlo en el listado.
+
+## 12. Tercera ronda (19 nov 2026): más páginas "vs" para clics de compradores, con dominio nuevo
+
+**Lo que NO tengo:** volúmenes ni dificultad real. No hay herramienta de pago conectada. Lo que sí hice: leer las páginas de resultados de Google (EEUU) de cada candidato y mirar **quién rankea**. Esa es la única señal de que un dominio sin autoridad puede entrar.
+
+### Qué vi en los resultados
+
+- **"Kubera vs Monarch", "Kubera vs Empower", "Stessa vs Baselane"**: junto a Capterra y las webs de los fabricantes aparecen sitios pequeños: `thalvi.pages.dev`, `pickstack.pages.dev`, `sealedfolio.pages.dev`, `financial-app-calud.vercel.app`, toolradar, creditdonkey, aitoolsbakery. Si esos entran, una página bien hecha también puede.
+- **"X alternative" de gestores de alquileres (TurboTenant, Avail, Hemlane, Innago)**: mandan Capterra y las webs de las propias marcas. Es más duro, pero el comprador es bueno (casero con varios inmuebles que ya paga o va a pagar).
+- **Apps de barco**: los resultados son fichas de App Store y apps diminutas (Tracket, BoatCue, Boating Suite). Muy débil, pero el volumen será pequeño.
+- **"Maybe Finance alternative"**: solo directorios (openalternative, alternativeto) y gente que busca software libre y gratis. **Descartada**: no paga.
+
+### Lista (competencia leída en resultados reales; volumen por validar)
+
+| Prioridad | Página | Tipo | Por qué |
+|---|---|---|---|
+| 1 | /compare/kubera-vs-monarch-money | par neutral | Dos productos que ya leí; quien compara ya está comprando |
+| 2 | /compare/kubera-vs-empower (+ "kubera vs personal capital") | par neutral | Mismo motivo |
+| 3 | /compare/stessa-vs-baselane | par neutral | Ya hay páginas nuestras de cada uno; los datos están verificados |
+| 4 | /compare/landlord-studio-vs-stessa | par neutral | Idem |
+| 5 | /compare/baselane-vs-landlord-studio | par neutral | Idem |
+| 6 | /compare/turbotenant-vs-owned-map | rival | El más buscado de los gestores gratuitos |
+| 7 | /compare/avail-vs-owned-map | rival | Idem |
+| 8 | /compare/hemlane-vs-owned-map | rival | Idem |
+| 9 | /compare/innago-vs-owned-map | rival | Idem |
+| 10 | /compare/origin-vs-owned-map | rival | Patrimonio neto; leer antes su precio |
+
+### Cómo se evita la canibalización
+
+- Un par neutral ("A vs B") es **otra búsqueda** distinta de "A alternative" y de "A vs Owned Map". Su frase principal no contiene la de ninguna otra página y no usa la frase de otra como texto de enlace.
+- Los pares mencionan Owned Map solo como tercera opción al final, y enlazan a la página de cada rival con el título de esa página.
+- Riesgo que sigo vigilando: Google puede mostrar la página del par en vez de la del rival para "kubera". Si en Search Console una consulta cambia de página, se fusiona.
+
+### Lo que descarté en esta ronda
+
+- **Copilot vs Monarch, Monarch vs YNAB**: volumen alto, pero dominan sitios con mucha autoridad (y no es nuestro cliente).
+- **Buildium, AppFolio, Yardi alternative**: es software para gestoras de alquileres con empleados; no es nuestro comprador.
+- **Home inventory (Sortly, Encircle)**: otro producto (inventario de objetos y seguros).
+- **Wealthica**: Canadá; entra cuando abramos ese país.
+- **Fidelity Full View, Mint**: sin fuente que se pueda leer para citar.
+
+### Qué hacer antes de escribir
+
+Con las impresiones que ya tienen las páginas "vs", mira en Search Console qué consultas salen. Si Google ya te enseña "kubera vs monarch" o "stessa vs baselane", empieza por esas.
