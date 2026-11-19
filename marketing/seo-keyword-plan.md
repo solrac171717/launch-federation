@@ -264,3 +264,16 @@ Aviso: una fuente pone Kubera personal en $150/año y otras en $250/año. Confir
 ### Qué hacer antes de escribir
 
 Con las impresiones que ya tienen las páginas "vs", mira en Search Console qué consultas salen. Si Google ya te enseña "kubera vs monarch" o "stessa vs baselane", empieza por esas.
+
+## 13. Cuarta ronda (19 nov 2026): herramientas gratis y plantillas (los imanes de enlaces)
+
+Las páginas "vs" traen compradores que ya comparan. Las herramientas gratis traen **enlaces** y búsquedas de gente con un problema concreto. Con dominio nuevo hacen falta las dos cosas.
+
+| Página | Palabra principal | Lo que vi en Google | Cómo se conecta con el producto |
+|---|---|---|---|
+| /guides/boat-ownership-cost-calculator | boat ownership cost calculator | Calculadoras en sitios oscuros y `pages.dev`; las cifras de cada una no coinciden (10 a 20% del valor al año según una, seguros del 1 al 1,5%). No citaré una regla sin fuente | Lleva a la página del barco |
+| /guides/personal-financial-statement-template | personal financial statement template for real estate investors | StackSource, PropertyMetrics, OfferMarket, multifamily.loans, un archivo de BiggerPockets | Va junto a la plantilla SREO que ya está publicada |
+| /guides/rental-property-tracking-spreadsheet | rental property tracking spreadsheet | Etsy, Gumroad, hilos de BiggerPockets, plantillas de Tiller y Baselane | CSV gratis con resumen de cartera; lleva al pilar de alquileres |
+| /guides/estate-asset-inventory-template (ola 1) | estate asset inventory template | Trust & Will, Willful, PDFs de bufetes, spreadsheetdaddy. Competencia media; quien busca tiene una urgencia real | Lleva a la hoja de emergencia |
+
+Descartada: calculadora genérica de patrimonio neto (NerdWallet, Kiplinger y Nasdaq ocupan la cabeza).
