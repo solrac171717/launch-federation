@@ -5,7 +5,6 @@ import { plain, hitToCandidate, buscarSeñales, aboutOf } from '../src/sources/h
 import { cityMatch, isPrivateAddress, fetchPage, pageText, applyScores, normalizeProfile, geocodePlace, locateLeads } from '../src/leads-engine.js';
 import { runAnalyze } from '../api/analyze.js';
 import { runSignals, cleanProfile } from '../api/signals.js';
-import { runIngest } from '../api/ingest.js';
 
 const good = { source: 'hn', externalId: '123', score: 82, intent: 'alternative', text: 'Looking for an alternative to Notion for our team wiki', url: 'https://news.ycombinator.com/item?id=123', authorName: 'ada' };
 const memory = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) }; };
@@ -188,58 +187,3 @@ test('signals: searches Hacker News, scores, drafts, places and drops the noise'
   assert.equal((await runSignals({ env, fetchImpl: f, token: 't', body: { profile } })).status, 502);
 });
 
-test('ingest: only a paired extension, only the person’s own data', async () => {
-  const saved = [], patched = []; const senv = { ...env, SUPABASE_SERVICE_ROLE_KEY: 'svc' };
-  const w = world();
-  const fetchImpl = async (url, init = {}) => {
-    const u = String(url), m = init.method || 'GET';
-    if (u.includes('/rest/v1/ingest_tokens') && m === 'GET') return json(u.includes('token_hash=eq.') && !u.includes('revoked=eq.true') ? [{ id: 't1', user_id: 'u1' }] : []);
-    if (u.includes('/rest/v1/ingest_tokens') && m === 'PATCH') return json(null);
-    if (u.includes('/rest/v1/business_profiles')) return json([{ ...profile, user_id: 'u1' }]);
-    if (u.includes('/rest/v1/leads') && m === 'POST') { const b = JSON.parse(init.body); saved.push(...b); return json(b); }
-    if (u.includes('/rest/v1/leads') && m === 'PATCH') { patched.push([u, JSON.parse(init.body)]); return json([{ id: 'l1' }]); }
-    if (u.includes('nominatim')) return json([{ lat: '51.5', lon: '-0.12', address: { country_code: 'gb' } }]);
-    return w.fetchImpl(url, init);
-  };
-  const post = { externalId: 'urn:li:activity:1', authorName: 'Eve', authorRole: 'COO at Zed', authorUrl: 'https://www.linkedin.com/in/eve?miniProfileUrn=x', text: 'Anyone know a simple CRM for a team of five? Tired of spreadsheets.', url: 'https://www.linkedin.com/feed/update/urn:li:activity:1' };
-  assert.equal((await runIngest({ env: senv, fetchImpl, token: 'short', body: {} })).status, 401);
-  const r = await runIngest({ env: senv, fetchImpl, token: 'a'.repeat(43), body: { items: [post, { externalId: '', text: 'x' }] } });
-  assert.equal(r.status, 200); assert.equal(r.body.scanned, 1);
-  assert.equal(saved.length, 1); assert.equal(saved[0].user_id, 'u1'); assert.equal(saved[0].source, 'linkedin'); assert.equal(saved[0].author_url, 'https://www.linkedin.com/in/eve');
-  const p = await runIngest({ env: senv, fetchImpl, token: 'a'.repeat(43), body: { profile: { url: 'https://www.linkedin.com/in/eve/?x=1', location: 'Greater London Area' } } });
-  assert.equal(p.body.placed, 1); assert.match(patched.at(-1)[0], /user_id=eq\.u1&author_url=like\./); assert.match(patched.at(-1)[0], /lat=is\.null/); assert.equal(patched.at(-1)[1].country, 'GB');
-  assert.equal((await runIngest({ env: senv, fetchImpl, token: 'a'.repeat(43), body: { profile: { url: 'https://evil.example/in/eve', location: 'Paris' } } })).status, 400);
-  assert.equal((await runIngest({ env, fetchImpl, token: 'a'.repeat(43), body: {} })).status, 503);
-});
-
-test('linkedinSearchUrl: content search, past week, newest first, phrase encoded', async () => {
-  const { linkedinSearchUrl } = await import('../src/leads-core.js');
-  const u = new URL(linkedinSearchUrl('invoicing  software & more'));
-  assert.equal(u.origin + u.pathname, 'https://www.linkedin.com/search/results/content/');
-  assert.equal(u.searchParams.get('keywords'), 'invoicing software & more');
-  assert.equal(u.searchParams.get('sortBy'), '"date_posted"');
-  assert.equal(u.searchParams.get('datePosted'), '"past-week"');
-});
-
-test('ingest: an invitation sent from the person’s own browser marks only their own new lead as contacted', async () => {
-  const patched = []; const senv = { ...env, SUPABASE_SERVICE_ROLE_KEY: 'svc' };
-  const fetchImpl = async (url, init = {}) => {
-    const u = String(url), m = init.method || 'GET';
-    if (u.includes('/rest/v1/ingest_tokens')) return json(m === 'GET' ? [{ id: 't1', user_id: 'u1' }] : null);
-    if (u.includes('/rest/v1/leads') && m === 'GET') return json(u.includes('user_id=eq.u1') && u.includes('status=eq.new') ? [{ id: 'l1', history: [{ d: '2026-11-01', e: 'found' }] }] : []);
-    if (u.includes('/rest/v1/leads') && m === 'PATCH') { patched.push([u, JSON.parse(init.body)]); return json(null); }
-    throw new Error(`unexpected ${m} ${u}`);
-  };
-  const r = await runIngest({ env: senv, fetchImpl, token: 'a'.repeat(43), body: { outreach: { url: 'https://www.linkedin.com/in/eve/?x=1', kind: 'invite' } } });
-  assert.equal(r.status, 200); assert.equal(r.body.contacted, 1);
-  assert.match(patched[0][0], /id=eq\.l1&user_id=eq\.u1/); assert.equal(patched[0][1].status, 'contacted'); assert.equal(patched[0][1].history.at(-1).e, 'contacted');
-  assert.equal((await runIngest({ env: senv, fetchImpl, token: 'a'.repeat(43), body: { outreach: { url: 'https://evil.example/in/eve' } } })).status, 400);
-});
-
-test('inviteNote: whole sentences within 200 characters, else cut at a word', async () => {
-  const { inviteNote } = await import('../src/leads-core.js');
-  assert.equal(inviteNote('Short one.'), 'Short one.');
-  const long = 'First sentence is fine. ' + 'Second sentence '.repeat(20) + 'ends here.';
-  assert.equal(inviteNote(long), 'First sentence is fine.');
-  const n = inviteNote('word '.repeat(80)); assert.ok(n.length <= 200 && !n.endsWith(' '));
-});

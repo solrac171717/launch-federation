@@ -19,9 +19,12 @@ function leadModel(req) {
   else if (name === 'lead_scores') {
     const authors = user.split('\n\n').map(b => b.split('\n')[0]);
     out = { items: authors.map((line, i) => { const sure = /invoic|quickbooks|bookkeep/i.test(user.split('\n\n')[i] || ''); return { id: String(i + 1), score: sure ? 90 - i * 4 : 12, intent: sure ? 'alternative' : 'problem', role: sure ? 'Founder' : '', company: '', place: i % 2 ? 'Austin, TX' : 'London, England', country: i % 2 ? 'US' : 'GB', draft: sure ? 'Happy to help with that.' : '' }; }) };
-  } else out = {};
+  } else if (name === 'outreach_sequence') out = { invite: 'Hi, saw your post about invoicing. Would be glad to connect.', follow1: 'Thanks for connecting. We make invoicing simpler for small teams. Is month-end still painful?', follow2: 'One more idea: automatic reminders cut late payments. Happy to show it, no pressure.' };
+  else out = {};
   return { choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(out) } }] };
 }
+
+import { matchRow, shape } from './rest-filter.mjs';
 
 export function startMock({ port = 4180, root = '.' } = {}) {
   const users = new Map();       // email -> { id, email }
@@ -51,7 +54,8 @@ export function startMock({ port = 4180, root = '.' } = {}) {
     return fetch(`${origin2}/api/stripe-webhook`, { method: 'POST', headers: { 'stripe-signature': signPayload(raw, secret), 'content-type': 'application/json' }, body: raw });
   };
   const setBillingEnv = () => Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_SERVICE_ROLE_KEY: SERVICE, SUPABASE_ANON_KEY: 'mock-anon-key', STRIPE_SECRET_KEY: 'sk_test_mock', STRIPE_API_BASE: `${origin}/__stripe`, STRIPE_WEBHOOK_SECRET: 'whsec_mock', SITE_URL: origin });
-  const leadTables = { leads: [], business_profiles: [], ingest_tokens: [] }; // the leads app: one table each, rows isolated per user like the real policies
+  const leadTables = { leads: [], business_profiles: [], linkedin_accounts: [], outreach: [] };
+  const li = { n: 0, friends: [], inbox: [], log: [] }; // the fake LinkedIn provider: who accepted, what people replied, what was sent // the leads app: one table each, rows isolated per user like the real policies
   const docs = [], rems = [], shares = [], settingsRows = [], files = new Map(); // other tables + the private file bucket
   const log = [];
   const origin = `http://localhost:${port}`;
@@ -80,16 +84,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
     if (!(Number(row.cost) > 0) || Number(row.value) < 0) return { code: '23514', message: 'new row violates check constraint' };
     return null;
   }
-  const matches = (row, params) => {
-    for (const [k, v] of params) {
-      if (['select', 'order', 'limit'].includes(k)) continue;
-      if (v === 'is.null') { if (row[k] != null) return false; continue; }
-      const m = /^eq\.(.*)$/.exec(v); if (!m) continue;
-      if (String(row[k]) !== m[1]) return false;
-    }
-    return true;
-  };
-
+  const matches = matchRow;
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, origin), path = url.pathname;
     try {
@@ -177,7 +172,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
       if (path === '/__heir_age') { const d = Number(url.searchParams.get('days')) || 0; for (const r of heirs) r.last_seen_at = new Date(Date.parse(r.last_seen_at) - d * 86400000).toISOString(); return json(res, 200, {}); }
       if (path === '/v1/chat/completions' && req.method === 'POST') { // pretend model: reads "a deed", or answers the leads app by the name of its JSON schema
         const b = await readBody(req);
-        if (['business_profile', 'lead_scores'].includes(b.response_format?.json_schema?.name)) return json(res, 200, leadModel(b)); log.push(['model', b.model, b.messages?.[1]?.content?.[0]?.type]);
+        if (['business_profile', 'lead_scores', 'outreach_sequence'].includes(b.response_format?.json_schema?.name)) return json(res, 200, leadModel(b)); log.push(['model', b.model, b.messages?.[1]?.content?.[0]?.type]);
         return json(res, 200, { id: 'chatcmpl_mock', object: 'chat.completion', model: b.model, usage: { prompt_tokens: 10, completion_tokens: 10 },
           choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify({ documentKind: 'purchase_deed', assetType: 'house', name: 'Lakeview Cottage', addressLine: '12 Calle Mayor', city: 'Madrid', region: 'Madrid', postalCode: '28013', countryCode: 'ES', currency: 'USD', purchasePrice: 640000, currentValue: null, outstandingDebt: 250000, monthlyDebtPayment: 1900, monthlyRent: null, acquiredOn: '2020-06-01', ownershipPercent: null, ownerName: 'Ana Test', details: 'Registry 77-A', confidence: 'high' }) } }] });
       }
@@ -315,15 +310,45 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         if (req.method === 'DELETE') { files.delete(key); return json(res, 200, {}); }
       }
       /* ---- rest: leads, the business profile and the extension tokens (RLS: your own rows only) */
-      if (path === '/api/analyze' || path === '/api/signals' || path === '/api/ingest') {
-        Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_ANON_KEY: 'mock-anon-key', SUPABASE_SERVICE_ROLE_KEY: SERVICE, OPENAI_API_KEY: 'mock-openai', OPENAI_BASE_URL: origin });
+      if (path === '/api/analyze' || path === '/api/signals' || path === '/api/linkedin' || path === '/api/tick') {
+        Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_ANON_KEY: 'mock-anon-key', SUPABASE_SERVICE_ROLE_KEY: SERVICE, OPENAI_API_KEY: 'mock-openai', OPENAI_BASE_URL: origin, UNIPILE_BASE_URL: origin, UNIPILE_DSN: 'mock', UNIPILE_API_KEY: 'mock-unipile', CRON_SECRET: 'mock-cron-secret-value', SITE_URL: origin, NOMINATIM_URL: `${origin}/__nominatim`, ALLOW_TEST_NOW: '1' });
         const mod = await import(`..${path}.js`); return mod.default(req, res);
+      }
+      if (path === '/__unipile_login') { // the page where the person would log in to LinkedIn: here it just "succeeds", tells the notify address and goes back to the app
+        const acc = 'MOCKACC-' + (++li.n); li.accounts = [...(li.accounts || []), acc];
+        await fetch(url.searchParams.get('notify'), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: 'CREATION_SUCCESS', account_id: acc, name: url.searchParams.get('name') }) }).catch(() => {});
+        res.writeHead(302, { location: url.searchParams.get('ok') }); return res.end();
+      }
+      if (path === '/__unipile') { // test hooks: ?friends=P1,P2 (accepted invitations)  &inbox=P1 (people who replied)  &reset=1
+        if (url.searchParams.get('reset')) { li.friends = []; li.inbox = []; li.log = []; }
+        if (url.searchParams.has('friends')) li.friends = url.searchParams.get('friends').split(',').filter(Boolean);
+        if (url.searchParams.has('inbox')) li.inbox = url.searchParams.get('inbox').split(',').filter(Boolean);
+        return json(res, 200, li);
+      }
+      if (path.startsWith('/api/v1/')) { // Unipile, as far as this app uses it
+        const sp = path.slice('/api/v1/'.length), body = req.method === 'GET' || req.method === 'DELETE' ? {} : await (async () => { try { const raw = await readRaw(req); const t = raw.toString(); return t.startsWith('{') ? JSON.parse(t) : { form: t }; } catch { return {}; } })();
+        if (req.headers['x-api-key'] !== 'mock-unipile') return json(res, 401, { title: 'Unauthorized' });
+        if (sp === 'hosted/accounts/link') return json(res, 201, { url: `${origin}/__unipile_login?name=${encodeURIComponent(body.name)}&notify=${encodeURIComponent(body.notify_url)}&ok=${encodeURIComponent(body.success_redirect_url)}` });
+        if (sp.startsWith('accounts/')) return req.method === 'DELETE' ? json(res, 200, {}) : (li.accounts || []).includes(sp.slice(9)) ? json(res, 200, { name: 'Mock Seller', sources: [{ status: 'OK' }] }) : json(res, 404, {});
+        if (sp === 'linkedin/search') return json(res, 200, { items: [
+          { id: 'urn:li:activity:1001', text: 'Does anyone know a simple invoicing tool for a team of six? QuickBooks is too heavy for us.', author: { id: 'MEMBER-1', name: 'Dana Whitfield', headline: 'Founder at Brightloop', public_identifier: 'dana-whitfield' }, share_url: 'https://www.linkedin.com/feed/update/urn:li:activity:1001/' },
+          { id: 'urn:li:activity:1002', text: 'Beautiful weather in the mountains this weekend, hiking with the family.', author: { id: 'MEMBER-2', name: 'Sam Doe', headline: 'Teacher', public_identifier: 'sam-doe' }, share_url: 'https://www.linkedin.com/feed/update/urn:li:activity:1002/' }] });
+        if (sp.endsWith('/posts') && sp.startsWith('users/')) return json(res, 200, { items: [{ id: 'urn:li:activity:900', text: 'Why invoicing software should be simpler', share_url: 'https://www.linkedin.com/feed/update/urn:li:activity:900/' }] });
+        if (sp.endsWith('/comments')) return json(res, 200, { items: [{ id: 'cm1', text: 'We are looking at alternatives to QuickBooks for invoicing, this is our month-end pain.', author: { id: 'MEMBER-3', name: 'Priya Nair', headline: 'COO at Fieldstone', public_identifier: 'priya-nair' } }] });
+        if (sp.endsWith('/reactions')) return json(res, 200, { items: [] });
+        if (sp === 'users/relations') return json(res, 200, { items: li.friends.map(member_id => ({ member_id })) });
+        if (sp === 'messages') return json(res, 200, { items: li.inbox.map(sender_id => ({ sender_id, text: 'Sure, tell me more', is_sender: 0, timestamp: new Date().toISOString() })) });
+        if (sp === 'users/invite') { li.log.push(['invite', body.provider_id, body.message]); return json(res, 201, {}); }
+        if (sp === 'chats') { li.log.push(['message', /attendees_ids"\r?\n\r?\n([^\r\n]+)/.exec(body.form || '')?.[1] || '', body.form || '']); return json(res, 201, {}); }
+        if (sp.startsWith('users/')) { const id = sp.slice(6), n = { 'dana-whitfield': 'MEMBER-1', 'priya-nair': 'MEMBER-3', 'sam-doe': 'MEMBER-2' }[id] || 'MEMBER-X'; return json(res, 200, { provider_id: n, first_name: id.split('-')[0], last_name: id.split('-')[1] || '', headline: 'Founder', location: 'Austin, Texas, United States', network_distance: 'DISTANCE_2' }); }
+        return json(res, 404, {});
       }
       if (leadTables[path.split('/').pop()] && path.startsWith('/rest/v1/')) {
         const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
         const name = path.split('/').pop(), T = leadTables[name], prefer = req.headers.prefer || '';
         const mineOf = () => T.filter(r => (user.service || r.user_id === user.id) && matches(r, url.searchParams));
-        if (req.method === 'GET') { let rows = mineOf(); const sel = url.searchParams.get('select'); if (sel && sel !== '*') rows = rows.map(r => Object.fromEntries(sel.split(',').map(k => [k, r[k]]))); return json(res, 200, rows); }
+        if (name === 'linkedin_accounts' && !user.service && !['GET', 'DELETE'].includes(req.method)) return json(res, 403, { code: '42501', message: 'new row violates row-level security policy for table "linkedin_accounts"' });
+        if (req.method === 'GET') return json(res, 200, shape(mineOf(), url.searchParams));
         if (req.method === 'POST') {
           const b = await readBody(req), list = Array.isArray(b) ? b : [b], made = [];
           for (const x of list) {
@@ -332,8 +357,9 @@ export function startMock({ port = 4180, root = '.' } = {}) {
               if (!['hn', 'linkedin'].includes(x.source) || !(x.score >= 0 && x.score <= 100) || !x.signal_text) return json(res, 400, { code: '23514', message: 'new row violates check constraint' });
               if (T.some(r => r.user_id === owner && r.source === x.source && r.external_id === x.external_id)) { if (/ignore-duplicates/.test(prefer)) continue; return json(res, 409, { code: '23505', message: 'duplicate key value violates unique constraint' }); }
             }
+            if (name === 'outreach' && T.some(r => r.lead_id === x.lead_id && r.step === x.step)) { if (/ignore-duplicates/.test(prefer)) continue; return json(res, 409, { code: '23505', message: 'duplicate key' }); }
             if (name === 'business_profiles') { const cur = T.find(r => r.user_id === owner); if (cur) { if (!/merge-duplicates/.test(prefer)) return json(res, 409, { code: '23505', message: 'duplicate key' }); Object.assign(cur, x); made.push(cur); continue; } }
-            const row = { id: randomUUID(), history: [], is_sample: false, status: 'new', revoked: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...x, user_id: owner }; T.push(row); made.push(row);
+            const row = { id: randomUUID(), history: [], is_sample: false, status: name === 'outreach' ? 'draft' : name === 'linkedin_accounts' ? 'connected' : 'new', revoked: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...x, user_id: owner }; T.push(row); made.push(row);
           }
           return json(res, 201, /return=representation/.test(prefer) ? made : undefined);
         }

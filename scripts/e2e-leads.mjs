@@ -120,20 +120,18 @@ await step('activity shows the funnel, the month and the recent events', async (
   const t = await text('#view-activity'); if (!/Leads this month/.test(t) || !/Marked as contacted/.test(t)) throw new Error('missing parts');
   await shot('5-activity');
 });
-await step('settings: the business is editable, the extension pairs with a secret that is stored only as a hash', async () => {
+await step('settings: the business is editable, with the pages to watch and the daily cap', async () => {
   await tab('Settings'); await until(`document.getElementById('pf-queries')`, 'form');
   if (!/alternative to quickbooks/.test(await ev(`document.getElementById('pf-queries').value`))) throw new Error('queries missing');
   await ev(`document.getElementById('pf-queries').value = 'alternative to quickbooks\\nsimple invoicing for freelancers'`);
+  await ev(`document.getElementById('pf-watch').value = 'https://www.linkedin.com/company/quickbooks\\nnot-a-linkedin-address.com'`);
+  await ev(`document.getElementById('pf-cap').value = '12'`); await ev(`document.getElementById('pf-tz').value = 'UTC'`);
   await ev(`document.querySelector('.profile-form').requestSubmit()`);
   await until(`document.querySelector('.toast.show')?.textContent.includes('Saved')`, 'saved');
-  if ((await store()).business_profiles[0].queries.length !== 2) throw new Error('profile not updated');
-  await click('#view-settings .btn.btn-dark.btn-sm:not([onclick])'.replace(':not([onclick])', '')); // first dark button of the column is "Connect the extension"
-});
-await step('the extension secret is shown once and only its hash is stored', async () => {
-  await ev(`[...document.querySelectorAll('#view-settings button')].find(b => b.textContent === 'Connect the extension').click()`);
-  await until(`document.querySelector('.ext-token')`, 'token shown');
-  const tok = await text('.ext-token'); if (tok.length < 40) throw new Error('short token');
-  const rows = (await store()).ingest_tokens; if (rows.length !== 1 || rows[0].token_hash.length !== 64 || JSON.stringify(rows).includes(tok)) throw new Error('the secret was stored');
+  const p = (await store()).business_profiles[0];
+  if (p.queries.length !== 2) throw new Error('profile not updated');
+  if (JSON.stringify(p.watch) !== JSON.stringify(['https://www.linkedin.com/company/quickbooks'])) throw new Error('watch list: ' + JSON.stringify(p.watch));
+  if (p.invite_cap !== 12 || p.auto_send !== false) throw new Error('caps: ' + p.invite_cap + ' ' + p.auto_send);
   await shot('6-settings');
 });
 await step('sample leads can be added and removed in one click each', async () => {
@@ -184,43 +182,63 @@ await step('the website: same globe and card, no invented proof, the pricing sli
   await shot('11-landing');
   await ev(`window.scrollTo(0, document.getElementById('signals').offsetTop - 80)`); await sleep(900); await shot('12-landing-signals');
 });
-await step('the extension reads posts and a profile place from LinkedIn-like markup, and skips what it cannot trust', async () => {
-  const lib = await realFetch(`${mock.origin}/extension/lib.js`).then(r => r.text());
-  await goto(`${mock.origin}/index.html`); // a normal page of this site to run in
-  const lr = await send('Runtime.evaluate', { expression: lib }); if (lr.result.exceptionDetails) throw new Error('lib.js did not load');
-  const out = await ev(`(()=>{
-    document.body.innerHTML = '<div data-urn="urn:li:activity:111"><div class="update-components-actor__title"><span aria-hidden="true">Eve Hart</span></div><div class="update-components-actor__description"><span aria-hidden="true">COO at Zed</span></div><a href="/in/eve-hart?miniProfileUrn=x">p</a><div class="update-components-text">Anyone know a simple CRM for a team of five? We are tired of spreadsheets.</div></div>'
-      + '<div data-urn="urn:li:activity:111"><div class="update-components-text">A duplicate of the first post, repeated by the page.</div></div>'
-      + '<div data-urn="urn:li:activity:222"><div class="update-components-text">short</div></div>'
-      + '<div data-urn="not-a-post"><div class="update-components-text">Some text that is long enough but has no post id at all here</div></div>'
-      + '<div class="top-card"><span class="text-body-small inline t-black--light break-words">Greater London Area</span></div>';
-    return JSON.stringify({ posts: OwnedMapLib.extractPosts(document), place: OwnedMapLib.extractLocation(document) });
-  })()`);
-  const r = JSON.parse(out);
-  if (r.posts.length !== 1 || r.posts[0].authorName !== 'Eve Hart' || r.posts[0].authorRole !== 'COO at Zed' || r.posts[0].authorUrl !== 'https://www.linkedin.com/in/eve-hart' || !r.posts[0].url.endsWith('urn:li:activity:111/')) throw new Error(`posts: ${out}`);
-  if (r.place !== 'Greater London Area') throw new Error(`place: ${out}`);
+const monday = (() => { const d = new Date(Date.now() + 2 * 86400_000); d.setUTCHours(10, 0, 0, 0); while (d.getUTCDay() !== 1) d.setUTCDate(d.getUTCDate() + 1); return d.getTime(); })();
+const tickAt = async (t, label) => { const r = await realFetch(`${mock.origin}/api/tick`, { method: 'POST', headers: { 'x-cron-secret': 'mock-cron-secret-value', 'x-test-now': String(t) } }); if (r.status !== 200) throw new Error(`tick ${label}: ${r.status} ${await r.text()}`); return r.json(); };
+const li = async q => (await realFetch(`${mock.origin}/__unipile${q || ''}`)).json();
+await step('connect LinkedIn: the person logs in on the provider page and comes back with an account', async () => {
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'the app');
+  await tab('Outreach'); await until(`document.getElementById('li-connect')`, 'the connect button');
+  if (!/Connect your LinkedIn account/.test(await text('.out-queue'))) throw new Error('the empty queue does not say to connect');
+  await click('#li-connect');
+  await until(`location.search === '' && document.querySelector('#view-outreach .sh-row')`, 'back from the provider with an account', 12000);
+  const rows = (await store()).linkedin_accounts;
+  if (rows.length !== 1 || rows[0].status !== 'connected' || !/^MOCKACC-/.test(rows[0].provider_account_id)) throw new Error('account: ' + JSON.stringify(rows));
+  if (JSON.stringify(rows).match(/password|cookie|li_at/i)) throw new Error('something secret was stored');
+  await shot('9-outreach-connected');
 });
-await step('the extension finds the invitation and message buttons on profile-like markup, and never guesses when they are missing', async () => {
-  const out = JSON.parse(await ev(`(()=>{
-    const L = OwnedMapLib, kind = html => { document.body.innerHTML = html; return L.profileAction(document).kind; };
-    const r = {
-      connect: kind('<main><button aria-label="Invite Eve Hart to connect">Connect</button><button>Message</button></main>'),
-      message: kind('<main><button><span>Message</span></button><button>More</button></main>'),
-      pending: kind('<main><button aria-label="Pending, click to withdraw invitation sent to Eve">Pending</button></main>'),
-      more: kind('<main><button aria-label="More actions">More</button><button>Follow</button></main>'),
-      none: kind('<main><p>Nothing to press</p></main>'),
-    };
-    document.body.innerHTML = '<div role="dialog"><button aria-label="Add a note">Add a note</button><button aria-label="Send without a note">Send without a note</button></div>';
-    const d1 = L.inviteDialog(document); r.addNote = !!d1.addNote; r.noSendYet = !d1.send;
-    document.body.innerHTML = '<div role="dialog"><textarea id="custom-message"></textarea><button aria-label="Send invitation">Send</button></div>';
-    const d2 = L.inviteDialog(document); r.note = !!d2.note; r.send = !!d2.send;
-    document.body.innerHTML = '<form class="msg-form"><div class="msg-form__contenteditable" contenteditable="true" role="textbox"></div><button type="submit">Send</button></form>';
-    const m = L.messageBox(document); r.box = !!m.box; r.msgSend = !!m.send;
-    r.note200 = L.noteFrom('Sentence one is short. ' + 'x'.repeat(300)).length <= 200;
-    return JSON.stringify(r);
-  })()`));
-  const want = { connect: 'connect', message: 'message', pending: 'pending', more: 'more', none: 'none', addNote: true, noSendYet: true, note: true, send: true, box: true, msgSend: true, note200: true };
-  for (const [k, v] of Object.entries(want)) if (out[k] !== v) throw new Error(`${k}: ${JSON.stringify(out)}`);
+await step('looking for people uses the person’s own account: scored leads, messages written, all waiting for approval', async () => {
+  await click('#li-scan');
+  try { await until(`document.querySelectorAll('.out-card').length >= 1`, 'a message sequence waiting', 15000); }
+  catch (e) { const st = await store(); throw new Error(`${e.message}. toast: "${await text('#toast')}"; linkedin leads ${st.leads.filter(l => l.source === 'linkedin').length}; outreach ${st.outreach.length}; profile ${JSON.stringify(st.business_profiles[0]?.queries)} ${JSON.stringify(st.business_profiles[0]?.watch)}`); }
+  const st = await store(); const mine = st.leads.filter(l => l.source === 'linkedin');
+  if (mine.length < 1 || mine.some(l => l.author_name === 'Sam Doe')) throw new Error('linkedin leads: ' + mine.map(l => l.author_name));
+  if (!mine.every(l => l.provider_id && l.lat != null)) throw new Error('missing LinkedIn id or place: ' + JSON.stringify(mine.map(l => [l.author_name, l.provider_id, l.lat, l.place, l.is_sample])));
+  const rows = st.outreach.filter(r => r.status === 'draft');
+  if (rows.length !== 3 * mine.length || !rows.every(r => !r.due_at)) throw new Error('drafts: ' + JSON.stringify(rows.map(r => [r.step, r.status, r.due_at])));
+  if (!(await ev(`document.querySelectorAll('.out-card').length === ${mine.length} && document.querySelectorAll('.out-card textarea').length === ${3 * mine.length}`))) throw new Error('the messages are not editable on screen');
+  await shot('10-outreach-queue');
+});
+await step('nothing is sent until the person approves, then the invitation goes out from their account within the rules', async () => {
+  let r = await tickAt(monday, 'before approval'); if (r.sent !== 0 || (await li()).log.length) throw new Error('something was sent without approval');
+  const before = await ev(`document.querySelectorAll('.out-card').length`);
+  await ev(`(()=>{const c=[...document.querySelectorAll('.out-card')].find(x=>/Dana/.test(x.textContent)); c.querySelector('textarea').value = 'Hi Dana, saw your question about invoicing tools. Happy to connect.'; c.querySelector('.out-approve').click();})()`);
+  await until(`document.querySelectorAll('.out-card').length === ${before - 1}`, 'the card to leave the queue');
+  const dana = (await store()).leads.find(l => l.provider_id === 'MEMBER-1'); const rows = (await store()).outreach.filter(x => x.lead_id === dana.id); const inv = rows.find(x => x.step === 'invite');
+  if (inv.status !== 'approved' || inv.text !== 'Hi Dana, saw your question about invoicing tools. Happy to connect.') throw new Error('invite: ' + JSON.stringify(inv));
+  if (rows.filter(x => x.step !== 'invite').some(x => x.status !== 'approved' || x.due_at)) throw new Error('follow-ups must wait for the acceptance');
+  r = await tickAt(monday + 60_000, 'send'); if (r.sent !== 1) throw new Error('sent ' + r.sent);
+  const log = (await li()).log; if (log.length !== 1 || log[0][0] !== 'invite' || log[0][1] !== 'MEMBER-1' || !/Hi Dana/.test(log[0][2])) throw new Error(JSON.stringify(log));
+  const lead = (await store()).leads.find(l => l.provider_id === 'MEMBER-1'); if (lead.status !== 'contacted') throw new Error('status ' + lead.status);
+  r = await tickAt(monday + 2 * 3600_000, 'again'); if (r.sent !== 0) throw new Error('a second send with nothing due');
+});
+await step('they accept, the follow-up goes a day later; a reply ends the sequence and marks the lead', async () => {
+  await li('?friends=MEMBER-1');
+  let r = await tickAt(monday + 3 * 3600_000, 'accepted'); if (r.accepted !== 1) throw new Error('accepted ' + r.accepted);
+  const dana = (await store()).leads.find(l => l.provider_id === 'MEMBER-1'); const f1 = (await store()).outreach.find(x => x.step === 'follow1' && x.lead_id === dana.id); if (!f1.due_at || Date.parse(f1.due_at) - (monday + 3 * 3600_000) < 86400_000) throw new Error('follow-up due ' + f1.due_at);
+  r = await tickAt(monday + 3 * 3600_000 + 86400_000 + 4 * 3600_000, 'follow-up'); if (r.sent !== 1) throw new Error('follow-up sent ' + r.sent);
+  if ((await li()).log.at(-1)[0] !== 'message') throw new Error('no message was sent');
+  await li('?inbox=MEMBER-1');
+  r = await tickAt(monday + 3 * 3600_000 + 86400_000 + 6 * 3600_000, 'reply'); if (r.replied !== 1) throw new Error('replied ' + r.replied);
+  const st = await store(); if (st.leads.find(l => l.provider_id === 'MEMBER-1').status !== 'replied') throw new Error('lead not marked');
+  if (st.outreach.some(x => x.step === 'follow2' && x.lead_id === dana.id && x.status !== 'stopped')) throw new Error('the second follow-up was not stopped');
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'reload'); await tab('Outreach');
+  await until(`/Invitations sent/.test(document.getElementById('view-outreach').textContent)`, 'stats'); await shot('11-outreach-progress');
+  const t = await text('#view-outreach'); if (!/Accepted/.test(t) || !/Replied/.test(t)) throw new Error(t.slice(0, 300));
+});
+await step('the scheduler rejects a wrong secret, and the browser cannot attach an account itself', async () => {
+  const bad = await realFetch(`${mock.origin}/api/tick`, { method: 'POST', headers: { 'x-cron-secret': 'nope' } }); if (bad.status !== 401) throw new Error('tick without the secret: ' + bad.status);
+  const r = await ev(`(async()=>{ const s = JSON.parse(localStorage.getItem('atlas.session.v1')); const res = await fetch('/rest/v1/linkedin_accounts', { method: 'POST', headers: { apikey: 'mock-anon-key', authorization: 'Bearer ' + s.access_token, 'content-type': 'application/json' }, body: JSON.stringify({ provider_account_id: 'STOLEN-1', name: 'x' }) }); return res.status; })()`);
+  if (r !== 403) throw new Error('an account could be created from the browser: ' + r);
 });
 await step('another account sees none of these leads (row isolation)', async () => {
   const other = 'other@example.com'; await realFetch(`${mock.origin}/__user?email=${other}&password=${PW}`);

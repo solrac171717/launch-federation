@@ -1,12 +1,12 @@
 # Owned Map
 
-> Owned Map is a web app that gets you customers from LinkedIn on autopilot. You paste your website; it gives you the LinkedIn searches for your buyers, a Chrome extension reads the posts you open, an AI scores how ready each person is to buy (0 to 100), and shows them on an interactive world map with what they wrote and a reply you can copy.
+> Owned Map is a web app that gets you customers from LinkedIn on autopilot. You paste your website and connect your LinkedIn account; it finds the people who engage with your competitors' posts or write about what you sell, scores how ready each is to buy (0 to 100), shows them on an interactive world map, writes an invitation note and two follow-ups, and sends them from your own account after you approve.
 
-Owned Map is a paid subscription product with a 7-day free trial (card required, charged only when the trial ends). Messages go out only for leads the user queues, from the user's own browser and LinkedIn session (never from our servers), within a daily limit the user sets (25 at most); by default the user presses Send.
+Owned Map is a paid subscription product with a 7-day free trial (card required, charged only when the trial ends). Messages go out only after the user approves them (unless they turn that off), from the user's own LinkedIn account through a LinkedIn provider (we never see their LinkedIn password), within low daily limits (at most 20 invitations per account per day), on weekdays in working hours; a reply stops the sequence. LinkedIn restricts automated tools and can limit an account that sends too much.
 
 ## What it does
 - Reads your website and works out what you sell, who buys it and the phrases buyers use.
-- Searches public posts (Hacker News today; LinkedIn through a browser extension that reads only what the user has on screen) and scores each person from 0 to 100, labelling the intent: asks for a recommendation, complains about a competitor, asks about price, looks for an alternative, or describes the problem.
+- Finds people from your own LinkedIn account (comments and reactions on the pages you watch, and posts that match your business) and from Hacker News, and scores each from 0 to 100, labelling the intent: asks for a recommendation, complains about a competitor, asks about price, looks for an alternative, or describes the problem.
 - Places each lead on a Globe or Country map when the post or the author's public profile says where they are; the rest are listed.
 - Drafts a reply in the user's tone for strong leads, tracks status (new, contacted, replied, customer) and the history, and exports leads as CSV.
 - Shares a read-only view of the leads through a private link that can expire or be turned off.

@@ -46,7 +46,7 @@
 <ul><li>Your email address and the password you choose (we store only a protected form of the password).</li>
 <li>Your business description: the website address you give, what we understood from that page (what you sell, to whom, the pain it removes, your tone, the phrases buyers use) and any edits you make to it.</li>
 <li>Your leads and what you do with them: the status you set, the history of those changes, the reply drafts (and your edits to them) and the labels and settings of any read-only share links you create (a hash of the link secret, never the secret itself).</li>
-<li>If you use the browser extension: a pairing code you make in the app (we store only a hash of it) the posts and profile locations the extension sends from the LinkedIn pages you open, and a note when an invitation or message you queued has been sent (the link to the profile). The messages you queue stay in your browser&rsquo;s extension storage until sent. We never receive your LinkedIn password, cookies or session.</li>
+<li>If you connect LinkedIn: the identifier of the account that our LinkedIn provider (Unipile) gives us, never your password, cookies or session, which stay with the provider. We also store the people the searches find, the messages written for them, and when each was sent, accepted or answered.</li>
 <li>Technical data needed to keep you signed in, such as a session token stored in your browser.</li></ul>
 <h3>About the people who appear in your leads</h3>
 <p>A lead is built from something a person published in public: the text of a post or comment, the public name or username of its author, a link to it, and, when it is stated in the post or on the author&rsquo;s own public profile, their role, company and city. We add a score, the intent we read in it, and (for you) a drafted reply. We do not collect private messages, we do not log in to anyone&rsquo;s account, and we do not buy contact lists. We do not look up email addresses or phone numbers. If you are one of these people and want your information removed, write to <a href="mailto:support@ownedmap.com">support@ownedmap.com</a> with the link to your post and we will delete it from every account.</p>
@@ -66,6 +66,7 @@
 <ul><li><strong>Supabase</strong>: database and sign-in. Your account, business description, leads and share links are stored here.</li>
 <li><strong>Stripe</strong>: payments and subscriptions, only if you start a plan. Stripe receives your email and the payment details you type on its own page; we receive the status of your plan and its size, never your card number. If you start a free trial from our website, we create your account from the email you typed on Stripe&rsquo;s page, and you then choose your own password.</li>
 <li><strong>OpenAI</strong>: when you describe your business, the text of your public web page (or what you typed) is sent to OpenAI so it can work out what you sell. When we score leads, the text of the public posts we found, and the author&rsquo;s public profile text when there is one, is sent to OpenAI to be scored and to draft a reply. Under OpenAI&rsquo;s API terms this data is not used to train their models.</li>
+<li><strong>Unipile</strong>: our LinkedIn provider. When you connect LinkedIn, you log in on a page it hosts, and it keeps the session. Searches, invitations and messages for your account go through it, together with the text of the messages you approved, and it tells us who accepted or replied. It is the only place your LinkedIn login lives.</li>
 <li><strong>Hacker News (Y Combinator) and Algolia</strong>: our server searches Hacker News posts through its public search service with the phrases we derived from your business, and reads the public profile text of authors it found. Your business is not named in those requests.</li>
 <li><strong>OpenStreetMap (Nominatim)</strong>: when a lead&rsquo;s post states a place we do not know, that place name (for example a city) is sent to this public map service to find its coordinates.</li>
 <li><strong>Vercel</strong>: hosting of the website and its server functions.</li><li><strong>Google Fonts</strong>: the Inter typeface is loaded from Google, which means your browser contacts Google servers (and shares your IP address) when a page loads.</li></ul>
@@ -73,7 +74,7 @@
 </section>
 <section>
 <h2>5. Cookies and similar storage</h2>
-<p>We do not use advertising or tracking cookies. The app stores a sign-in session in your browser, and, when it runs without an account, your leads in your browser&rsquo;s local storage. The extension stores your pairing code and a few counters in the browser&rsquo;s extension storage. This is needed for the app to work and stays on your device.</p>
+<p>We do not use advertising or tracking cookies. The app stores a sign-in session in your browser, and, when it runs without an account, your leads in your browser&rsquo;s local storage. This is needed for the app to work and stays on your device.</p>
 <p>The website has hooks for privacy-friendly usage analytics, but they stay switched off unless you consent, and none is active today. If that changes we will update this page first.</p>
 </section>
 <section>
@@ -82,7 +83,7 @@
 </section>
 <section>
 <h2>7. Your choices and rights</h2>
-<p>You can remove any lead in the app at any time, disconnect the extension, turn off any share link, and download your leads as a CSV file. To get a copy of your information, correct it or delete your account, write to <a href="mailto:support@ownedmap.com">support@ownedmap.com</a> from the email address on the account. We aim to reply within 30 days.</p>
+<p>You can remove any lead in the app at any time, disconnect your LinkedIn account, turn off any share link, and download your leads as a CSV file. To get a copy of your information, correct it or delete your account, write to <a href="mailto:support@ownedmap.com">support@ownedmap.com</a> from the email address on the account. We aim to reply within 30 days.</p>
 <p>Depending on where you live (for example the European Economic Area, the United Kingdom, or California), you may also have the right to object to or restrict certain processing, to move your data elsewhere, and to complain to your local data protection authority. The same applies to the people who appear in leads, as described in section 2. We honor these requests where the law applies.</p>
 </section>
 <section>

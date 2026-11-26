@@ -174,3 +174,27 @@ export async function locateLeads(leads, { env, fetchImpl, max = 4 } = {}) {
   }
   return leads;
 }
+
+/* ------------------------------------------------------------------ 4. the messages of a sequence */
+export const SEQUENCE_SCHEMA = {
+  type: 'object', additionalProperties: false, required: ['invite', 'follow1', 'follow2'],
+  properties: { invite: str, follow1: str, follow2: str },
+};
+export const sequenceSystem = profile => `You write LinkedIn outreach for a seller, to one person who showed interest. The seller:
+- Business: ${profile.name || '(unnamed)'}. ${profile.niche}
+- Sells to: ${profile.audience}
+- Removes this pain: ${profile.problem}
+- Their tone: ${profile.tone || 'friendly and direct'}
+
+Write three messages, in the language of the signal:
+- invite: the note that goes with the connection request. At most 200 characters. Mention what they did or said, in a way that sounds human. No pitch, no link, no emoji.
+- follow1: sent a day after they accept. 2 to 3 short sentences. Thank them, tie it to the signal, offer one useful thing and ask one easy question. No attachment, no link unless the signal asked for it.
+- follow2: sent four days later if they have not replied. 2 short sentences. A new angle or a helpful detail, and an easy way to say no. Never guilt, never "just bumping this".
+Use only what the signal and the profile say. Never invent a fact, a mutual contact, a number or a result. Do not say you are an AI. Sign nothing.`;
+
+/** The invitation note and two follow-ups for one lead, written from the exact signal that fired. */
+export async function draftSequence({ env, fetchImpl = fetch, profile, lead }) {
+  const user = `Person: ${lead.authorName}${lead.authorRole ? `, ${lead.authorRole}` : ''}${lead.authorCompany ? ` at ${lead.authorCompany}` : ''}\nSignal (${lead.signalKind || 'post'}): ${String(lead.text).slice(0, 700)}`;
+  const raw = await askModel({ env, fetchImpl, system: sequenceSystem(profile), user, schema: SEQUENCE_SCHEMA, name: 'outreach_sequence', maxTokens: 700 });
+  return { invite: String(raw.invite || '').trim(), follow1: String(raw.follow1 || '').trim(), follow2: String(raw.follow2 || '').trim() };
+}

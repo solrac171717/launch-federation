@@ -1,55 +1,64 @@
 # Owned Map
 
-Owned Map gets you customers from LinkedIn on autopilot: it finds the people asking for what you sell, scores how ready they are to buy, and shows them on an interactive globe with what they said and a reply you can copy.
+**Get customers from LinkedIn on autopilot.** You paste your website and connect your LinkedIn account. Owned Map finds the people who engage with your competitors or write about what you sell, scores how ready each one is to buy (0 to 100), places them on an interactive globe, writes the invitation and two follow-ups, and sends them from your own account once you approve.
 
-You paste your website. It works out what you sell and the phrases buyers use, searches public posts, scores each person from 0 to 100, places them where they are, and drafts a reply in your tone. **Everything is approved by you: the extension sends only the leads you queue, from your own browser, a few a day.**
+> This branch (`leads-pivot`) turned the earlier asset-tracking product into this one. Same stack: Supabase, Vercel, Stripe, OpenAI. It is **not merged and not deployed**; `main` still serves the asset tracker.
 
-> This branch (`leads-pivot`) turned the earlier asset-tracking product into this one. Same stack, same Supabase project, same Vercel project, same Stripe and OpenAI accounts. See "What changed" at the end.
+## How it works
 
-## How it is built
+1. **Business.** `api/analyze.js` reads the website and writes the profile: what is sold, to whom, the phrases buyers use. The person edits it in Settings and adds LinkedIn pages and profiles to watch (competitors, creators).
+2. **Account.** "Connect LinkedIn" (`api/linkedin.js`) opens a login page hosted by Unipile. We never see a password or a cookie; Unipile calls our signed notify address with the account id and we keep only that.
+3. **Signals.** Every six hours, and on demand, for each connected account (`src/outreach-engine.js`): the people who commented on or reacted to the latest posts of the watched pages, and posts that match the business' phrases. One model call scores them; below 30 is dropped; 70 or more is "worth contacting", gets its place and LinkedIn id read from the profile, and its three messages written (`draftSequence`).
+4. **Approval.** The messages wait in the Outreach tab. The person edits and approves a sequence, or turns on "send without asking" in Settings.
+5. **Sending.** `api/tick.js`, every ten minutes, sends what is approved and due: invitation first; follow-up 1 a day after they accept; follow-up 2 four days after follow-up 1. Hard caps of 20 invitations and 40 messages per account per day (the person can only lower the invitations), weekdays 08:00 to 18:00 in the person's time zone, a pause between sends from one account, several accounts take turns. Acceptances and replies are polled every 15 minutes; **a reply stops the sequence**.
+6. **Everything else.** The globe and country views, the leads table, the funnel, CSV export and read-only share links are unchanged from before.
 
-- `index.html` + `landing.css` + `leads.css` + `landing.js`: the website (static, no framework). Its globe and lead card are the real app code running on invented sample leads (`src/leads-demo.js`).
-- `app.html` + `src/leads-main.js`: the app. Map (globe and country views), Leads (table, filters, one lead in full with the draft), Activity (funnel and history), Settings (the business, the extension, export).
-- `src/leads-core.js`: what a lead is, its validation, database rows, the view the globe reads, the funnel, the monthly allowance. No network, no DOM.
-- `src/sources/hn.js`: the first source (Hacker News through the free Algolia API). Every source has one function, `buscarSeñales(keywords) -> candidates`; another source is one more file.
-- `src/leads-engine.js`: read a business, score the signals, write the draft, find where the person is. Network access goes through an injected `fetch`, so tests run it against fakes.
-- `api/analyze.js`, `api/signals.js`, `api/ingest.js`: the three endpoints. Only signed-in users can call the first two (they cost model calls); `ingest` takes the extension's pairing code.
-- `extension/`: a Chrome extension for LinkedIn (see `extension/README.md`). Downloadable from the app at `/downloads/owned-map-extension.zip`.
-- Unchanged from before: sign-in (`api/login.js`, `login.html`), plans and billing (`src/billing-core.js`, `api/billing.js`, `api/start.js`, `api/stripe-webhook.js`, `api/welcome.js`), the globe and country views (`src/globe.js`, `src/geoui.js`, `src/regions.js`), read-only share links (`api/share.js`, `share.html`).
+Hacker News (free Algolia search) is a second source that needs no account.
 
-The first search is fast on purpose: the app calls `/api/signals` three times in parallel with two phrases each, so the first points reach the globe in about the time of one model call and the rest follow.
+## Files
+
+- `index.html`, `landing.css`, `leads.css`, `landing.js`: the website. Its globe and lead card are the real app code on invented sample leads.
+- `app.html`, `src/leads-main.js`: the app. `src/outreach-ui.js` is the Outreach tab.
+- `src/leads-core.js` (what a lead is), `src/outreach-core.js` (the sending rules: caps, hours, plan, funnel), `src/leads-engine.js` (model calls), `src/outreach-engine.js` (the ten-minute job and the scan).
+- `src/providers/unipile.js`: the only file that talks to LinkedIn's provider. Another provider is another file with the same functions.
+- `api/analyze.js`, `api/signals.js` (Hacker News), `api/linkedin.js` (connect, disconnect, scan), `api/tick.js` (the scheduler's heartbeat). Unchanged from before: `login`, `billing`, `start`, `stripe-webhook`, `welcome`, `share`. Vercel's free plan allows 12 functions; `api/` has 10.
+- `supabase/migrations/20261126000000_leads.sql` then `20261127000000_outreach.sql`.
 
 ## Setup
 
-1. Supabase SQL editor: run the earlier migrations as before, then `supabase/migrations/20261126000000_leads.sql` (tables `business_profiles`, `leads`, `ingest_tokens`; Row Level Security on all three; nothing old is changed).
-2. Environment variables on Vercel (all already in use except where noted): `SUPABASE_URL`, `SUPABASE_ANON_KEY` (also at build time, it goes into `assets/config.js`), `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY` (optional `OPENAI_MODEL`, default `gpt-4o-mini`), `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SITE_URL`, `ADMIN_PASSWORD`.
-3. `SUPABASE_URL=... SUPABASE_ANON_KEY=... SITE_URL=https://ownedmap.com npm run build`.
+1. Supabase SQL editor: run the earlier migrations, then the two files above, in order.
+2. Unipile: create an account, note the DSN (for example `api3.unipile.com:13359`) and make an API key.
+3. Vercel environment variables: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (also at build time), `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY` (optional `OPENAI_MODEL`), `UNIPILE_DSN`, `UNIPILE_API_KEY`, `CRON_SECRET` (a long random value), `SITE_URL`, plus the Stripe ones that were already there.
+4. The scheduler: Vercel's free plan has no frequent cron, so Supabase calls the site. Enable the `pg_cron` and `pg_net` extensions and run the `cron.schedule` snippet at the end of the outreach migration, with the same `CRON_SECRET`.
+5. `SUPABASE_URL=... SUPABASE_ANON_KEY=... SITE_URL=https://ownedmap.com npm run build`.
 
-Vercel's free plan allows 12 serverless functions; `api/` (files not starting with `_`) now holds 9.
+## First run (read this before real customers)
 
-Without Supabase configured the app runs in "this device only" mode: leads and the business are kept in the browser. Searching needs an account (it calls the model).
+`src/providers/unipile.js` was written from Unipile's public documentation **without a live key**. Check each call once against a real LinkedIn account of your own, with the caps at 3 to 5 a day:
+
+1. Connect: the hosted login opens, and `/api/linkedin?notify=1` creates the row in `linkedin_accounts` (the notify body is read as `{ status: 'CREATION_SUCCESS', account_id }`).
+2. Scan: `POST /linkedin/search` (posts), `GET /users/{id}/posts`, `/posts/{id}/comments`, `/posts/{id}/reactions`. If a field name differs, only `asCandidate` and `member` need to change.
+3. Profile: `GET /users/{public_identifier}` returns `provider_id`, `location` and `network_distance`.
+4. Send: `POST /users/invite` and `POST /chats` (multipart). Note that free accounts only get a few invitation notes a month.
+5. Poll: `GET /users/relations` (acceptances) and `GET /messages` (replies).
+
+LinkedIn restricts accounts that send too much, and its terms restrict automated tools. The caps are low on purpose. **Keep them lower still for the first two weeks.** The terms and privacy pages were rewritten for this, and a lawyer should review them before anyone pays.
 
 ## Commands
 
 ```
-npm test                      # unit and API tests (leads, billing, checkout, SEO map, comparison pages, regions)
-node scripts/e2e-leads.mjs    # the whole app in a real headless Chrome against a local stand-in for Supabase,
-                              # the model, Hacker News and the geocoder (SHOTS=dir keeps screenshots; CHROME=path if needed)
-npm run build                 # syntax-checks, copies to dist/, applies SITE_URL, zips the extension, verifies local references
+npm test                      # unit and API tests (rules, provider client, the ten-minute job, endpoints, leads, billing, SEO map)
+node scripts/e2e-leads.mjs    # the whole app in a real headless Chrome against local stand-ins for Supabase, the model, Hacker News,
+                              # the geocoder and Unipile: connect LinkedIn, scan, approve, send, accept, follow up, reply
+npm run build                 # syntax-checks, copies to dist/, applies SITE_URL, verifies local references
 npm start                     # static server + /api routes on http://localhost:4173
-npm run mock                  # the stand-in for Supabase on http://localhost:4180/app.html
+npm run mock                  # the stand-in on http://localhost:4180/app.html
 ```
 
 ## Plans and billing
 
-The charge is unchanged: $47 a month with 3 packs, plus $15 for each pack from the 4th to the 10th, $10 for the 11th to the 25th and $5 from the 26th, up to 100 packs, 30% off when paying a year at once, a 7-day trial with a card. A **pack is 25 leads with a score of 70 or more a month** (`LEADS_PER_UNIT` in `src/leads-core.js`), so the base plan includes 75. The words on the website and in the plan screens say leads; Stripe still stores the quantity as before (the checkout field is still called `assets`, and the Stripe product and price names created earlier still say "assets" until you rename them in the Stripe dashboard).
-
-The allowance is shown (`quotaState`), **not enforced**: nobody is limited yet. When you want to enforce it, count `leads` with `score >= 70` created this month for the user (the same count the app uses) in the endpoint or a trigger, as the old asset limit did.
-
-## Leads and the people in them
-
-Leads are made from public posts written by other people. The privacy policy says what is stored and how a person can ask to be removed. The score and the draft come from a language model and can be wrong. A lead is never contacted by Owned Map; the person using the app decides what to say and where.
+Unchanged: $47 a month with 3 packs, plus $15 for each pack from the 4th to the 10th, $10 for the 11th to the 25th and $5 from the 26th, up to 100 packs, 30% off yearly, a 7-day trial with a card. A pack is 25 leads with a score of 70 or more a month (`LEADS_PER_UNIT`). The allowance is shown, **not enforced**. The Stripe product names still say "assets" until renamed in the dashboard.
 
 ## What changed from the asset-tracking product
 
-Removed (code only; the old database tables are untouched): assets, documents and reminders, the CSV import of assets, document reading, the VIN lookup, household access, the trusted-person emergency sheet, the reminder emails and their cron jobs, and the dashboard tabs for performance, cash flow and insights. The comparison, solution and guide pages under `content/` still build, because retiring them is a decision for the owner (see the notes in the pull request); they describe the old product.
+Removed (code only; old tables untouched): assets, documents and reminders, the CSV import, document reading, the VIN lookup, household access, the emergency sheet, the reminder emails and their cron jobs. The comparison, solution and guide pages under `content/` still build and describe the old product; retiring them is the owner's decision.

@@ -51,21 +51,26 @@ export function validateLead(input, { now = Date.now() } = {}) {
       authorName: clip(input?.authorName, 120), authorRole: clip(input?.authorRole, 160), authorCompany: clip(input?.authorCompany, 120), authorUrl: clip(input?.authorUrl, 300),
       place: clip(input?.place, 120), country, lat, lon,
       draft: clipKeep(input?.draft, 2000),
+      providerId: clip(input?.providerId, 120), signalKind: SIGNAL_KINDS.includes(input?.signalKind) ? input.signalKind : null,
       signalAt: Number.isFinite(at) ? new Date(at).toISOString() : new Date(now).toISOString(),
     },
   };
 }
+
+export const SIGNAL_KINDS = ['post', 'comment', 'like', 'follow', 'job'];
 
 /** A lead as the database stores it. */
 export const toRow = v => ({
   source: v.source, external_id: v.externalId, intent: v.intent, score: v.score, status: v.status || 'new', signal_text: v.text, url: v.url || null,
   author_name: v.authorName || null, author_role: v.authorRole || null, author_company: v.authorCompany || null, author_url: v.authorUrl || null,
   place: v.place || null, country: v.country || null, lat: v.lat ?? null, lon: v.lon ?? null, signal_at: v.signalAt, draft: v.draft || null,
+  provider_id: v.providerId || null, signal_kind: v.signalKind || null,
 });
 export const fromDb = r => ({
   id: r.id, source: r.source, externalId: r.external_id, intent: r.intent, score: r.score, status: r.status, text: r.signal_text, url: r.url || '',
   authorName: r.author_name || '', authorRole: r.author_role || '', authorCompany: r.author_company || '', authorUrl: r.author_url || '',
   place: r.place || '', country: r.country || null, lat: r.lat ?? null, lon: r.lon ?? null, signalAt: r.signal_at, draft: r.draft || '',
+  providerId: r.provider_id || '', signalKind: r.signal_kind || null, connectedAt: r.connected_at || null,
   history: Array.isArray(r.history) ? r.history : [], isSample: !!r.is_sample, createdAt: r.created_at,
 });
 
@@ -88,7 +93,7 @@ export function nextHistory(prev, event, { today = isoDay() } = {}) {
   return [...list, { d: today, e: event }].slice(-60);
 }
 
-export const HISTORY_LABEL = { found: 'Signal detected', contacted: 'Marked as contacted', replied: 'Replied', customer: 'Became a customer', new: 'Back to new', located: 'Location added' };
+export const HISTORY_LABEL = { found: 'Signal detected', contacted: 'Marked as contacted', replied: 'Replied', customer: 'Became a customer', new: 'Back to new', located: 'Location added', invited: 'Invitation sent', connected: 'Accepted the invitation', messaged: 'Message sent' };
 
 export function stats(leads, now = Date.now()) {
   const month = isoDay(now).slice(0, 7);
@@ -167,19 +172,4 @@ export function createCloudStore(cloud, { owner = null } = {}) {
     async remove(id) { await cloud.rest('DELETE', `/leads?id=eq.${encodeURIComponent(id)}`); },
     async removeSample() { await cloud.rest('DELETE', `/leads?${only}is_sample=eq.true`); },
   };
-}
-
-/** A LinkedIn content search for one phrase, newest posts first from the past week: what the person opens so the extension can read the results. */
-export function linkedinSearchUrl(phrase) {
-  const q = String(phrase || '').replace(/\s+/g, ' ').trim().slice(0, 80);
-  return `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent(q)}&datePosted=%22past-week%22&sortBy=%22date_posted%22`;
-}
-
-/** What an invitation note can hold (LinkedIn allows 200 characters): whole sentences while they fit, else cut at a word. */
-export function inviteNote(text, max = 200) {
-  const t = String(text || '').replace(/\s+/g, ' ').trim(); if (t.length <= max) return t;
-  const parts = t.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [t]; let out = '';
-  for (const p of parts) { if ((out + p).trim().length > max) break; out += p; }
-  if (out.trim()) return out.trim();
-  const cut = t.slice(0, max); return cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trim();
 }

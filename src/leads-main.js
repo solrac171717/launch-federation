@@ -14,7 +14,8 @@ import { createAccountUi } from './app-account.js';
 import { makeToken, sha256Hex, createShareUi } from './app-share.js';
 import { planFor, isSuperadmin } from './plan.js';
 import { createBillingUi } from './app-billing.js';
-import { linkedinSearchUrl, inviteNote, SOURCES, INTENTS, STATUSES, HIGH_SCORE, HISTORY_LABEL, toView, stats, funnel, quotaState, nextHistory, createLocalStore, createCloudStore, toCsvRows, LEAD_COLUMNS } from './leads-core.js';
+import { createOutreachUi } from './outreach-ui.js';
+import { SOURCES, INTENTS, STATUSES, HIGH_SCORE, HISTORY_LABEL, toView, stats, funnel, quotaState, nextHistory, createLocalStore, createCloudStore, toCsvRows, LEAD_COLUMNS } from './leads-core.js';
 import { sampleLeads } from './leads-demo.js';
 import { ago, snippet, sourceIcon, scorePill, leadCard, funnelBars } from './leads-view.js';
 import { createProfileStore, profileForm, queriesFromText, PROFILE_EMPTY } from './leads-profile.js';
@@ -23,6 +24,7 @@ document.documentElement.classList.add('js');
 const $ = id => document.getElementById(id);
 const cloud = createCloud({ url: CONFIG.supabaseUrl, anonKey: CONFIG.supabaseAnonKey });
 const SUPPORT_EMAIL = 'support@ownedmap.com';
+const outreach = createOutreachUi({ cloud, getViews: () => views, getRaw: () => raw, getProfile: () => profile, run: (l, f) => run(l, f), toast: (m, k) => toast(m, k), openLead: id => openLead(id), rerender: () => render(), reloadLeads: async () => { raw = await store.list(); recompute(); refresh(); } });
 let store = null, profiles = null, raw = [], views = [], profile = null, globe = null, geo = null;
 const state = { view: 'map', sel: null, source: 'all', q: '', status: 'all', min: 0, sort: { key: 'score', dir: -1 }, searching: false };
 const UNITS = 3; // the base plan; the monthly allowance is read from here until the plan is wired to the charge
@@ -30,23 +32,6 @@ const UNITS = 3; // the base plan; the monthly allowance is read from here until
 /* ------------------------------------------------------------------ small helpers */
 let toastTimer = 0;
 
-/* The extension, when it is installed in this browser: it tells the page it is there, and takes the leads the person chooses to contact.
-   It sends the invitation or message from the person's own LinkedIn session; nothing about their LinkedIn login ever reaches us. */
-let ext = null; // { queued, sentToday, cap, auto } or null
-const toExt = m => window.postMessage({ source: 'ownedmap-app', ...m }, location.origin);
-window.addEventListener('message', e => {
-  if (e.source !== window || e.origin !== location.origin || e.data?.source !== 'ownedmap-ext') return;
-  const d = e.data;
-  if (d.type === 'hello') toExt({ type: 'ping' });
-  else if (d.type === 'ready' || d.type === 'queued') {
-    ext = { queued: d.queued || 0, sentToday: d.sentToday || 0, cap: d.cap || 15, auto: !!d.auto };
-    if (d.type === 'queued') toast(`Queued. ${ext.queued} waiting; up to ${ext.cap} a day, with pauses between them.`);
-    if (state.view === 'leads' || $('modal-title')) render();
-  }
-});
-/** Leads worth contacting from the list: LinkedIn, with a profile link and a draft, still new, and a high score. */
-const contactable = vs => vs.filter(v => v.source === 'linkedin' && v.authorUrl && v.draft && v.status === 'new' && v.score >= HIGH_SCORE);
-const asJob = (v, text = v.draft, note = inviteNote(text)) => ({ id: v.id, url: v.authorUrl, text, note });
 function toast(msg, kind = 'ok') {
   const t = $('toast'); t.className = `toast show ${kind}`; t.replaceChildren(h('span', {}, msg));
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = 'toast'; }, 4200);
@@ -132,8 +117,11 @@ async function findLeads({ announce = true } = {}) {
     try { const r = await cloud.signals({ profile, queries: g }); const n = await saveFound(r.leads || []); total += n; } // not `total += await ...`: the three calls overlap, and that form would overwrite the others' counts
     catch (e) { failed++; last = e; }
   }));
+  if (outreach.connected()) { // searches from the person's own LinkedIn account, run by the server
+    try { const r = await cloud.linkedin({ action: 'scan' }); if (r?.saved) { raw = await store.list(); recompute(); total += r.saved; await outreach.load(); refresh(); } } catch (e) { if (!failed) last = e; /* the Hacker News results still count */ }
+  }
   state.searching = false; paintSearchState();
-  if (failed === groups.length) toast(message(last), 'err');
+  if (failed === groups.length && !total) toast(message(last), 'err');
   else if (announce) toast(total ? `${total} new lead${total === 1 ? '' : 's'} found.` : 'No new people asking for this right now. We will look again when you press search.');
   return total;
 }
@@ -155,22 +143,6 @@ async function removeLead(l) {
   await run('remove', () => store.remove(l.id)); raw = raw.filter(x => x.id !== l.id); if (state.sel === l.id) state.sel = null; modal().close(); refresh();
 }
 
-/** "Send on LinkedIn": the invitation note (200 characters) and the message, both yours to edit; the extension puts them in your own LinkedIn. */
-function sendBlock(v, draft) {
-  const note = h('textarea', { id: 'lead-note', rows: 3, maxlength: 200 }, inviteNote(v.draft));
-  const count = h('span', { class: 'hint' }), left = () => { count.textContent = `${note.value.length} / 200 characters (LinkedIn's limit for an invitation note)`; };
-  note.addEventListener('input', left); left();
-  const btn = h('button', { type: 'button', class: 'btn btn-primary btn-sm', id: 'lead-queue', disabled: !ext, onclick: () => {
-    if (!draft.value.trim() || !note.value.trim()) { toast('Write the message and the note first.', 'err'); return; }
-    toExt({ type: 'queue', items: [asJob(v, draft.value.trim(), note.value.trim())] });
-  } }, 'Queue on LinkedIn');
-  return h('div', { class: 'field send-block' }, h('label', { for: 'lead-note' }, 'Invitation note (used if you are not connected yet)'), note, count,
-    h('div', { class: 'modal-actions am-left' }, btn),
-    h('p', { class: 'hint' }, ext
-      ? `The extension opens their profile in your browser with your own LinkedIn session and ${ext.auto ? 'sends it' : 'fills it in so you press Send'}. ${ext.sentToday} of ${ext.cap} done today.`
-      : 'Install and pair the Owned Map extension (Settings) to send from your own LinkedIn. We never ask for your LinkedIn password.'));
-}
-
 /* ------------------------------------------------------------------ one lead, in full */
 function openLead(id, { keep = false } = {}) {
   const v = find(id); if (!v) return;
@@ -186,12 +158,11 @@ function openLead(id, { keep = false } = {}) {
     h('div', { class: 'ld-links' },
       v.url ? h('a', { class: 'btn btn-dark btn-sm', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, 'Open the original post') : null,
       v.authorUrl ? h('a', { class: 'btn btn-dark btn-sm', href: v.authorUrl, target: '_blank', rel: 'noopener noreferrer' }, 'Open their profile') : null),
-    v.source === 'linkedin' && !v.located && v.authorUrl ? h('p', { class: 'hint' }, 'When you open their profile with the Owned Map extension installed, their location is added and the lead appears on the globe.') : null,
+    v.source === 'linkedin' && !v.located && v.authorUrl ? h('p', { class: 'hint' }, 'Their location is not public. Leads that reach the outreach queue get it from their LinkedIn profile when it is stated.') : null,
     h('div', { class: 'field' }, h('label', { for: 'lead-draft' }, 'Suggested reply (you edit it, you send it)'), draft,
       h('div', { class: 'modal-actions am-left' },
         h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: async () => toast((await copyText(draft.value)) ? 'Copied. Paste it where the conversation is.' : 'Could not copy. Select the text and copy it.') }, 'Copy reply'),
         h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => saveDraft(v, draft.value) }, 'Save my edits'))),
-    v.source === 'linkedin' && v.authorUrl ? sendBlock(v, draft) : null,
     h('div', { class: 'ld-steps', role: 'group', 'aria-label': 'Where this lead is' }, steps),
     h('h3', { class: 'ld-h' }, 'History'), h('ul', { class: 'ld-hist' }, hist),
     h('div', { class: 'modal-actions am-left' }, h('button', { type: 'button', class: 'btn btn-ghost-danger btn-sm', onclick: () => removeLead(v) }, 'Remove this lead')));
@@ -199,7 +170,7 @@ function openLead(id, { keep = false } = {}) {
 }
 
 /* ------------------------------------------------------------------ views */
-const TABS = [['map', 'Map', 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM2 8h12M8 2c2.5 2 2.5 10 0 12M8 2c-2.5 2-2.5 10 0 12'], ['leads', 'Leads', 'M2 4h12M2 8h12M2 12h8'], ['activity', 'Activity', 'M2 13l4-5 3 3 5-7'], ['settings', 'Settings', 'M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM8 1v2M8 13v2M1 8h2M13 8h2']];
+const TABS = [['map', 'Map', 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM2 8h12M8 2c2.5 2 2.5 10 0 12M8 2c-2.5 2-2.5 10 0 12'], ['leads', 'Leads', 'M2 4h12M2 8h12M2 12h8'], ['outreach', 'Outreach', 'M2 3h12v8H6l-3 3v-3H2z'], ['activity', 'Activity', 'M2 13l4-5 3 3 5-7'], ['settings', 'Settings', 'M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM8 1v2M8 13v2M1 8h2M13 8h2']];
 function setView(v) {
   state.view = v;
   for (const [k] of TABS) $(`view-${k}`).hidden = k !== v;
@@ -224,7 +195,7 @@ function renderTop() {
 }
 function render() {
   renderTop();
-  if (state.view === 'map') renderMap(); else if (state.view === 'leads') renderLeads(); else if (state.view === 'activity') renderActivity(); else renderSettings();
+  if (state.view === 'map') renderMap(); else if (state.view === 'leads') renderLeads(); else if (state.view === 'activity') renderActivity(); else if (state.view === 'outreach') outreach.render($('view-outreach')); else renderSettings();
 }
 function refresh() {
   recompute(); globe?.setAssets(located().map(v => ({ ...v, fresh: freshAt.get(v.id) || 0 })));
@@ -233,13 +204,6 @@ function refresh() {
   globe?.setSelected(state.sel); geo?.sync(); render();
 }
 
-/** The LinkedIn searches that fit this business: opening one is all it takes, the extension reads what is on screen and the leads land on the globe. */
-function linkedinBox() {
-  const qs = (profile?.queries || []).slice(0, 6);
-  if (!qs.length) return h('p', { class: 'hint' }, 'Describe your business first and the LinkedIn searches for it appear here.');
-  return h('div', { class: 'li-box' }, h('p', { class: 'hint' }, 'Open a search with the Owned Map extension installed. It reads the posts you see, keeps the ones that show buying intent and puts them on the globe. Past week, newest first.'),
-    h('ul', { class: 'li-list' }, ...qs.map(q => h('li', {}, h('span', {}, q), h('a', { class: 'mini-btn accent', href: linkedinSearchUrl(q), target: '_blank', rel: 'noopener noreferrer' }, 'Open on LinkedIn')))));
-}
 const empty = (t, d) => h('div', { class: 'app-empty' }, h('b', {}, t), h('span', {}, d));
 const appCard = v => leadCard(v, { actions: [h('button', { type: 'button', class: 'mini-btn accent', onclick: () => openLead(v.id) }, 'Open lead and reply'), v.url ? h('a', { class: 'mini-btn', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, 'Original post') : null].filter(Boolean) });
 
@@ -258,7 +222,6 @@ function renderMap() {
   const unplaced = sc.length - st.located;
   clear($('hero-pair')).append(k('Average score', String(st.avgScore), 'Out of 100'), k('Not on the map', String(unplaced), unplaced ? 'Place unknown: see the list' : 'Everyone is placed'));
   const mc = clear($('hero-chart')); mc.append(h('div', { class: 'mc-h' }, h('span', {}, 'From signal to customer')), funnelBars(sc));
-  if (profile?.queries?.length) mc.append(h('div', { class: 'mc-h li-h' }, h('span', {}, 'Your LinkedIn searches')), linkedinBox());
   void host;
 }
 function onboarding() {
@@ -278,9 +241,9 @@ function onboarding() {
   });
   return h('div', { class: 'onb' },
     h('b', {}, 'Who is looking for what you sell?'),
-    h('p', {}, 'Paste your website. We work out who buys from you and what they write on LinkedIn, give you the searches to open, and put every buyer the extension finds on the globe with what they said.'),
+    h('p', {}, 'Paste your website. We work out who buys from you, then find the people on LinkedIn who engage with your market or write about what you sell, score them, place them on the globe and write the messages. You approve, and it goes out from your own account.'),
     h('div', { class: 'field' }, h('label', { for: 'onb-url' }, 'Your website'), url), txt, err, go,
-    h('p', { class: 'hint' }, 'We only read public pages and posts. You approve every message before it goes out.'),
+    h('p', { class: 'hint' }, 'We only read public pages and posts. You approve every message before it goes out (unless you turn that off).'),
     h('button', { type: 'button', class: 'link-btn', onclick: loadSample }, 'Or look around with sample leads first'));
 }
 async function loadSample() { const made = await run('sample', () => store.addMany(sampleLeads(), { sample: true })); if (made) { merge(made); refresh(); } }
@@ -288,7 +251,7 @@ async function removeSample() { await run('sample', () => store.removeSample());
 
 function renderLeads() {
   const host = clear($('view-leads'));
-  if (!views.length) { host.append(h('div', { class: 'empty-panel' }, h('b', {}, 'No leads yet'), h('p', {}, 'Describe your business on the Map tab, then open its LinkedIn searches: the buyers appear as you browse.'), h('div', { class: 'ep-actions' }, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => setView('map') }, 'Go to the map')))); return; }
+  if (!views.length) { host.append(h('div', { class: 'empty-panel' }, h('b', {}, 'No leads yet'), h('p', {}, 'Describe your business on the Map tab, then connect LinkedIn in Outreach: the buyers appear here as they are found.'), h('div', { class: 'ep-actions' }, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => setView('map') }, 'Go to the map')))); return; }
   const q = h('input', { type: 'search', class: 'tbl-q', placeholder: 'Search what they said, a name or a company', 'aria-label': 'Search leads', value: state.q });
   const sel = (label, key, opts) => h('select', { class: 'mini-sel', 'aria-label': label, onchange: e => { state[key] = key === 'min' ? Number(e.target.value) : e.target.value; draw(); } }, ...opts.map(([v, t]) => h('option', { value: v, selected: String(state[key]) === String(v) }, t)));
   const tbody = h('tbody', {}), count = h('span', { class: 'tbl-count' });
@@ -305,9 +268,7 @@ function renderLeads() {
     if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 7, class: 'lt-none' }, 'No lead matches these filters.')));
   };
   q.addEventListener('input', draw);
-  const ready = contactable(views.filter(inFilter));
-  const bulk = ready.length ? h('button', { type: 'button', class: 'btn btn-primary btn-sm', id: 'queue-all', disabled: !ext, title: ext ? '' : 'Install and pair the extension first', onclick: () => { toExt({ type: 'queue', items: ready.slice(0, 25).map(v => asJob(v)) }); } }, `Queue ${Math.min(ready.length, 25)} new leads on LinkedIn`) : null;
-  host.append(h('div', { class: 'tbl-bar' }, q, bulk,sel('Status', 'status', [['all', 'Any status'], ...Object.entries(STATUSES)]), sel('Minimum score', 'min', [[0, 'Any score'], [40, '40 or more'], [HIGH_SCORE, `${HIGH_SCORE} or more`], [85, '85 or more']]), count),
+  host.append(h('div', { class: 'tbl-bar' }, q, sel('Status', 'status', [['all', 'Any status'], ...Object.entries(STATUSES)]), sel('Minimum score', 'min', [[0, 'Any score'], [40, '40 or more'], [HIGH_SCORE, `${HIGH_SCORE} or more`], [85, '85 or more']]), count),
     h('div', { class: 'tbl-wrap' }, h('table', { class: 'lt' }, h('thead', {}, h('tr', {}, th('score', 'Score'), th('name', 'Who'), h('th', {}, 'What they said'), th('intent', 'Intent'), th('source', 'Source'), th('status', 'Status'), th('signalAt', 'Detected'))), tbody)));
   draw();
 }
@@ -339,31 +300,10 @@ function renderSettings() {
       h('div', { class: 'set-col' },
         h('section', { class: 'chart-card' }, h('div', { class: 'mc-h' }, h('span', {}, 'This month')),
           h('p', { class: 'set-big' }, `${q.used} of ${q.allowed}`), h('p', { class: 'hint' }, `leads with a score of ${HIGH_SCORE} or more. Your plan will set this allowance; nothing is limited yet.`)),
-        h('section', { class: 'chart-card' }, h('div', { class: 'mc-h' }, h('span', {}, 'LinkedIn')), linkedinBox(), extensionBox()),
+        outreach.accountsCard(),
         h('section', { class: 'chart-card' }, h('div', { class: 'mc-h' }, h('span', {}, 'Data')),
           h('div', { class: 'modal-actions am-left' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: exportCsv }, 'Export leads (CSV)'),
             sampleCount ? h('button', { type: 'button', class: 'btn btn-ghost-danger btn-sm', onclick: removeSample }, `Remove ${sampleCount} sample leads`) : h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: loadSample }, 'Add sample leads'))))));
-}
-
-/** Pairing for the browser extension: a secret made here, shown once, stored only as its hash. */
-function extensionBox() {
-  const out = h('div', { class: 'ext-out' }), list = h('ul', { class: 'sh-list' });
-  const loadTokens = async () => {
-    if (!cloud.configured) return;
-    const rows = await run('tokens', () => cloud.rest('GET', '/ingest_tokens?revoked=eq.false&select=id,label,created_at,last_used&order=created_at.desc')) || [];
-    clear(list).append(...rows.map(t => h('li', { class: 'sh-row' }, h('div', { class: 'sh-main' }, h('b', {}, t.label || 'Browser'), h('span', {}, `Added ${String(t.created_at).slice(0, 10)}${t.last_used ? ` · used ${ago(t.last_used)}` : ' · not used yet'}`)),
-      h('button', { type: 'button', class: 'mini-btn', onclick: async () => { await run('revoke', () => cloud.rest('PATCH', `/ingest_tokens?id=eq.${t.id}`, { revoked: true }, { prefer: 'return=minimal' })); loadTokens(); } }, 'Disconnect'))));
-  };
-  const make = h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: async () => {
-    if (!cloud.configured) { toast('Sign in to pair the extension.', 'err'); return; }
-    const token = makeToken(), hash = await sha256Hex(token);
-    const ok = await run('token', () => cloud.rest('POST', '/ingest_tokens', { token_hash: hash, label: 'Chrome' }, { prefer: 'return=minimal' })); if (ok === undefined) return;
-    clear(out).append(h('p', { class: 'hint' }, 'Copy this into the extension now. It is shown only once.'), h('code', { class: 'ext-token' }, token),
-      h('button', { type: 'button', class: 'mini-btn', onclick: async () => toast((await copyText(token)) ? 'Copied.' : 'Could not copy.') }, 'Copy'));
-    loadTokens();
-  } }, 'Connect the extension');
-  loadTokens();
-  return h('div', {}, h('p', { class: 'hint' }, 'The extension reads the LinkedIn posts you look at and sends them here to be scored. For the leads you queue, it opens their profile in your own browser, with your own LinkedIn session, and fills in your invitation or message (you press Send, or you can let it press it for you, up to the daily limit you set, 25 at most). We never see or store your LinkedIn password or session. To install it: download the file below, unzip it, then in Chrome open Extensions, turn on Developer mode, press Load unpacked and choose the folder. It is new and has not been published to the Chrome Web Store yet.'), h('p', {}, h('a', { class: 'link-btn', href: '/downloads/owned-map-extension.zip', download: '' }, 'Download the extension (.zip)')), make, out, list);
 }
 
 function exportCsv() {
@@ -382,7 +322,7 @@ async function start() {
       const me = cloud.user();
       store = createCloudStore(cloud, { owner: me.id }); profiles = createProfileStore(cloud, { owner: me.id });
     } else { store = createLocalStore(); profiles = createProfileStore(null); }
-    [raw, profile] = await Promise.all([store.list(), profiles.get()]);
+    [raw, profile] = await Promise.all([store.list(), profiles.get(), outreach.load()]).then(([a, b]) => [a, b]);
   } catch (e) {
     if (e && e.status === 401) return showAuth('Your session has expired. Please sign in again.');
     $('boot').replaceChildren(h('b', {}, 'Could not load your leads. '), message(e), ' ', h('button', { type: 'button', class: 'mini-btn', onclick: () => location.reload() }, 'Try again'));
@@ -393,10 +333,12 @@ async function start() {
     const back = new URLSearchParams(location.search).get('billing');
     if (back) { history.replaceState(null, '', location.pathname); if (back === 'success') billingUi.waitForPlan().then(ok => { renderFoot(); toast(ok ? 'Thank you! Your plan is active.' : 'Payment received. Your plan will show up in a moment.'); }); }
   }
+  const li = new URLSearchParams(location.search).get('linkedin');
+  if (li) { history.replaceState(null, '', location.pathname); state.view = 'outreach'; setTimeout(async () => { await outreach.load(); render(); toast(li === 'connected' ? (outreach.connected() ? 'LinkedIn connected.' : 'LinkedIn is connecting. It can take a moment: refresh in a few seconds.') : 'LinkedIn could not be connected. Try again.', li === 'connected' ? 'ok' : 'err'); }, 300); }
   recompute(); show('shell'); renderFoot();
   globe = createGlobe($('hero-map'), { assets: located(), icons: ICON, selectedId: state.sel, startLon: -30, tilt: 22, countryPadV: 70, label: 'Rotating 3D globe of the people looking for what you sell', onSelect: id => { state.sel = id; globe.setSelected(id); renderMap(); } });
   geo = attachGeo($('hero-map'), globe, { visible: () => located().filter(inFilter), all: located, selected: () => state.sel, lookup: find, onPick: (id, fly) => { state.sel = id; globe.setSelected(id); if (fly !== false) globe.focus(id); renderMap(); }, onChange: () => renderMap(), toggleAfter: $('view-title'), fmt: v => `${Math.round(v)}`, fmtGroup: () => '' });
-  refresh(); setView('map');
+  refresh(); setView(state.view === 'outreach' ? 'outreach' : 'map');
   cloud.onAuthChange(s => { if (!s && cloud.configured) location.reload(); });
 }
 start();

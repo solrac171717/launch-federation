@@ -130,6 +130,8 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     /** Leads: read a business (/api/analyze) and look for people who want what it sells (/api/signals). Signed-in users only. */
     async analyze(body) { return authed(t => call('/api/analyze', { method: 'POST', local: true, body, token: t })); },
     async signals(body) { return authed(t => call('/api/signals', { method: 'POST', local: true, body, token: t })); },
+    /** LinkedIn accounts and scans (/api/linkedin): { action: 'link' | 'disconnect' | 'scan' }. */
+    async linkedin(body) { return authed(t => call('/api/linkedin', { method: 'POST', local: true, body, token: t })); },
 
     /** Plan and billing actions (checkout, change, portal), answered by /api/billing with the user's own session. */
     async billing(body) { return authed(t => call('/api/billing', { method: 'POST', local: true, body, token: t })); },

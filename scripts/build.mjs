@@ -62,7 +62,6 @@ for (const page of INDEXABLE) {
 await mkdir('dist/compare', { recursive: true }); await mkdir('dist/solutions', { recursive: true }); await mkdir('dist/guides', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
 for (const g of renderAll(site)) await writeFile(`dist${g.file}`, g.html);
 await writeFile('dist/downloads/asset-inventory-template.csv', TEMPLATE_CSV);
-await writeFile('dist/downloads/owned-map-extension.zip', zip(await Promise.all((await readdir('extension')).sort().map(async name => ({ name: `owned-map-extension/${name}`, data: new Uint8Array(await readFile(`extension/${name}`)) })))));
 await writeFile('dist/downloads/schedule-of-real-estate-owned-template.csv', SREO_CSV);
 
 if (site) {
