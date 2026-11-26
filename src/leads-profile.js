@@ -8,7 +8,7 @@ const t = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
 const list = (v, n, len) => [...new Set((Array.isArray(v) ? v : []).map(x => t(x, len)).filter(Boolean))].slice(0, n);
 
 /** One phrase per line (or comma separated), as typed in the settings box. */
-export const queriesFromText = text => list(String(text || '').split(/\n|,/), 8, 60).filter(q => q.split(' ').length >= 2);
+export const queriesFromText = text => list(String(text || '').split(/\n|,/), 8, 60).filter(q => q.length >= 3 && q.split(' ').length <= 4);
 
 export function cleanProfile(p) {
   return { url: t(p?.url, 300), name: t(p?.name, 80), niche: t(p?.niche, 200), audience: t(p?.audience, 200), problem: t(p?.problem, 240), tone: t(p?.tone, 60), competitors: list(p?.competitors, 4, 60), queries: list(p?.queries, 8, 60) };
@@ -41,7 +41,7 @@ export function profileForm(p, { onSave, onReanalyze, message }) {
   const form = h('form', { class: 'asset-form profile-form', novalidate: true },
     field('pf-name', 'Business name', p.name), field('pf-niche', 'What you sell', p.niche), field('pf-audience', 'Who buys it', p.audience), field('pf-problem', 'The pain it removes', p.problem), field('pf-tone', 'The tone of your replies', p.tone, { hint: 'For example: friendly and direct.' }),
     field('pf-comp', 'Competitors people complain about', p.competitors.join(', '), { hint: 'Separate them with commas.' }),
-    field('pf-queries', 'What people write when they want it', p.queries.join('\n'), { area: true, hint: 'One phrase per line, two to six words, in English. These are what we search for.' }),
+    field('pf-queries', 'What people write when they want it', p.queries.join('\n'), { area: true, hint: 'One short phrase per line (a category, a task or a rival, one to three words, in English), for example: invoicing software. Every word must appear in a post for it to match.' }),
     err,
     h('div', { class: 'modal-actions am-left' },
       h('button', { type: 'submit', class: 'btn btn-primary btn-sm' }, 'Save'),
@@ -54,7 +54,7 @@ export function profileForm(p, { onSave, onReanalyze, message }) {
     e.preventDefault(); const v = id => form.querySelector(id).value;
     const next = { url: v('#pf-url'), name: v('#pf-name'), niche: v('#pf-niche'), audience: v('#pf-audience'), problem: v('#pf-problem'), tone: v('#pf-tone'), competitors: v('#pf-comp').split(','), queries: queriesFromText(v('#pf-queries')) };
     if (!t(next.niche, 200)) { err.textContent = 'Say what you sell, in a few words.'; return; }
-    if (next.queries.length < 2) { err.textContent = 'Add at least two phrases, two to six words each.'; return; }
+    if (next.queries.length < 2) { err.textContent = 'Add at least two short phrases, one to four words each.'; return; }
     err.textContent = ''; onSave(next);
   });
   return form;

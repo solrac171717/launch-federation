@@ -40,12 +40,12 @@ Report only what the text says or clearly implies. Never invent customers, numbe
 - problem: the pain it removes, in one short sentence.
 - tone: how its own text sounds (for example "friendly and direct", "formal"), two or three words.
 - competitors: up to 4 well-known alternatives named in the text or obvious from the niche. Empty if you do not know any.
-- queries: 6 short phrases, 2 to 6 words each, that a person would literally type or write when they want what this business sells. Examples of shape: "alternative to <competitor>", "recommend a tool for <task>", "looking for <thing>", "how do you <do the task>". English, lowercase, no quotes, no hashtags.`;
+- queries: 6 short topical phrases, 1 to 3 words each, that people use when they write about what this business sells: the category or product ("invoicing software"), the task ("chasing invoices"), or a rival by name ("quickbooks"). They are matched against public posts, and every word must appear, so keep them short and common; do NOT build them from request wording such as "looking for" or "alternative to" (a later step reads each post to see whether the person is asking). English, lowercase, no quotes, no hashtags.`;
 
 export function normalizeProfile(raw, { url = '' } = {}) {
   const t = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
   const list = (v, n, len) => [...new Set((Array.isArray(v) ? v : []).map(x => t(x, len)).filter(Boolean))].slice(0, n);
-  return { url: t(url, 300), name: t(raw?.name, 80), niche: t(raw?.niche, 200), audience: t(raw?.audience, 200), problem: t(raw?.problem, 240), tone: t(raw?.tone, 60), competitors: list(raw?.competitors, 4, 60), queries: list(raw?.queries, 8, 60).filter(q => q.split(' ').length >= 2) };
+  return { url: t(url, 300), name: t(raw?.name, 80), niche: t(raw?.niche, 200), audience: t(raw?.audience, 200), problem: t(raw?.problem, 240), tone: t(raw?.tone, 60), competitors: list(raw?.competitors, 4, 60), queries: list(raw?.queries, 8, 60).filter(q => q.length >= 3 && q.split(' ').length <= 4) };
 }
 
 /** Visible text of a web page: no scripts, styles or tags, the title and meta description first. */

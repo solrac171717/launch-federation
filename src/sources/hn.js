@@ -21,11 +21,11 @@ export function hitToCandidate(hit) {
 }
 
 /** @returns {Promise<Array>} fresh candidates for the given phrases, newest first, without repeats. */
-export async function buscarSeñales(keywords, { fetchImpl = fetch, days = 45, perQuery = 12, now = Date.now() } = {}) {
+export async function buscarSeñales(keywords, { fetchImpl = fetch, days = 120, perQuery = 20, now = Date.now() } = {}) {
   const since = Math.floor(now / 1000) - days * 86400, seen = new Map();
   const queries = [...new Set((keywords || []).map(k => String(k).trim()).filter(Boolean))].slice(0, 6);
   await Promise.all(queries.map(async q => {
-    const url = `${API}/search_by_date?query=${encodeURIComponent(q)}&tags=(comment,ask_hn)&numericFilters=created_at_i>${since}&hitsPerPage=${perQuery}`;
+    const url = `${API}/search_by_date?query=${encodeURIComponent(q)}&tags=(comment,ask_hn)&numericFilters=created_at_i>${since}&hitsPerPage=${perQuery}&removeWordsIfNoResults=none&typoTolerance=false`; // every word must match: without these the search falls back to posts that share only one of the words
     try {
       const res = await fetchImpl(url, { signal: AbortSignal.timeout(6000) });
       if (!res.ok) return;

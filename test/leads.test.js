@@ -133,8 +133,8 @@ test('the model answer is joined back to the posts it scored, and bad rows are d
   assert.equal(out.length, 2, 'an id the posts do not have is ignored');
   assert.deepEqual([out[0].score, out[0].authorRole, out[0].authorCompany, out[0].country, out[0].draft], [91, 'CFO', 'Acme', 'US', 'Try X.']);
   assert.deepEqual([out[1].score, out[1].intent, out[1].country], [100, 'problem', null]);
-  const p = normalizeProfile({ name: ' Acme ', niche: 'n', audience: 'a', problem: 'p', tone: 't', competitors: ['A', 'A', ''], queries: ['alternative to a', 'x', 'recommend a tool'] }, { url: 'acme.com' });
-  assert.deepEqual([p.name, p.competitors, p.queries], ['Acme', ['A'], ['alternative to a', 'recommend a tool']]);
+  const p = normalizeProfile({ name: ' Acme ', niche: 'n', audience: 'a', problem: 'p', tone: 't', competitors: ['A', 'A', ''], queries: ['alternative to a', 'x', 'this phrase has far too many words in it'] }, { url: 'acme.com' });
+  assert.deepEqual([p.name, p.competitors, p.queries], ['Acme', ['A'], ['alternative to a']]);
   assert.equal(cleanProfile({ queries: Array(20).fill('a b') }).queries.length, 8);
 });
 
