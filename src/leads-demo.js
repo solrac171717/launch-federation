@@ -24,5 +24,5 @@ const RAW = [
 /** Validated sample leads, ready for a store's addMany(..., { sample: true }). */
 export function sampleLeads() {
   return RAW.map(([id, authorName, authorRole, authorCompany, place, country, lat, lon, score, intent, status, ago, text, draft]) =>
-    validateLead({ source: id.endsWith('2') || id.endsWith('7') ? 'linkedin' : 'hn', externalId: `sample-${id}`, authorName, authorRole, authorCompany, place, country, lat, lon, score, intent, status, text, draft, signalAt: days(ago) }).value);
+    validateLead({ source: id === 's5' || id === 's13' ? 'hn' : 'linkedin', externalId: `sample-${id}`, authorName, authorRole, authorCompany, place, country, lat, lon, score, intent, status, text, draft, signalAt: days(ago) }).value);
 }

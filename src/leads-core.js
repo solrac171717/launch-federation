@@ -168,3 +168,9 @@ export function createCloudStore(cloud, { owner = null } = {}) {
     async removeSample() { await cloud.rest('DELETE', `/leads?${only}is_sample=eq.true`); },
   };
 }
+
+/** A LinkedIn content search for one phrase, newest posts first from the past week: what the person opens so the extension can read the results. */
+export function linkedinSearchUrl(phrase) {
+  const q = String(phrase || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  return `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent(q)}&datePosted=%22past-week%22&sortBy=%22date_posted%22`;
+}

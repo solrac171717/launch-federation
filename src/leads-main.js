@@ -14,7 +14,7 @@ import { createAccountUi } from './app-account.js';
 import { makeToken, sha256Hex, createShareUi } from './app-share.js';
 import { planFor, isSuperadmin } from './plan.js';
 import { createBillingUi } from './app-billing.js';
-import { SOURCES, INTENTS, STATUSES, HIGH_SCORE, HISTORY_LABEL, toView, stats, funnel, quotaState, nextHistory, createLocalStore, createCloudStore, toCsvRows, LEAD_COLUMNS } from './leads-core.js';
+import { linkedinSearchUrl, SOURCES, INTENTS, STATUSES, HIGH_SCORE, HISTORY_LABEL, toView, stats, funnel, quotaState, nextHistory, createLocalStore, createCloudStore, toCsvRows, LEAD_COLUMNS } from './leads-core.js';
 import { sampleLeads } from './leads-demo.js';
 import { ago, snippet, sourceIcon, scorePill, leadCard, funnelBars } from './leads-view.js';
 import { createProfileStore, profileForm, queriesFromText, PROFILE_EMPTY } from './leads-profile.js';
@@ -198,6 +198,13 @@ function refresh() {
   globe?.setSelected(state.sel); geo?.sync(); render();
 }
 
+/** The LinkedIn searches that fit this business: opening one is all it takes, the extension reads what is on screen and the leads land on the globe. */
+function linkedinBox() {
+  const qs = (profile?.queries || []).slice(0, 6);
+  if (!qs.length) return h('p', { class: 'hint' }, 'Describe your business first and the LinkedIn searches for it appear here.');
+  return h('div', { class: 'li-box' }, h('p', { class: 'hint' }, 'Open a search with the Owned Map extension installed. It reads the posts you see, keeps the ones that show buying intent and puts them on the globe. Past week, newest first.'),
+    h('ul', { class: 'li-list' }, ...qs.map(q => h('li', {}, h('span', {}, q), h('a', { class: 'mini-btn accent', href: linkedinSearchUrl(q), target: '_blank', rel: 'noopener noreferrer' }, 'Open on LinkedIn')))));
+}
 const empty = (t, d) => h('div', { class: 'app-empty' }, h('b', {}, t), h('span', {}, d));
 const appCard = v => leadCard(v, { actions: [h('button', { type: 'button', class: 'mini-btn accent', onclick: () => openLead(v.id) }, 'Open lead and reply'), v.url ? h('a', { class: 'mini-btn', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, 'Original post') : null].filter(Boolean) });
 
@@ -216,6 +223,7 @@ function renderMap() {
   const unplaced = sc.length - st.located;
   clear($('hero-pair')).append(k('Average score', String(st.avgScore), 'Out of 100'), k('Not on the map', String(unplaced), unplaced ? 'Place unknown: see the list' : 'Everyone is placed'));
   const mc = clear($('hero-chart')); mc.append(h('div', { class: 'mc-h' }, h('span', {}, 'From signal to customer')), funnelBars(sc));
+  if (profile?.queries?.length) mc.append(h('div', { class: 'mc-h li-h' }, h('span', {}, 'Your LinkedIn searches')), linkedinBox());
   void host;
 }
 function onboarding() {
@@ -235,7 +243,7 @@ function onboarding() {
   });
   return h('div', { class: 'onb' },
     h('b', {}, 'Who is looking for what you sell?'),
-    h('p', {}, 'Paste your website. We read it, search for people asking for something like it, and put each one on the globe with what they said.'),
+    h('p', {}, 'Paste your website. We work out who buys from you and what they write on LinkedIn, give you the searches to open, and put every buyer the extension finds on the globe with what they said.'),
     h('div', { class: 'field' }, h('label', { for: 'onb-url' }, 'Your website'), url), txt, err, go,
     h('p', { class: 'hint' }, 'We only read public pages and public posts. Nothing is ever posted or sent for you.'),
     h('button', { type: 'button', class: 'link-btn', onclick: loadSample }, 'Or look around with sample leads first'));
@@ -245,7 +253,7 @@ async function removeSample() { await run('sample', () => store.removeSample());
 
 function renderLeads() {
   const host = clear($('view-leads'));
-  if (!views.length) { host.append(h('div', { class: 'empty-panel' }, h('b', {}, 'No leads yet'), h('p', {}, 'Describe your business on the Map tab and the first people appear in seconds.'), h('div', { class: 'ep-actions' }, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => setView('map') }, 'Go to the map')))); return; }
+  if (!views.length) { host.append(h('div', { class: 'empty-panel' }, h('b', {}, 'No leads yet'), h('p', {}, 'Describe your business on the Map tab, then open its LinkedIn searches: the buyers appear as you browse.'), h('div', { class: 'ep-actions' }, h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: () => setView('map') }, 'Go to the map')))); return; }
   const q = h('input', { type: 'search', class: 'tbl-q', placeholder: 'Search what they said, a name or a company', 'aria-label': 'Search leads', value: state.q });
   const sel = (label, key, opts) => h('select', { class: 'mini-sel', 'aria-label': label, onchange: e => { state[key] = key === 'min' ? Number(e.target.value) : e.target.value; draw(); } }, ...opts.map(([v, t]) => h('option', { value: v, selected: String(state[key]) === String(v) }, t)));
   const tbody = h('tbody', {}), count = h('span', { class: 'tbl-count' });
@@ -294,7 +302,7 @@ function renderSettings() {
       h('div', { class: 'set-col' },
         h('section', { class: 'chart-card' }, h('div', { class: 'mc-h' }, h('span', {}, 'This month')),
           h('p', { class: 'set-big' }, `${q.used} of ${q.allowed}`), h('p', { class: 'hint' }, `leads with a score of ${HIGH_SCORE} or more. Your plan will set this allowance; nothing is limited yet.`)),
-        h('section', { class: 'chart-card' }, h('div', { class: 'mc-h' }, h('span', {}, 'LinkedIn')), extensionBox()),
+        h('section', { class: 'chart-card' }, h('div', { class: 'mc-h' }, h('span', {}, 'LinkedIn')), linkedinBox(), extensionBox()),
         h('section', { class: 'chart-card' }, h('div', { class: 'mc-h' }, h('span', {}, 'Data')),
           h('div', { class: 'modal-actions am-left' }, h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: exportCsv }, 'Export leads (CSV)'),
             sampleCount ? h('button', { type: 'button', class: 'btn btn-ghost-danger btn-sm', onclick: removeSample }, `Remove ${sampleCount} sample leads`) : h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: loadSample }, 'Add sample leads'))))));

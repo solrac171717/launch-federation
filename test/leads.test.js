@@ -211,3 +211,12 @@ test('ingest: only a paired extension, only the person’s own data', async () =
   assert.equal((await runIngest({ env: senv, fetchImpl, token: 'a'.repeat(43), body: { profile: { url: 'https://evil.example/in/eve', location: 'Paris' } } })).status, 400);
   assert.equal((await runIngest({ env, fetchImpl, token: 'a'.repeat(43), body: {} })).status, 503);
 });
+
+test('linkedinSearchUrl: content search, past week, newest first, phrase encoded', async () => {
+  const { linkedinSearchUrl } = await import('../src/leads-core.js');
+  const u = new URL(linkedinSearchUrl('invoicing  software & more'));
+  assert.equal(u.origin + u.pathname, 'https://www.linkedin.com/search/results/content/');
+  assert.equal(u.searchParams.get('keywords'), 'invoicing software & more');
+  assert.equal(u.searchParams.get('sortBy'), '"date_posted"');
+  assert.equal(u.searchParams.get('datePosted'), '"past-week"');
+});

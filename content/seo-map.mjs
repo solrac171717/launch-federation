@@ -14,7 +14,7 @@
 export const BRAND = 'owned map';
 
 export const SEO_MAP = [
-  { path: '/', type: 'home', primary: 'find people who are asking for what you sell', secondary: ['people asking for what you sell', 'buying intent leads', 'intent leads on a map'] },
+  { path: '/', type: 'home', primary: 'get customers from linkedin', secondary: ['linkedin lead generation', 'customers from linkedin on autopilot', 'buying intent leads'] },
   { path: '/compare/', type: 'hub', primary: 'net worth tracker comparison', secondary: ['net worth tracker alternatives'] },
   { path: '/compare/kubera-vs-owned-map', type: 'comparison', rival: 'Kubera', primary: 'kubera vs owned map', secondary: ['kubera alternative', 'kubera competitors'] },
   { path: '/compare/monarch-vs-owned-map', type: 'comparison', rival: 'Monarch Money', primary: 'monarch money vs owned map', secondary: ['monarch money alternative', 'monarch money competitors'] },

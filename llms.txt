@@ -1,6 +1,6 @@
 # Owned Map
 
-> Owned Map is a web app that finds people who are asking for what you sell. You paste your website; it searches public posts, scores how ready each person is to buy (0 to 100), and shows them on an interactive world map with what they wrote and a reply you can copy.
+> Owned Map is a web app that gets you customers from LinkedIn on autopilot. You paste your website; it gives you the LinkedIn searches for your buyers, a Chrome extension reads the posts you open, an AI scores how ready each person is to buy (0 to 100), and shows them on an interactive world map with what they wrote and a reply you can copy.
 
 Owned Map is a paid subscription product with a 7-day free trial (card required, charged only when the trial ends). Nothing is ever posted, sent or clicked on the user's behalf: every reply is edited and sent by the user.
 
