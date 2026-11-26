@@ -269,7 +269,10 @@ export function createGlobe(host, opts) {
         ctx.strokeStyle = 'rgba(37,99,235,.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(m.x, m.y, (20 + 8 * pulse) * ms, 0, 7); ctx.stroke();
       }
       ctx.shadowColor = 'rgba(11,23,54,.35)'; ctx.shadowBlur = 8 * ms; ctx.shadowOffsetY = 2 * ms;
-      ctx.fillStyle = sel ? '#2563EB' : '#0B1736'; ctx.beginPath(); ctx.arc(m.x, m.y, 11 * ms, 0, 7); ctx.fill();
+      // leads: a high-score lead is green, and one that has just arrived sends out a ring (assets have neither flag, so they look as before)
+      const born = m.a.fresh ? (Date.now() - m.a.fresh) / 1000 : 99;
+      if (!sel && born < 7) { const k = born / 7; ctx.strokeStyle = `rgba(21,128,61,${(1 - k).toFixed(2)})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(m.x, m.y, (12 + 36 * k) * ms, 0, 7); ctx.stroke(); }
+      ctx.fillStyle = sel ? '#2563EB' : m.a.tier === 'high' ? '#15803D' : '#0B1736'; ctx.beginPath(); ctx.arc(m.x, m.y, 11 * ms, 0, 7); ctx.fill();
       ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 * ms; ctx.stroke();
       ctx.save(); ctx.translate(m.x - 6 * ms, m.y - 6 * ms); ctx.scale(0.5 * ms, 0.5 * ms);

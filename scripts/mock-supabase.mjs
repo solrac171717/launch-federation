@@ -11,6 +11,18 @@ const COLS = ['id', 'user_id', 'name', 'type', 'place', 'country', 'lat', 'lon',
 const TYPES = ['house', 'office', 'warehouse', 'parking', 'land', 'car', 'truck', 'motorcycle', 'rv', 'yacht', 'sailboat', 'jetski', 'aircraft', 'equipment'];
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
 
+/** A stand-in for the model: it answers by the name of the JSON schema the request asked for. */
+function leadModel(req) {
+  const name = req.response_format?.json_schema?.name, user = String(req.messages?.[1]?.content || '');
+  let out;
+  if (name === 'business_profile') out = { name: 'Acme Invoices', niche: 'Invoicing software for small teams', audience: 'Teams of 2 to 20 people', problem: 'Late payments and month-end chaos', tone: 'friendly and direct', competitors: ['QuickBooks'], queries: ['alternative to quickbooks', 'simple invoicing tool', 'recommend invoicing software', 'chase late invoices', 'invoicing for small teams', 'cheap bookkeeping tool'] };
+  else if (name === 'lead_scores') {
+    const authors = user.split('\n\n').map(b => b.split('\n')[0]);
+    out = { items: authors.map((line, i) => { const sure = /invoic|quickbooks|bookkeep/i.test(user.split('\n\n')[i] || ''); return { id: String(i + 1), score: sure ? 90 - i * 4 : 12, intent: sure ? 'alternative' : 'problem', role: sure ? 'Founder' : '', company: '', place: i % 2 ? 'Austin, TX' : 'London, England', country: i % 2 ? 'US' : 'GB', draft: sure ? 'Happy to help with that.' : '' }; }) };
+  } else out = {};
+  return { choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(out) } }] };
+}
+
 export function startMock({ port = 4180, root = '.' } = {}) {
   const users = new Map();       // email -> { id, email }
   const access = new Map();      // access token -> { user, exp }
@@ -39,6 +51,7 @@ export function startMock({ port = 4180, root = '.' } = {}) {
     return fetch(`${origin2}/api/stripe-webhook`, { method: 'POST', headers: { 'stripe-signature': signPayload(raw, secret), 'content-type': 'application/json' }, body: raw });
   };
   const setBillingEnv = () => Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_SERVICE_ROLE_KEY: SERVICE, SUPABASE_ANON_KEY: 'mock-anon-key', STRIPE_SECRET_KEY: 'sk_test_mock', STRIPE_API_BASE: `${origin}/__stripe`, STRIPE_WEBHOOK_SECRET: 'whsec_mock', SITE_URL: origin });
+  const leadTables = { leads: [], business_profiles: [], ingest_tokens: [] }; // the leads app: one table each, rows isolated per user like the real policies
   const docs = [], rems = [], shares = [], settingsRows = [], files = new Map(); // other tables + the private file bucket
   const log = [];
   const origin = `http://localhost:${port}`;
@@ -174,8 +187,9 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_ANON_KEY: 'mock-anon-key', OPENAI_API_KEY: 'mock-key', OPENAI_BASE_URL: origin, NOMINATIM_URL: `${origin}/__nominatim` });
         const mod = await import('../api/extract.js'); return mod.default(req, res);
       }
-      if (path === '/v1/chat/completions' && req.method === 'POST') { // pretend model: reads "a deed"
-        const b = await readBody(req); log.push(['model', b.model, b.messages?.[1]?.content?.[0]?.type]);
+      if (path === '/v1/chat/completions' && req.method === 'POST') { // pretend model: reads "a deed", or answers the leads app by the name of its JSON schema
+        const b = await readBody(req);
+        if (['business_profile', 'lead_scores'].includes(b.response_format?.json_schema?.name)) return json(res, 200, leadModel(b)); log.push(['model', b.model, b.messages?.[1]?.content?.[0]?.type]);
         return json(res, 200, { id: 'chatcmpl_mock', object: 'chat.completion', model: b.model, usage: { prompt_tokens: 10, completion_tokens: 10 },
           choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify({ documentKind: 'purchase_deed', assetType: 'house', name: 'Lakeview Cottage', addressLine: '12 Calle Mayor', city: 'Madrid', region: 'Madrid', postalCode: '28013', countryCode: 'ES', currency: 'USD', purchasePrice: 640000, currentValue: null, outstandingDebt: 250000, monthlyDebtPayment: 1900, monthlyRent: null, acquiredOn: '2020-06-01', ownershipPercent: null, ownerName: 'Ana Test', details: 'Registry 77-A', confidence: 'high' }) } }] });
       }
@@ -316,6 +330,33 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         if (req.method === 'POST') { const data = await readRaw(req); if (data.length > 10485760) return json(res, 413, { message: 'too large' }); files.set(key, { data, type: req.headers['content-type'] }); return json(res, 200, { Key: key }); }
         if (req.method === 'DELETE') { files.delete(key); return json(res, 200, {}); }
       }
+      /* ---- rest: leads, the business profile and the extension tokens (RLS: your own rows only) */
+      if (path === '/api/analyze' || path === '/api/signals' || path === '/api/ingest') {
+        Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_ANON_KEY: 'mock-anon-key', SUPABASE_SERVICE_ROLE_KEY: SERVICE, OPENAI_API_KEY: 'mock-openai', OPENAI_BASE_URL: origin });
+        const mod = await import(`..${path}.js`); return mod.default(req, res);
+      }
+      if (leadTables[path.split('/').pop()] && path.startsWith('/rest/v1/')) {
+        const user = bearer(req); if (!user) return json(res, 401, { code: 'PGRST301', message: 'JWT expired' });
+        const name = path.split('/').pop(), T = leadTables[name], prefer = req.headers.prefer || '';
+        const mineOf = () => T.filter(r => (user.service || r.user_id === user.id) && matches(r, url.searchParams));
+        if (req.method === 'GET') { let rows = mineOf(); const sel = url.searchParams.get('select'); if (sel && sel !== '*') rows = rows.map(r => Object.fromEntries(sel.split(',').map(k => [k, r[k]]))); return json(res, 200, rows); }
+        if (req.method === 'POST') {
+          const b = await readBody(req), list = Array.isArray(b) ? b : [b], made = [];
+          for (const x of list) {
+            const owner = x.user_id || user.id; if (!user.service && owner !== user.id) return json(res, 403, { code: '42501', message: `new row violates row-level security policy for table "${name}"` });
+            if (name === 'leads') {
+              if (!['hn', 'linkedin'].includes(x.source) || !(x.score >= 0 && x.score <= 100) || !x.signal_text) return json(res, 400, { code: '23514', message: 'new row violates check constraint' });
+              if (T.some(r => r.user_id === owner && r.source === x.source && r.external_id === x.external_id)) { if (/ignore-duplicates/.test(prefer)) continue; return json(res, 409, { code: '23505', message: 'duplicate key value violates unique constraint' }); }
+            }
+            if (name === 'business_profiles') { const cur = T.find(r => r.user_id === owner); if (cur) { if (!/merge-duplicates/.test(prefer)) return json(res, 409, { code: '23505', message: 'duplicate key' }); Object.assign(cur, x); made.push(cur); continue; } }
+            const row = { id: randomUUID(), history: [], is_sample: false, status: 'new', revoked: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...x, user_id: owner }; T.push(row); made.push(row);
+          }
+          return json(res, 201, /return=representation/.test(prefer) ? made : undefined);
+        }
+        if (req.method === 'PATCH') { const b = await readBody(req), rows = mineOf(); rows.forEach(r => Object.assign(r, b)); return json(res, 200, /return=representation/.test(prefer) ? rows : undefined); }
+        if (req.method === 'DELETE') { for (const r of mineOf()) T.splice(T.indexOf(r), 1); return json(res, 204); }
+      }
+      if (path === '/__leads') return json(res, 200, leadTables);
       /* ---- rest: public.assets with RLS */
       if (path === '/rest/v1/assets') {
         const user = bearer(req);

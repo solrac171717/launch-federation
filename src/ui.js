@@ -33,6 +33,8 @@ export const ICON = {
   vessel: 'M3 15h18l-3 5H6zM12 3v12M12 4l6 9h-6',
   aircraft: 'M12 2l2 7 8 4v2l-8-2v5l3 2v1l-5-1-5 1v-1l3-2v-5l-8 2v-2l8-4z',
   equipment: 'M4 19h12M6 19v-4h8v4M10 15V9l6-5M16 4l3 6',
+  hn: 'M4 4h16v16H4zM8 8l4 5 4-5M12 13v4', // lead sources: a boxed Y for Hacker News,
+  linkedin: 'M4 9.5V20M4 4.8v.4M9 20v-6.5a3.2 3.2 0 0 1 6.4 0V20M9 9.5V20', // and the in of LinkedIn
 };
 export const icon = (key, size = 22) => s('svg', { viewBox: '0 0 24 24', width: size, height: size, class: 'ico', 'aria-hidden': 'true' }, s('path', { d: ICON[key] }));
 export const ASSET_IMG = { austin: 'house', miami: 'house', chicago: 'house', london: 'commercial', seattle: 'land', scottsdale: 'porsche', nashville: 'truck', teterboro: 'jet',

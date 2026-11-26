@@ -130,6 +130,10 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     /** Reads a document with our /api/extract (signed-in users only). `payload` is { mime, data (base64) }. */
     async extract(payload) { return authed(t => call('/api/extract', { method: 'POST', local: true, body: payload, token: t })); },
 
+    /** Leads: read a business (/api/analyze) and look for people who want what it sells (/api/signals). Signed-in users only. */
+    async analyze(body) { return authed(t => call('/api/analyze', { method: 'POST', local: true, body, token: t })); },
+    async signals(body) { return authed(t => call('/api/signals', { method: 'POST', local: true, body, token: t })); },
+
     /** Plan and billing actions (checkout, change, portal), answered by /api/billing with the user's own session. */
     async billing(body) { return authed(t => call('/api/billing', { method: 'POST', local: true, body, token: t })); },
 

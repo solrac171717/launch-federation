@@ -1,0 +1,28 @@
+// Sample leads: invented people and quotes, only to show what the product looks like before the first real search (the landing page and
+// "Try with sample leads" in the app). Every one is flagged as a sample, and removing them is one click. Nothing here is a real person.
+import { validateLead } from './leads-core.js';
+
+const days = n => new Date(Date.now() - n * 86400_000).toISOString();
+// [id, author, role, company, place, country, lat, lon, score, intent, status, days ago, signal, draft]
+const RAW = [
+  ['s1', 'Maya R.', 'Head of Ops', 'Northwind Studio', 'Austin, TX', 'US', 30.27, -97.74, 94, 'alternative', 'new', 1, 'We are moving off our current invoicing tool, it keeps breaking at month end. Anyone used something simpler for a team of six?', 'Month-end breakage is usually a sign the tool was built for bigger teams. For six people, keep it simple: one place for invoices, automatic reminders, and no setup. Happy to show how we handle it if useful.'],
+  ['s2', 'Tom H.', 'Founder', 'Brightloop', 'London, UK', 'GB', 51.51, -0.13, 91, 'pricing', 'contacted', 3, 'What do you all pay for bookkeeping software as a two-person company? Quotes I get are a lot more than I expected.', 'For two people most of the quoted features are paying for headcount you do not have. A flat plan with no per-seat price tends to be the right shape. Glad to share what ours costs.'],
+  ['s3', 'Lucía M.', 'COO', 'Costa Norte', 'Madrid, ES', 'ES', 40.42, -3.7, 88, 'recommendation', 'new', 2, 'Looking for a recommendation: a tool to follow up with leads automatically without it feeling robotic.', 'The trick is to write the first message by hand and automate only the reminders. That is what our tool does: it drafts, you approve, nothing goes out on its own.'],
+  ['s4', 'Daniel K.', 'CTO', 'Fieldstone', 'Seattle, WA', 'US', 47.61, -122.33, 83, 'complaint', 'replied', 6, 'Third time this quarter that our current vendor changes pricing mid-contract. Starting to look around.', 'Mid-contract changes are a fair reason to look around. We publish our pricing and keep it for the year you sign. If you tell me what you need, I can say honestly whether it fits.'],
+  ['s5', 'Aiko T.', 'Product lead', 'Hana Labs', 'Tokyo, JP', 'JP', 35.68, 139.69, 79, 'problem', 'new', 4, 'Our team spends hours every week copying data between tools. There has to be a better way.', 'Copying between tools is the classic sign you need one source of truth. We connect the two most common ones and remove the copy step. Happy to walk through your setup.'],
+  ['s6', 'Pierre L.', 'Owner', 'Atelier Lune', 'Paris, FR', 'FR', 48.86, 2.35, 76, 'recommendation', 'new', 5, 'Can anyone recommend something to keep track of customer requests? We are drowning in email.', 'Email is where requests go to die. A shared inbox with a status per request is usually enough at your size. Ours does that and nothing more.'],
+  ['s7', 'Sofia B.', 'Marketing manager', 'Verde Agency', 'São Paulo, BR', 'BR', -23.55, -46.63, 72, 'alternative', 'contacted', 8, 'Is there an alternative to the big CRM suites that does not need a consultant to set up?', 'There is. The big suites assume you have someone to configure them. We are set up in an afternoon, by you. I can send the three steps if you want.'],
+  ['s8', 'James W.', 'Director', 'Harbour & Co', 'Sydney, AU', 'AU', -33.87, 151.21, 69, 'pricing', 'new', 7, 'How much should I expect to pay for a simple scheduling tool for a clinic with four staff?', 'For four staff, anything above a small flat monthly fee is paying for features you will not use. Happy to share what we charge, which is flat.'],
+  ['s9', 'Elena V.', 'Founder', 'Bluefin', 'Miami, FL', 'US', 25.76, -80.19, 66, 'problem', 'new', 9, 'Honestly our follow-up process is a spreadsheet and good intentions. Leads fall through the cracks.', 'Spreadsheet plus good intentions is how most of us start. The step up is a reminder per lead, not a bigger spreadsheet. That is the one thing our tool does well.'],
+  ['s10', 'Marco D.', 'Sales lead', 'Rialto Foods', 'Milan, IT', 'IT', 45.46, 9.19, 61, 'recommendation', 'new', 10, 'Recommendations for lightweight quoting software? We send quotes as PDFs and lose track of who answered.', 'Tracking who answered is the real problem, not the PDF. We give each quote a status and a reminder, and you keep your own template.'],
+  ['s11', 'Hannah S.', 'Ops manager', 'Linden Works', 'Berlin, DE', 'DE', 52.52, 13.41, 58, 'problem', 'new', 12, 'We keep losing track of which customers asked for a callback. Any ideas besides sticky notes?', '', ],
+  ['s12', 'Ryan C.', 'Founder', 'Maple Street', 'Toronto, ON', 'CA', 43.65, -79.38, 52, 'problem', 'new', 13, 'Small team, big backlog of customer emails. Starting to think we need to hire just to answer them.', '', ],
+  ['s13', 'Noah P.', 'Consultant', 'Self-employed', 'Dubai, AE', 'AE', 25.2, 55.27, 47, 'problem', 'new', 15, 'Does anyone else find that every tool wants a team plan even when you work alone?', '', ],
+  ['s14', 'Chloe A.', 'Freelancer', 'Self-employed', 'Mexico City, MX', 'MX', 19.43, -99.13, 44, 'pricing', 'new', 16, 'Is there anything under $20 a month that handles invoices and reminders?', '', ],
+];
+
+/** Validated sample leads, ready for a store's addMany(..., { sample: true }). */
+export function sampleLeads() {
+  return RAW.map(([id, authorName, authorRole, authorCompany, place, country, lat, lon, score, intent, status, ago, text, draft]) =>
+    validateLead({ source: id.endsWith('2') || id.endsWith('7') ? 'linkedin' : 'hn', externalId: `sample-${id}`, authorName, authorRole, authorCompany, place, country, lat, lon, score, intent, status, text, draft, signalAt: days(ago) }).value);
+}

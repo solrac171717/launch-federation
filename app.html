@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Owned Map app</title>
+<title>Owned Map: your leads</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#ffffff">
 <link rel="icon" href="assets/favicon.png" type="image/png">
@@ -13,17 +13,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="landing.css">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="leads.css">
 </head>
 <body class="app-page">
 
-<div class="boot" id="boot" role="status">Loading your workspace…</div>
+<div class="boot" id="boot" role="status">Loading your leads…</div>
 
 <!-- Sign in -->
 <section class="auth" id="auth" hidden aria-labelledby="auth-title">
   <div class="aurora" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
   <div class="auth-card">
     <a class="logo" href="index.html" aria-label="Owned Map, back to the website"><span class="lmark" style="--s:34px" aria-hidden="true"><img src="assets/logo-o.png" alt="" width="192" height="192"></span><span>OWNED MAP</span></a>
-    <h1 id="auth-title">Sign in to your workspace</h1>
+    <h1 id="auth-title">Sign in to your leads</h1>
     <p class="auth-sub">Sign in with your email and password. New here? <a href="/api/start">Start your 7-day free trial</a>.</p>
     <form id="auth-form" novalidate>
       <div class="field"><label for="auth-email">Email</label><input id="auth-email" type="email" autocomplete="username" inputmode="email" placeholder="you@company.com" required></div>
@@ -41,7 +42,7 @@
   <div class="auth-card" id="invite-card"></div>
 </section>
 
-<!-- The dashboard: same markup and styles as the preview on the website -->
+<!-- The leads app: the same shell and styles as the website -->
 <main class="app-shell" id="shell" hidden>
   <div class="device">
     <div class="window">
@@ -53,9 +54,9 @@
         </aside>
         <div class="app-main">
           <div class="app-top">
-            <b id="view-title">Portfolio</b>
-            <div class="view-tabs" id="view-tabs" role="group" aria-label="Dashboard views"></div>
-            <div class="seg-mini" id="app-filter" role="group" aria-label="Filter by asset type"></div>
+            <b id="view-title">Map</b>
+            <div class="view-tabs" id="view-tabs" role="group" aria-label="Views"></div>
+            <div class="seg-mini" id="app-filter" role="group" aria-label="Filter by source"></div>
           </div>
           <div class="app-banner" id="app-banner" hidden></div>
           <div class="app-view" id="view-map">
@@ -71,12 +72,9 @@
               </div>
             </div>
           </div>
-          <div class="app-view" id="view-assets" hidden></div>
-          <div class="app-view" id="view-perf" hidden></div>
-          <div class="app-view" id="view-reports" hidden></div>
-          <div class="app-view" id="view-cashflow" hidden></div>
-          <div class="app-view" id="view-insights" hidden></div>
-          <div class="app-view" id="view-reminders" hidden></div>
+          <div class="app-view" id="view-leads" hidden></div>
+          <div class="app-view" id="view-activity" hidden></div>
+          <div class="app-view" id="view-settings" hidden></div>
         </div>
       </div>
     </div>
@@ -87,6 +85,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <noscript><p style="padding:24px;text-align:center">Owned Map needs JavaScript to run.</p></noscript>
-<script type="module" src="src/app-main.js"></script>
+<script type="module" src="src/leads-main.js"></script>
 </body>
 </html>

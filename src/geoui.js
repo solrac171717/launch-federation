@@ -46,7 +46,7 @@ const PIN_ICO = 'M8 14.2s4.8-4 4.8-7.6a4.8 4.8 0 1 0-9.6 0C3.2 10.200 8 14.200 8
  * Globe / Country switcher with a drill-down inside Country: country -> region (state, province, autonomous community) -> city -> assets.
  * The globe draws the outlines and the count bubbles; this module owns where you are, the breadcrumb, the cards and the camera moves.
  */
-export function attachGeo(host, globe, { visible, all = visible, selected, lookup, onPick, onChange = () => {}, toggleAfter = null }) {
+export function attachGeo(host, globe, { visible, all = visible, selected, lookup, onPick, onChange = () => {}, toggleAfter = null, fmt = compact, fmtGroup = fmt }) {
   const st = { mode: 'globe', cc: null, key: '', level: 'country', rid: null, city: null, data: null, tree: null, token: 0, pushed: '' };
   const ico = d => s('svg', { viewBox: '0 0 16 16', width: 15, height: 15, 'aria-hidden': 'true', class: 'gi' }, s('path', { d }));
   const toggle = h('div', { class: 'geo-toggle', role: 'group', 'aria-label': 'Map view', 'data-mode': 'globe' }, h('i', { class: 'geo-thumb', 'aria-hidden': 'true' }),
@@ -132,7 +132,7 @@ export function attachGeo(host, globe, { visible, all = visible, selected, looku
     const deep = st.mode === 'country' && !!st.tree && st.level !== 'country';
     crumbs.hidden = !deep; ui.classList.toggle('deep', deep);
   }
-  const card = (label, n, value, fn, i) => h('button', { type: 'button', style: `--i:${i}`, class: 'geo-card', onclick: fn }, h('span', {}, label), h('em', {}, String(n)), h('b', {}, compact(value)));
+  const card = (label, n, value, fn, i) => h('button', { type: 'button', style: `--i:${i}`, class: 'geo-card', onclick: fn }, h('span', {}, label), h('em', {}, String(n)), h('b', {}, fmtGroup(value)));
   function drawRow() {
     const keep = row.scrollLeft, vis = here(), sel = selected();
     let kids;
@@ -143,7 +143,7 @@ export function attachGeo(host, globe, { visible, all = visible, selected, looku
     row.replaceChildren(...kids); row.scrollLeft = keep;
     row.querySelectorAll('button[data-id]').forEach(b => { const on = b.dataset.id === sel; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   }
-  const assetBtn = (a, i) => h('button', { type: 'button', 'data-id': a.id, style: `--i:${i}`, onclick: () => onPick(a.id, false) }, thumb(a, 24), h('span', {}, a.name), h('b', {}, compact(a.value)));
+  const assetBtn = (a, i) => h('button', { type: 'button', 'data-id': a.id, style: `--i:${i}`, onclick: () => onPick(a.id, false) }, thumb(a, 24), h('span', {}, a.name), h('b', {}, fmt(a.value)));
 
   function build() {
     const vis = visible(), key = [st.mode, st.cc, st.level, st.rid, st.city, vis.map(a => a.id).join(), st.tree ? 1 : 0].join('|');
