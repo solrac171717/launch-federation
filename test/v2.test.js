@@ -6,12 +6,6 @@ import { parseCsv, previewImport, TEMPLATE_CSV } from '../src/csv-import.js';
 import { buildXlsx, zip } from '../src/xlsx.js';
 import { buildExcel, reportHtml } from '../src/report.js';
 import { ASSETS, sampleRows } from '../src/demo-data.js';
-import { statusOf, daysUntil, nextDue, validateReminder, shouldNotify, digestEmail, whenText } from '../src/reminders.js';
-import { validateFile, safeName, completionPatch, createCloudExtras } from '../src/extras-store.js';
-import { runReminders } from '../api/send-reminders.js';
-import { runShare } from '../api/share.js';
-import { portfolioTimeline } from '../src/networth.js';
-import { activityFor } from '../src/activity.js';
 import { quickValues, toView, nextHistory } from '../src/asset-store.js';
 import { makeToken, sha256Hex, shareState } from '../src/app-share.js';
 import { createHash } from 'node:crypto';
@@ -88,82 +82,6 @@ test('the portfolio workbook and PDF report reconcile with portfolio()', () => {
 });
 
 /* ------------------------------------------------ reminders */
-test('reminder dates: days, status, repeat rolls forward with month-end clamping', () => {
-  assert.equal(daysUntil('2026-11-04', '2026-10-28'), 7); assert.equal(daysUntil('2026-10-20', '2026-10-28'), -8);
-  const r = { dueOn: '2026-11-10', notifyDays: 14, done: false };
-  assert.equal(statusOf(r, '2026-10-28'), 'soon'); assert.equal(statusOf(r, '2026-09-01'), 'upcoming'); assert.equal(statusOf(r, '2026-11-11'), 'overdue'); assert.equal(statusOf({ ...r, done: true }, '2026-11-11'), 'done');
-  assert.equal(nextDue('2026-01-31', 'monthly'), '2026-02-28'); assert.equal(nextDue('2024-02-29', 'yearly'), '2025-02-28'); assert.equal(nextDue('2026-11-30', 'quarterly'), '2027-02-28'); assert.equal(nextDue('2026-01-01', 'none'), '2026-01-01');
-  assert.equal(whenText({ dueOn: '2026-10-29' }, '2026-10-28'), 'Due tomorrow');
-});
-test('reminder validation and the done/renew patch', () => {
-  assert.equal(validateReminder({ kind: 'insurance', title: '', dueOn: '2026-12-01', repeat: 'yearly', notifyDays: '' }).value.title, 'Insurance renewal');
-  assert.deepEqual(Object.keys(validateReminder({ kind: 'x', dueOn: 'soon', repeat: 'daily', notifyDays: '99' }).errors).sort(), ['dueOn', 'kind', 'notifyDays', 'repeat', 'title']);
-  assert.deepEqual(completionPatch({ dueOn: '2026-12-01', repeat: 'yearly' }), { dueOn: '2027-12-01', done: false, lastNotifiedOn: null });
-  assert.deepEqual(completionPatch({ dueOn: '2026-12-01', repeat: 'none' }), { done: true });
-});
-test('email rule: once when entering the window, once on the due date, weekly while overdue', () => {
-  const r = { dueOn: '2026-11-10', notifyDays: 14, done: false, lastNotifiedOn: null };
-  assert.equal(shouldNotify(r, '2026-10-20'), false, 'outside the window');
-  assert.equal(shouldNotify(r, '2026-10-27'), true);
-  assert.equal(shouldNotify({ ...r, lastNotifiedOn: '2026-10-27' }, '2026-10-28'), false, 'already told');
-  assert.equal(shouldNotify({ ...r, lastNotifiedOn: '2026-10-27' }, '2026-11-10'), true, 'due today');
-  assert.equal(shouldNotify({ ...r, lastNotifiedOn: '2026-11-10' }, '2026-11-12'), false);
-  assert.equal(shouldNotify({ ...r, lastNotifiedOn: '2026-11-10' }, '2026-11-17'), true, 'a week overdue');
-  assert.equal(shouldNotify({ ...r, done: true }, '2026-11-10'), false);
-  const m = digestEmail([{ title: 'Insurance renewal', assetName: 'Lake <House>', dueOn: '2026-11-10' }], { today: '2026-11-12', appUrl: 'https://x.test/app.html' });
-  assert.match(m.subject, /overdue/); assert.match(m.text, /overdue by 2 days/); assert.match(m.html, /Lake &lt;House&gt;/);
-});
-test('daily email job: needs config, groups per person, marks only what was sent, survives failures', async () => {
-  const env = { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'srv', RESEND_API_KEY: 're_1', REMINDER_FROM: 'Owned Map <a@x.test>' };
-  assert.equal((await runReminders({ env: {}, fetchImpl: async () => { throw new Error('no network'); } })).status, 503);
-  const rows = [
-    { id: 'r1', user_id: 'u1', title: 'Insurance', kind: 'insurance', due_on: '2026-11-01', notify_days: 14, last_notified_on: null, assets: { name: 'House' } },
-    { id: 'r2', user_id: 'u1', title: 'Tax', kind: 'tax', due_on: '2026-11-05', notify_days: 14, last_notified_on: null, assets: { name: 'Car' } },
-    { id: 'r3', user_id: 'u2', title: 'Survey', kind: 'inspection', due_on: '2026-11-02', notify_days: 14, last_notified_on: null, assets: { name: 'Boat' } },
-    { id: 'r4', user_id: 'u1', title: 'Later', kind: 'other', due_on: '2027-05-01', notify_days: 14, last_notified_on: null, assets: { name: 'House' } },
-  ];
-  const calls = [];
-  const f = async (url, init = {}) => {
-    calls.push({ url, method: init.method || 'GET', body: init.body });
-    const ok = b => ({ ok: true, json: async () => b });
-    if (url.includes('/rest/v1/asset_reminders?done=eq.false')) return ok(rows);
-    if (url.includes('/auth/v1/admin/users/u1')) return ok({ email: 'one@x.test' });
-    if (url.includes('/auth/v1/admin/users/u2')) return ok({ email: 'two@x.test' });
-    if (url === 'https://api.resend.com/emails') return JSON.parse(init.body).to[0] === 'two@x.test' ? { ok: false, json: async () => ({}) } : ok({ id: 'm' });
-    if (init.method === 'PATCH') return ok(null);
-    return { ok: false, json: async () => ({}) };
-  };
-  const r = await runReminders({ env, fetchImpl: f, today: '2026-10-28' });
-  assert.deepEqual(r.body, { ok: true, reminders: 3, people: 2, emails: 1, failed: 1 });
-  const mails = calls.filter(c => c.url === 'https://api.resend.com/emails'); assert.equal(mails.length, 2);
-  assert.match(JSON.parse(mails[0].body).text, /Insurance \(House\)/); assert.match(JSON.parse(mails[0].body).text, /Tax \(Car\)/);
-  const patches = calls.filter(c => c.method === 'PATCH'); assert.equal(patches.length, 1); assert.match(patches[0].url, /id=in\.\(r1,r2\)/);
-});
-
-/* ------------------------------------------------ documents */
-test('file rules and safe storage names', () => {
-  assert.equal(validateFile({ name: 'deed.pdf', size: 1000 }), null);
-  assert.match(validateFile({ name: 'big.pdf', size: 11 * 1024 * 1024 }), /10 MB/); assert.match(validateFile({ name: 'run.exe', size: 5 }), /PDF, image/); assert.match(validateFile({ name: 'a.pdf', size: 0 }), /empty/); assert.ok(validateFile(null));
-  assert.equal(safeName('../../Seguro Casa (2026).pdf'), 'Seguro-Casa-2026.pdf');
-});
-test('cloud documents: upload goes to the user folder, row is written, failed row removes the file', async () => {
-  const calls = []; let failRow = false;
-  const cloud = {
-    user: () => ({ id: 'u1' }),
-    upload: async (b, p, f, m) => { calls.push(['upload', b, p, m]); },
-    removeObject: async (b, p) => { calls.push(['remove', b, p]); },
-    signedUrl: async (b, p) => `https://x/${b}/${p}?t=1`,
-    rest: async (m, path, body) => { calls.push([m, path, body]); if (failRow && m === 'POST') throw new Error('db down'); return m === 'POST' ? [{ id: 'd1', asset_id: body.asset_id, name: body.name, kind: body.kind, path: body.path, size: body.size, mime: body.mime, created_at: 't' }] : []; },
-  };
-  const ex = createCloudExtras(cloud);
-  const d = await ex.addDoc('a1', { name: 'Seguro 2026.pdf', size: 2048, type: 'application/pdf' }, 'insurance');
-  assert.match(d.path, /^u1\/a1\/.+-Seguro-2026\.pdf$/); assert.equal(calls[0][1], 'asset-docs'); assert.equal(calls[1][2].kind, 'insurance');
-  assert.match(await ex.docUrl(d), /^https:\/\/x\/asset-docs\/u1\/a1\//);
-  failRow = true; calls.length = 0;
-  await assert.rejects(() => ex.addDoc('a1', { name: 'x.pdf', size: 5, type: 'application/pdf' }), /db down/);
-  assert.equal(calls.at(-1)[0], 'remove', 'orphaned file is cleaned up');
-  calls.length = 0; await ex.removeDoc(d); assert.equal(calls[0][0], 'DELETE'); assert.equal(calls[1][0], 'remove');
-});
 test('sample rows are storable with debt', () => { const r = sampleRows('2026-10-28')[0]; assert.equal(r.debt, 310000); assert.equal(r.debtPayment, 2150); });
 
 test('cloud update: paying a debt off writes zero, an asset that never had debt does not touch the debt columns', async () => {
@@ -174,3 +92,4 @@ test('cloud update: paying a debt off writes zero, an asset that never had debt 
   await s.update('x', v, { prev: { debt: 5000, debtPayment: 100, ownership: 100, owner: '' } }); assert.equal(bodies[0].debt, 0); assert.equal(bodies[0].debt_payment, 0);
   await s.update('x', v, { prev: { debt: 0, debtPayment: 0, ownership: 100, owner: '' } }); assert.ok(!('debt' in JSON.parse(JSON.stringify(bodies[1]))) && !('debt_payment' in JSON.parse(JSON.stringify(bodies[1]))));
 });
+

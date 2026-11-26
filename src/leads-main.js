@@ -11,10 +11,12 @@ import { download } from './report.js';
 import { toCsv } from './calc.js';
 import { showSetPassword } from './app-password.js';
 import { createAccountUi } from './app-account.js';
-import { makeToken, sha256Hex } from './app-share.js';
-import { planFor } from './plan.js';
+import { makeToken, sha256Hex, createShareUi } from './app-share.js';
+import { planFor, isSuperadmin } from './plan.js';
+import { createBillingUi } from './app-billing.js';
 import { SOURCES, INTENTS, STATUSES, HIGH_SCORE, HISTORY_LABEL, toView, stats, funnel, quotaState, nextHistory, createLocalStore, createCloudStore, toCsvRows, LEAD_COLUMNS } from './leads-core.js';
 import { sampleLeads } from './leads-demo.js';
+import { ago, snippet, sourceIcon, scorePill, leadCard, funnelBars } from './leads-view.js';
 import { createProfileStore, profileForm, queriesFromText, PROFILE_EMPTY } from './leads-profile.js';
 
 document.documentElement.classList.add('js');
@@ -36,14 +38,10 @@ const show = id => { for (const k of ['boot', 'auth', 'invite', 'shell']) $(k).h
 const modal = () => $('modal');
 function openModal(content) { const m = modal(); m.replaceChildren(content); if (!m.open) m.showModal(); }
 async function run(label, fn) { try { return await fn(); } catch (e) { if (e && e.status === 401) { toast('Your session has expired. Please sign in again.', 'err'); return undefined; } console.error(label, e); toast(message(e), 'err'); return undefined; } }
-const ago = iso => { const d = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / 86400_000)); return d === 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`; };
-const snippet = (t, n = 110) => (t.length > n ? `${t.slice(0, n).trim()}…` : t);
 const recompute = () => { views = raw.map(toView); };
 const find = id => views.find(v => v.id === id);
 const located = () => views.filter(v => v.located);
 const inFilter = v => (state.source === 'all' || v.source === state.source);
-const sourceIcon = (key, size = 16) => svg('svg', { viewBox: '0 0 24 24', width: size, height: size, class: 'ico', 'aria-hidden': 'true' }, svg('path', { d: ICON[key] }));
-const scorePill = v => h('span', { class: `score-pill ${v.tier}`, title: `Intent score ${v.score} of 100` }, String(v.score));
 const copyText = async text => { try { await navigator.clipboard.writeText(text); return true; } catch { const t = h('textarea', { style: 'position:fixed;opacity:0' }, text); document.body.append(t); t.select(); const ok = document.execCommand?.('copy'); t.remove(); return Boolean(ok); } };
 
 /* ------------------------------------------------------------------ sign in (unchanged from before) */
@@ -75,7 +73,9 @@ async function signOut() { await cloud.signOut(); raw = []; views = []; location
 const initialsOf = email => { const n = String(email || '?').split('@')[0].split(/[._+-]+/).filter(Boolean); return ((n[0]?.[0] || '?') + (n[1]?.[0] || n[0]?.[1] || '')).toUpperCase(); };
 const whoAmI = () => { const email = cloud.user()?.email || '', plan = planFor(email), admin = plan.key === 'superadmin'; return { email, initials: initialsOf(email), admin, mine: true, role: admin ? plan.label : 'Owner', note: plan.note }; };
 const supportMailto = () => `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Owned Map support')}&body=${encodeURIComponent(`Hi Owned Map support,\n\n\n\n--\nAccount: ${cloud.user()?.email || ''}`)}`;
-const accountUi = createAccountUi({ cloud, openModal, modal, toast, message, billing: { view: () => ({ state: 'none', label: '' }), label: () => '', portal() {} }, billingOn: () => false, signOut, who: whoAmI, support: () => ({ href: supportMailto(), email: SUPPORT_EMAIL }) });
+const shareUi = createShareUi({ cloud, openModal, modal, toast, run, message });
+const billingUi = createBillingUi({ cloud, openModal, modal, toast, run, message, used: () => stats(raw.filter(l => !l.isSample)).highThisMonth, superadmin: () => isSuperadmin(cloud.user()?.email) });
+const accountUi = createAccountUi({ cloud, openModal, modal, toast, message, billing: billingUi, billingOn: () => Boolean(CONFIG.billing), signOut, who: whoAmI, support: () => ({ href: supportMailto(), email: SUPPORT_EMAIL }) });
 function renderFoot() {
   const f = clear($('side-foot'));
   if (!cloud.configured) { f.append(h('div', { class: 'acct-sync off' }, h('i', { 'aria-hidden': 'true' }), 'Saved on this device only')); return; }
@@ -83,7 +83,7 @@ function renderFoot() {
   f.append(h('div', { class: 'acct' },
     h('button', { type: 'button', class: 'acct-head', id: 'profile-btn', 'aria-haspopup': 'dialog', title: 'Your account', onclick: () => accountUi.open() },
       h('span', { class: 'acct-av' + (me.admin ? ' admin' : ''), 'aria-hidden': 'true' }, me.initials),
-      h('span', { class: 'acct-who' }, h('span', { class: 'acct-email', title: me.email }, me.email || 'Signed in'), h('span', { class: 'acct-role' + (me.admin ? ' admin' : '') }, me.role))),
+      h('span', { class: 'acct-who' }, h('span', { class: 'acct-email', title: me.email }, me.email || 'Signed in'), h('span', { class: 'acct-role' + (me.admin ? ' admin' : '') }, me.admin || !CONFIG.billing ? me.role : billingUi.label()))),
     h('a', { class: 'acct-support', id: 'support-link', href: supportMailto() }, 'Support'),
     h('div', { class: 'acct-sync' }, h('i', { 'aria-hidden': 'true' }), 'Synced to your account')));
 }
@@ -180,6 +180,7 @@ function renderTop() {
   if (!$('find-btn')) {
     host.before(h('button', { type: 'button', class: 'btn btn-primary btn-sm add-btn', id: 'find-btn', onclick: () => findLeads() }, h('span', { class: 'lbl' }, 'Find new leads'), h('span', { class: 'spin', 'aria-hidden': 'true' })));
     host.before(h('button', { type: 'button', class: 'btn btn-dark btn-sm import-btn', id: 'export-btn', onclick: exportCsv }, 'Export CSV'));
+    if (cloud.configured) host.before(h('button', { type: 'button', class: 'btn btn-dark btn-sm import-btn', id: 'share-btn', onclick: () => shareUi.open() }, 'Share'));
   }
   const present = Object.keys(SOURCES).filter(k => views.some(v => v.source === k));
   const opts = [['all', 'All'], ...present.map(k => [k, SOURCES[k].label])];
@@ -198,14 +199,7 @@ function refresh() {
 }
 
 const empty = (t, d) => h('div', { class: 'app-empty' }, h('b', {}, t), h('span', {}, d));
-function leadCard(v) {
-  return h('div', { class: 'asset-card lead-card' },
-    h('div', { class: 'ac-top' }, h('span', { class: 'ac-ico src' }, sourceIcon(v.source, 18)), h('div', {}, h('b', {}, v.name), h('span', {}, [v.authorRole, v.authorCompany].filter(Boolean).join(' · ') || v.kind)), scorePill(v)),
-    h('p', { class: 'lc-quote' }, `“${snippet(v.text, 190)}”`),
-    h('div', { class: 'lc-meta' }, h('span', {}, v.intentLabel), h('span', {}, v.place || 'Location unknown'), h('span', {}, ago(v.signalAt)), h('span', { class: `st st-${v.status === 'customer' ? 'ok' : v.status === 'new' ? 'idle' : 'warn'}` }, v.statusLabel)),
-    h('div', { class: 'ac-actions' }, h('button', { type: 'button', class: 'mini-btn accent', onclick: () => openLead(v.id) }, 'Open lead and reply'),
-      v.url ? h('a', { class: 'mini-btn', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, 'Original post') : null));
-}
+const appCard = v => leadCard(v, { actions: [h('button', { type: 'button', class: 'mini-btn accent', onclick: () => openLead(v.id) }, 'Open lead and reply'), v.url ? h('a', { class: 'mini-btn', href: v.url, target: '_blank', rel: 'noopener noreferrer' }, 'Original post') : null].filter(Boolean) });
 
 function renderMap() {
   const host = $('view-map');
@@ -216,7 +210,7 @@ function renderMap() {
     return;
   }
   const sc = views.filter(inFilter), st = stats(sc), v = find(state.sel);
-  clear($('hero-sel')).append(v ? leadCard(v) : empty('Pick a point on the globe', 'Each point is a person who asked for something like what you sell.'));
+  clear($('hero-sel')).append(v ? appCard(v) : empty('Pick a point on the globe', 'Each point is a person who asked for something like what you sell.'));
   clear($('hero-value')).append(h('span', {}, 'Leads found'), h('b', {}, String(st.total)), h('em', { class: 'muted' }, `${st.high} with a score of ${HIGH_SCORE} or more · ${st.located} on the map`));
   const k = (l, val, sub) => h('div', { class: 'kpi' }, h('span', {}, l), h('b', {}, val), h('em', {}, sub));
   const unplaced = sc.length - st.located;
@@ -224,11 +218,6 @@ function renderMap() {
   const mc = clear($('hero-chart')); mc.append(h('div', { class: 'mc-h' }, h('span', {}, 'From signal to customer')), funnelBars(sc));
   void host;
 }
-function funnelBars(list) {
-  const f = funnel(list), top = Math.max(f[0][1], 1);
-  return h('div', { class: 'funnel' }, ...f.map(([label, n]) => h('div', { class: 'fn-row' }, h('span', {}, label), h('i', { style: `width:${Math.max(3, (n / top) * 100)}%` }), h('b', {}, String(n)))));
-}
-
 function onboarding() {
   const url = h('input', { id: 'onb-url', type: 'text', inputmode: 'url', autocomplete: 'url', placeholder: 'yourbusiness.com' });
   const txt = h('textarea', { id: 'onb-text', rows: 3, maxlength: 4000, placeholder: 'Or describe what you sell and who buys it, in a few lines.' });
@@ -329,7 +318,7 @@ function extensionBox() {
     loadTokens();
   } }, 'Connect the extension');
   loadTokens();
-  return h('div', {}, h('p', { class: 'hint' }, 'The extension reads the LinkedIn posts and profiles you are already looking at and sends them here to be scored. It never sends a message or an invitation for you. Install it from the extension folder of this project (Chrome: Extensions, Developer mode, Load unpacked).'), make, out, list);
+  return h('div', {}, h('p', { class: 'hint' }, 'The extension reads the LinkedIn posts and profiles you are already looking at and sends them here to be scored. It never sends a message or an invitation for you. To install it: download the file below, unzip it, then in Chrome open Extensions, turn on Developer mode, press Load unpacked and choose the folder. It is new and has not been published to the Chrome Web Store yet.'), h('p', {}, h('a', { class: 'link-btn', href: '/downloads/owned-map-extension.zip', download: '' }, 'Download the extension (.zip)')), make, out, list);
 }
 
 function exportCsv() {
@@ -353,6 +342,11 @@ async function start() {
     if (e && e.status === 401) return showAuth('Your session has expired. Please sign in again.');
     $('boot').replaceChildren(h('b', {}, 'Could not load your leads. '), message(e), ' ', h('button', { type: 'button', class: 'mini-btn', onclick: () => location.reload() }, 'Try again'));
     return;
+  }
+  if (cloud.configured && CONFIG.billing) {
+    await billingUi.load();
+    const back = new URLSearchParams(location.search).get('billing');
+    if (back) { history.replaceState(null, '', location.pathname); if (back === 'success') billingUi.waitForPlan().then(ok => { renderFoot(); toast(ok ? 'Thank you! Your plan is active.' : 'Payment received. Your plan will show up in a moment.'); }); }
   }
   recompute(); show('shell'); renderFoot();
   globe = createGlobe($('hero-map'), { assets: located(), icons: ICON, selectedId: state.sel, startLon: -30, tilt: 22, countryPadV: 70, label: 'Rotating 3D globe of the people looking for what you sell', onSelect: id => { state.sel = id; globe.setSelected(id); renderMap(); } });

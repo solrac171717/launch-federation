@@ -175,18 +175,6 @@ export function startMock({ port = 4180, root = '.' } = {}) {
         return json(res, 404, { error: { message: 'unknown mock route ' + sp } });
       }
       if (path === '/__heir_age') { const d = Number(url.searchParams.get('days')) || 0; for (const r of heirs) r.last_seen_at = new Date(Date.parse(r.last_seen_at) - d * 86400000).toISOString(); return json(res, 200, {}); }
-      if (path === '/api/heir') {
-        process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE;
-        const mod = await import('../api/heir.js'); return mod.default(req, res);
-      }
-      if (path === '/api/invite') {
-        process.env.SUPABASE_URL = origin; process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE;
-        const mod = await import('../api/invite.js'); return mod.default(req, res);
-      }
-      if (path === '/api/extract') { // the real handler, with a stand-in for the model and for the map lookup
-        Object.assign(process.env, { SUPABASE_URL: origin, SUPABASE_ANON_KEY: 'mock-anon-key', OPENAI_API_KEY: 'mock-key', OPENAI_BASE_URL: origin, NOMINATIM_URL: `${origin}/__nominatim` });
-        const mod = await import('../api/extract.js'); return mod.default(req, res);
-      }
       if (path === '/v1/chat/completions' && req.method === 'POST') { // pretend model: reads "a deed", or answers the leads app by the name of its JSON schema
         const b = await readBody(req);
         if (['business_profile', 'lead_scores'].includes(b.response_format?.json_schema?.name)) return json(res, 200, leadModel(b)); log.push(['model', b.model, b.messages?.[1]?.content?.[0]?.type]);
@@ -194,10 +182,6 @@ export function startMock({ port = 4180, root = '.' } = {}) {
           choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify({ documentKind: 'purchase_deed', assetType: 'house', name: 'Lakeview Cottage', addressLine: '12 Calle Mayor', city: 'Madrid', region: 'Madrid', postalCode: '28013', countryCode: 'ES', currency: 'USD', purchasePrice: 640000, currentValue: null, outstandingDebt: 250000, monthlyDebtPayment: 1900, monthlyRent: null, acquiredOn: '2020-06-01', ownershipPercent: null, ownerName: 'Ana Test', details: 'Registry 77-A', confidence: 'high' }) } }] });
       }
       if (path === '/__nominatim/search') return json(res, 200, [{ lat: '40.4168', lon: '-3.7038', category: 'building', address: { house_number: '12', country_code: 'es' } }]);
-      if (path === '/api/vin') { // the real handler, with a stand-in for the NHTSA database
-        process.env.NHTSA_URL = `${origin}/__nhtsa`;
-        const mod = await import('../api/vin.js'); return mod.default(req, res);
-      }
       if (path.startsWith('/__nhtsa/api/vehicles/DecodeVinValues/')) return json(res, 200, { Results: [{ Make: 'HONDA', Model: 'Accord', ModelYear: '2003', Trim: 'EX-V6', VehicleType: 'PASSENGER CAR', BodyClass: 'Coupe', ErrorCode: '0', PlantCountry: 'UNITED STATES (USA)' }] });
       if (path === '/__settings') return json(res, 200, settingsRows);
       if (path === '/api/login') {

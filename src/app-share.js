@@ -28,7 +28,7 @@ export function createShareUi(ctx) {
   }
 
   function draw(shares, fresh) {
-    const label = h('input', { id: 'sh-label', type: 'text', maxlength: 60, placeholder: 'e.g. My accountant', autocomplete: 'off' });
+    const label = h('input', { id: 'sh-label', type: 'text', maxlength: 60, placeholder: 'e.g. My salesperson', autocomplete: 'off' });
     const expiry = h('select', { id: 'sh-exp' }, ...Object.entries(EXPIRY).map(([d, t]) => h('option', { value: d }, `Expires in ${t}`)), h('option', { value: '' }, 'Never expires'));
     expiry.value = '30';
     const debt = h('input', { id: 'sh-debt', type: 'checkbox', checked: true });
@@ -38,11 +38,11 @@ export function createShareUi(ctx) {
       h('div', { class: 'field' }, h('label', { for: 'sh-label' }, 'Who is it for?'), label, h('p', { class: 'hint' }, 'Only a name to help you remember. They are not notified.')),
       h('div', { class: 'two' },
         h('div', { class: 'field' }, h('label', { for: 'sh-exp' }, 'Access'), expiry),
-        h('div', { class: 'field' }, h('span', { class: 'lab' }, 'Includes'), h('label', { class: 'check' }, debt, h('span', {}, 'Debt and net worth')), h('p', { class: 'hint' }, 'Assets, values, income and cash flow are always included. Notes, documents and reminders never are.'))),
+        h('div', { class: 'field' }, h('span', { class: 'lab' }, 'Includes'), h('label', { class: 'check' }, debt, h('span', {}, 'My draft replies')), h('p', { class: 'hint' }, 'The leads, what they said, their scores and their status are always included.'))),
       err, h('div', { class: 'modal-actions' }, create));
     form.addEventListener('submit', async e => {
       e.preventDefault(); err.textContent = '';
-      const name = label.value.trim(); if (!name) { err.textContent = 'Give the link a name, for example “My accountant”.'; label.focus(); return; }
+      const name = label.value.trim(); if (!name) { err.textContent = 'Give the link a name, for example “My salesperson”.'; label.focus(); return; }
       create.disabled = true; create.classList.add('busy');
       try {
         const token = makeToken(), hash = await sha256Hex(token);
@@ -54,7 +54,7 @@ export function createShareUi(ctx) {
 
     const copy = h('button', { type: 'button', class: 'btn btn-primary btn-sm' }, 'Copy link');
     const box = fresh ? h('div', { class: 'share-new', role: 'status' },
-      h('b', {}, 'Your link is ready'), h('p', { class: 'hint' }, 'Copy it now: for your security it is shown only once. Anyone who has it can see the shared figures, so send it like a password.'),
+      h('b', {}, 'Your link is ready'), h('p', { class: 'hint' }, 'Copy it now: for your security it is shown only once. Anyone who has it can see the shared leads, so send it like a password.'),
       h('div', { class: 'share-url' }, h('input', { type: 'text', readonly: true, value: fresh, 'aria-label': 'Share link', onfocus: e => e.target.select() }), copy)) : null;
     if (box) copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(fresh); copy.textContent = 'Copied'; } catch { box.querySelector('input').select(); toast('Press Ctrl+C to copy.'); } });
 
@@ -67,13 +67,13 @@ export function createShareUi(ctx) {
       draw(shares.filter(x => x.id !== s.id), null);
     };
     const row = s => { const st = shareState(s); return h('li', { class: `sh-row ${st}` },
-      h('div', { class: 'sh-main' }, h('b', {}, s.label), h('span', {}, `Created ${day(s.createdAt)} · ${s.expiresAt ? `expires ${day(s.expiresAt)}` : 'never expires'} · ${s.includeDebt ? 'with debt' : 'without debt'} · ${s.lastViewedAt ? `last opened ${day(s.lastViewedAt)}` : 'not opened yet'}`)),
+      h('div', { class: 'sh-main' }, h('b', {}, s.label), h('span', {}, `Created ${day(s.createdAt)} · ${s.expiresAt ? `expires ${day(s.expiresAt)}` : 'never expires'} · ${s.includeDebt ? 'with drafts' : 'without drafts'} · ${s.lastViewedAt ? `last opened ${day(s.lastViewedAt)}` : 'not opened yet'}`)),
       h('span', { class: `sh-st ${st}` }, st === 'active' ? 'Active' : st === 'revoked' ? 'Revoked' : 'Expired'),
       h('div', { class: 'rem-act' }, st === 'active' ? h('button', { type: 'button', class: 'mini-btn danger', onclick: () => revoke(s) }, 'Revoke') : h('button', { type: 'button', class: 'mini-btn', onclick: () => remove(s) }, 'Remove'))); };
 
     openModal(h('div', { class: 'modal-card wide' },
       h('div', { class: 'modal-head' }, h('h2', { id: 'modal-title' }, 'Share a read-only view'), h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')),
-      h('p', { class: 'modal-text' }, 'Give your accountant, partner or lender a private link to see your portfolio. They cannot change anything and they do not need an account. You can revoke the link whenever you like.'),
+      h('p', { class: 'modal-text' }, 'Give a partner or a salesperson a private link to see your leads. They cannot change anything and they do not need an account. You can revoke the link whenever you like.'),
       box, form,
       shares.length ? h('section', { class: 'xt-sec' }, h('h3', {}, 'Your links'), h('ul', { class: 'sh-list' }, shares.map(row))) : null));
   }

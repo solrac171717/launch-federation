@@ -145,9 +145,64 @@ await step('sample leads can be added and removed in one click each', async () =
   await until(`[...document.querySelectorAll('#view-settings button')].some(b => b.textContent === 'Add sample leads')`, 'samples removed');
   if ((await store()).leads.length >= withSamples) throw new Error('samples not removed');
 });
+await step('plan and billing speak about leads, not assets, and the plan picker opens', async () => {
+  await tab('Map'); await click('#profile-btn'); await until(`document.getElementById('modal').open && document.querySelector('.acct-modal')`, 'account menu');
+  const t = await text('.acct-modal'); if (!/Plan and billing/.test(t)) throw new Error('no plan section');
+  if (/\bassets?\b/i.test(t)) throw new Error(`the account menu still says assets: ${t.slice(0, 200)}`);
+  await click('#plan-btn'); await until(`document.getElementById('bl-range')`, 'plan picker');
+  const b = await text('.bl'); if (/\bassets?\b/i.test(b)) throw new Error(`the plan picker still says assets: ${b.slice(0, 300)}`);
+  if (!/How many leads a month do you want/.test(b) || !/75 leads/.test(b)) throw new Error(`unexpected picker text: ${b.slice(0, 300)}`);
+  await shot('9-plan'); await ev(`document.querySelector('#modal .modal-x').click()`);
+});
+await step('sharing: a private link shows the leads read-only, and the drafts only when the owner allows them', async () => {
+  await tab('Map'); await click('#share-btn'); await until(`document.getElementById('sh-label')`, 'share form');
+  await ev(`(()=>{document.getElementById('sh-label').value='My salesperson'; document.getElementById('sh-debt').checked=false; document.querySelector('.share-form').requestSubmit();})()`);
+  await until(`document.querySelector('.share-url input')`, 'the link');
+  const link = await ev(`document.querySelector('.share-url input').value`); if (!/\/share\.html#t=[A-Za-z0-9_-]{43}$/.test(link)) throw new Error(`odd link ${link}`);
+  const token = link.split('#t=')[1];
+  const api = await ev(`fetch('/api/share', { headers: { 'x-share-token': ${JSON.stringify(token)} } }).then(r => r.json())`);
+  if (!api.leads?.length || api.leads.some(l => l.draft) || api.includeDrafts !== false) throw new Error('drafts were shared');
+  if (api.leads.some(l => 'user_id' in l || 'author_url' in l || 'external_id' in l)) throw new Error('private columns leaked');
+  await goto(link); await until(`!document.getElementById('shell').hidden && /Leads/.test(document.getElementById('hero-value').textContent)`, 'the shared view');
+  if (!/not shared/.test(await text('#app-banner'))) throw new Error('the banner does not say drafts are not shared');
+  if (!(await ev(`document.querySelectorAll('#view-reports .lt tbody tr').length >= 2`))) throw new Error('no list');
+  await shot('10-shared');
+  const bad = await ev(`fetch('/api/share', { headers: { 'x-share-token': 'A'.repeat(43) } }).then(r => r.status)`); if (bad !== 404) throw new Error(`a wrong link answered ${bad}`);
+  await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('shell').hidden`, 'back in the app');
+});
+await step('the website: same globe and card, no invented proof, the pricing slider counts leads', async () => {
+  await goto(`${mock.origin}/index.html`); await until(`document.querySelector('#hero-map canvas.globe-canvas') && document.querySelector('#hero-sel .lead-card')`, 'hero preview', 12000);
+  const page = await ev(`document.body.innerText`);
+  if (/4\.9\/5|1653|customers? (trust|love)|Daniel R/i.test(page)) throw new Error('invented social proof is still on the page');
+  if (/\bassets?\b/i.test(page.replace(/Assets/g, ''))) throw new Error(`the page still talks about assets: ${(page.match(/.{40}\bassets?\b.{40}/i) || [''])[0]}`);
+  if ((await ev(`document.querySelectorAll('.faq-item').length`)) !== 9) throw new Error('faq count');
+  await ev(`(()=>{const r=document.getElementById('px-range'); r.value='10'; r.dispatchEvent(new Event('input'));})()`);
+  await sleep(700);
+  if ((await text('#px-count')) !== '250' || !/\$152/.test(await text('#px-total'))) throw new Error(`pricing: ${await text('#px-count')} leads, ${await text('#px-total')}`);
+  if (!/assets=10/.test(await ev(`document.querySelector('.px-btn').getAttribute('href')`))) throw new Error('checkout link does not carry the chosen packs');
+  if (await ev(`document.documentElement.scrollWidth > innerWidth + 1`)) throw new Error('horizontal scroll');
+  await shot('11-landing');
+  await ev(`window.scrollTo(0, document.getElementById('signals').offsetTop - 80)`); await sleep(900); await shot('12-landing-signals');
+});
+await step('the extension reads posts and a profile place from LinkedIn-like markup, and skips what it cannot trust', async () => {
+  const lib = await realFetch(`${mock.origin}/extension/lib.js`).then(r => r.text());
+  await goto(`${mock.origin}/index.html`); // a normal page of this site to run in
+  const lr = await send('Runtime.evaluate', { expression: lib }); if (lr.result.exceptionDetails) throw new Error('lib.js did not load');
+  const out = await ev(`(()=>{
+    document.body.innerHTML = '<div data-urn="urn:li:activity:111"><div class="update-components-actor__title"><span aria-hidden="true">Eve Hart</span></div><div class="update-components-actor__description"><span aria-hidden="true">COO at Zed</span></div><a href="/in/eve-hart?miniProfileUrn=x">p</a><div class="update-components-text">Anyone know a simple CRM for a team of five? We are tired of spreadsheets.</div></div>'
+      + '<div data-urn="urn:li:activity:111"><div class="update-components-text">A duplicate of the first post, repeated by the page.</div></div>'
+      + '<div data-urn="urn:li:activity:222"><div class="update-components-text">short</div></div>'
+      + '<div data-urn="not-a-post"><div class="update-components-text">Some text that is long enough but has no post id at all here</div></div>'
+      + '<div class="top-card"><span class="text-body-small inline t-black--light break-words">Greater London Area</span></div>';
+    return JSON.stringify({ posts: OwnedMapLib.extractPosts(document), place: OwnedMapLib.extractLocation(document) });
+  })()`);
+  const r = JSON.parse(out);
+  if (r.posts.length !== 1 || r.posts[0].authorName !== 'Eve Hart' || r.posts[0].authorRole !== 'COO at Zed' || r.posts[0].authorUrl !== 'https://www.linkedin.com/in/eve-hart' || !r.posts[0].url.endsWith('urn:li:activity:111/')) throw new Error(`posts: ${out}`);
+  if (r.place !== 'Greater London Area') throw new Error(`place: ${out}`);
+});
 await step('another account sees none of these leads (row isolation)', async () => {
   const other = 'other@example.com'; await realFetch(`${mock.origin}/__user?email=${other}&password=${PW}`);
-  await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'sign in');
+  await goto(`${mock.origin}/app.html`); await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'sign in');
   await ev(`(()=>{document.getElementById('auth-email').value=${JSON.stringify(other)}; document.getElementById('auth-password').value=${JSON.stringify(PW)}; document.getElementById('auth-form').requestSubmit();})()`);
   await until(`!document.getElementById('shell').hidden && document.querySelector('.onb')`, 'their own empty start');
 });

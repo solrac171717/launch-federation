@@ -127,20 +127,12 @@ export function createCloud({ url, anonKey, storage = globalThis.localStorage, f
     /** Authenticated PostgREST request. Refreshes the token once if the server says it expired. */
     async rest(method, path, body, headers = {}) { return authed(t => call(`/rest/v1${path}`, { method, body, token: t, headers })); },
 
-    /** Reads a document with our /api/extract (signed-in users only). `payload` is { mime, data (base64) }. */
-    async extract(payload) { return authed(t => call('/api/extract', { method: 'POST', local: true, body: payload, token: t })); },
-
     /** Leads: read a business (/api/analyze) and look for people who want what it sells (/api/signals). Signed-in users only. */
     async analyze(body) { return authed(t => call('/api/analyze', { method: 'POST', local: true, body, token: t })); },
     async signals(body) { return authed(t => call('/api/signals', { method: 'POST', local: true, body, token: t })); },
 
     /** Plan and billing actions (checkout, change, portal), answered by /api/billing with the user's own session. */
     async billing(body) { return authed(t => call('/api/billing', { method: 'POST', local: true, body, token: t })); },
-
-    /** The household invitation endpoint. With `signedIn` the user's own session proves who is joining. */
-    async invite(body, { signedIn = false } = {}) {
-      return signedIn ? authed(t => call('/api/invite', { method: 'POST', local: true, body: { ...body, signedIn: true }, token: t })) : call('/api/invite', { method: 'POST', local: true, body });
-    },
 
     /** Private file storage (bucket policies keep every user inside their own folder). */
     async upload(bucket, path, blob, mime) {

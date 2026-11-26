@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Owned Map</title>
+<style>
+  body { width: 320px; margin: 0; padding: 16px; font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #111827; }
+  h1 { font-size: 15px; margin: 0 0 4px; color: #0B1736; }
+  p { margin: 6px 0; color: #5B6473; }
+  label { display: block; margin-top: 12px; font-weight: 600; font-size: 12px; color: #5B6473; }
+  input { width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px 10px; border: 1px solid #E5EAF1; border-radius: 10px; font: inherit; }
+  button { margin-top: 12px; padding: 9px 14px; border: 0; border-radius: 999px; background: #2563EB; color: #fff; font: 600 13px system-ui; cursor: pointer; }
+  button.ghost { background: #F3F5F9; color: #0B1736; margin-left: 6px; }
+  #status { margin-top: 12px; padding: 10px; border-radius: 10px; background: #F7F9FC; font-size: 13px; }
+  .err { color: #DC2626; }
+</style>
+</head>
+<body>
+  <h1>Owned Map for LinkedIn</h1>
+  <p>Reads the posts and profiles you are looking at and sends them to your account to be scored. It never sends a message or an invitation for you.</p>
+  <label for="token">Pairing code (Settings, Connect the extension)</label>
+  <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the code from the app">
+  <label for="base">Your Owned Map address</label>
+  <input id="base" type="text" placeholder="https://ownedmap.com">
+  <button id="save">Save</button><button id="off" class="ghost">Disconnect</button>
+  <div id="status" aria-live="polite"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

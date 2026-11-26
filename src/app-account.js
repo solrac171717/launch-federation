@@ -45,10 +45,10 @@ export function createAccountUi(ctx) {
     const sentence = v.state === 'trial' ? `Free trial: ${v.trialDaysLeft} day${v.trialDaysLeft === 1 ? '' : 's'} left. You are charged on ${v.renews} unless you cancel before.`
       : v.state === 'past_due' ? 'Your last payment failed. Update your card in Stripe to keep your plan.'
       : v.state === 'active' ? (v.cancelAtEnd ? `Your plan ends on ${v.renews}. You keep access until then.` : `Active. Next payment on ${v.renews}.`)
-      : v.state === 'ended' ? 'Your plan has ended. Your assets are still here; choose a plan to add more.' : 'You are not on a plan yet.';
+      : v.state === 'ended' ? 'Your plan has ended. Your leads are still here; choose a plan to get more.' : 'You are not on a plan yet.';
     const subscribed = ['trial', 'active', 'past_due'].includes(v.state);
     return section('Plan and billing',
-      h('div', { class: 'am-plan' }, h('div', {}, h('p', { class: 'am-line' }, v.label), h('p', { class: 'hint' }, sentence, subscribed ? ` Using ${v.used} of ${v.allowed} assets.` : '')),
+      h('div', { class: 'am-plan' }, h('div', {}, h('p', { class: 'am-line' }, v.label), h('p', { class: 'hint' }, sentence, subscribed ? ` Using ${v.used} of ${v.allowed * 25} leads this month.` : '')),
         h('button', { type: 'button', class: 'btn btn-dark btn-sm', id: 'plan-btn', onclick: () => billing.open() }, subscribed ? 'Manage plan' : 'Choose a plan')));
   }
 
@@ -59,7 +59,7 @@ export function createAccountUi(ctx) {
     const ask = () => {
       box.replaceChildren(h('h3', {}, 'Cancel subscription'),
         h('p', { class: 'am-line' }, v.state === 'trial' ? 'Cancel before the trial ends and you will not be charged.' : `You keep access until ${v.renews}.`),
-        h('p', { class: 'hint' }, 'Nothing is deleted: your assets, documents and reports stay here. You only cannot add more assets after the plan ends. You will confirm on Stripe’s page.'),
+        h('p', { class: 'hint' }, 'Nothing is deleted: your leads and your business description stay here. You only stop getting new leads after the plan ends. You will confirm on Stripe’s page.'),
         h('div', { class: 'modal-actions am-left' },
           h('button', { type: 'button', class: 'btn btn-dark btn-sm', id: 'am-keep', onclick: rest }, 'Keep my plan'),
           button('Continue to Stripe', 'btn btn-primary btn-sm danger-fill', () => billing.portal())));

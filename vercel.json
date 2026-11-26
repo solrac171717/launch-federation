@@ -1,16 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "crons": [
-    {
-      "path": "/api/send-reminders",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/heir-check",
-      "schedule": "30 13 * * *"
-    }
-  ],
   "redirects": [
     { "source": "/compare/index.html", "destination": "/compare/", "permanent": true },
     { "source": "/compare/owned-map-vs-kubera(.html)?", "destination": "/compare/kubera-vs-owned-map", "permanent": true },
@@ -52,7 +42,7 @@
       ]
     },
     {
-      "source": "/(welcome|heir|share).html",
+      "source": "/(welcome|share).html",
       "headers": [
         {
           "key": "Cache-Control",

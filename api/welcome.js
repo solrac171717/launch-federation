@@ -5,7 +5,7 @@
 // Env: STRIPE_SECRET_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 import { stripeClient, supabaseClient, StripeError } from './_stripe.js';
 import { provisionFromSession, SESSION_ID } from './_provision.js';
-import { PASSWORD_MIN, PASSWORD_MAX } from './invite.js';
+const PASSWORD_MIN = 10, PASSWORD_MAX = 72; // the same limits the sign-in and reset screens use
 
 const send = (res, status, body) => {
   res.statusCode = status;

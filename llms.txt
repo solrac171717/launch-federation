@@ -1,18 +1,18 @@
 # Owned Map
 
-> Owned Map is a web app that puts everything a person owns (property, vehicles, boats, aircraft, land, parking and equipment) on one interactive map, with the value, income, expenses, yield and net worth of each asset side by side.
+> Owned Map is a web app that finds people who are asking for what you sell. You paste your website; it searches public posts, scores how ready each person is to buy (0 to 100), and shows them on an interactive world map with what they wrote and a reply you can copy.
 
-Owned Map is a paid subscription product with a 7-day free trial (card required, charged only when the trial ends). Values are entered by the user; Owned Map does not pull market prices.
+Owned Map is a paid subscription product with a 7-day free trial (card required, charged only when the trial ends). Nothing is ever posted, sent or clicked on the user's behalf: every reply is edited and sent by the user.
 
 ## What it does
-- Shows every asset on an interactive map with a Globe view and a Country view, in any country.
-- Tracks value, purchase cost, yearly income, expenses and debt per asset, and calculates appreciation, net income, yield and net worth. Supports partial ownership by percentage.
-- Handles houses, apartments, commercial buildings, warehouses, land, parking spaces, cars, trucks, motorcycles, motorhomes, yachts, sailboats, jet skis, aircraft and heavy equipment.
-- Attaches documents (deeds, insurance, contracts), fills in asset details from an uploaded document, and sets reminders for renewals.
-- Exports PDF, Excel (.xlsx) and CSV reports, and imports assets from CSV.
+- Reads your website and works out what you sell, who buys it and the phrases buyers use.
+- Searches public posts (Hacker News today; LinkedIn through a browser extension that reads only what the user has on screen) and scores each person from 0 to 100, labelling the intent: asks for a recommendation, complains about a competitor, asks about price, looks for an alternative, or describes the problem.
+- Places each lead on a Globe or Country map when the post or the author's public profile says where they are; the rest are listed.
+- Drafts a reply in the user's tone for strong leads, tracks status (new, contacted, replied, customer) and the history, and exports leads as CSV.
+- Shares a read-only view of the leads through a private link that can expire or be turned off.
 
 ## Pricing
-- $47 per month includes 3 assets. Extra assets cost $15 each for assets 4 to 10, $10 each for assets 11 to 25 and $5 each from the 26th, up to 100 assets (25 assets: $302 a month, 100 assets: $677 a month).
+- $47 per month includes 75 leads a month with a score of 70 or more (3 packs of 25). Each extra pack of 25 leads costs $15 for packs 4 to 10, $10 for packs 11 to 25 and $5 from the 26th, up to 100 packs, which is 2,500 leads (25 packs: $302 a month, 100 packs: $677 a month).
 - Yearly billing is 30% less than monthly.
 - 7-day free trial.
 

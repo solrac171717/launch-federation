@@ -1,6 +1,8 @@
 // "Plan and billing": start the free trial or subscribe, change how many assets the plan covers, and open Stripe's portal for card, invoices and cancelling.
 // What the plan allows is decided by the database (src/billing-core.js has the rules; the migration enforces them). This file is only the screen.
 import { h } from './dom.js';
+const LEADS_PER_PACK = 25; // the plan is counted in packs of 25 leads with a score of 70 or more; the charge itself is unchanged
+const PACK_PRICES = 'each extra pack of 25 leads costs $15 for packs 4 to 10, $10 for packs 11 to 25 and $5 from the 26th';
 import { PLAN, cleanAssets, cleanInterval, priceCents, usd, billingView, extraText, freeAssets } from './billing-core.js';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -27,15 +29,15 @@ export function createBillingUi(ctx) {
 
   function open() {
     const v = view();
-    const slider = h('input', { id: 'bl-range', type: 'range', min: PLAN.included, max: PLAN.maxAssets, step: 1, value: v.state === 'trial' || v.state === 'active' || v.state === 'past_due' ? Math.max(PLAN.included, v.allowed) : PLAN.included, 'aria-label': 'Number of assets' });
+    const slider = h('input', { id: 'bl-range', type: 'range', min: PLAN.included, max: PLAN.maxAssets, step: 1, value: v.state === 'trial' || v.state === 'active' || v.state === 'past_due' ? Math.max(PLAN.included, v.allowed) : PLAN.included, 'aria-label': 'Packs of 25 leads a month' });
     const count = h('b', { id: 'bl-count' }), price = h('b', { id: 'bl-price' }), free = h('span', { id: 'bl-free', class: 'bl-free' });
     const choosing = v.state === 'none' || v.state === 'ended'; // the period (month or year) is picked only when subscribing; an existing plan keeps its own
     let interval = 'month';
-    const paint = () => { const n = cleanAssets(slider.value), f = freeAssets(n); count.textContent = String(n); free.textContent = f ? `of which ${f} asset${f === 1 ? ' is' : 's are'} free` : ''; price.textContent = choosing ? `${usd(priceCents(n, interval))} a ${interval}` : ''; };
+    const paint = () => { const n = cleanAssets(slider.value), f = freeAssets(n); count.textContent = String(n * LEADS_PER_PACK); free.textContent = f ? `of which ${f * LEADS_PER_PACK} leads are free` : ''; price.textContent = choosing ? `${usd(priceCents(n, interval))} a ${interval}` : ''; };
     slider.addEventListener('input', paint); paint();
     const per = h('div', { class: 'bl-per', role: 'group', 'aria-label': 'Billing period' }, ...[['month', 'Monthly'], ['year', `Yearly · save ${Math.round(PLAN.yearlyOff * 100)}%`]].map(([k, text]) => { const b = h('button', { type: 'button', class: `bl-per-b${k === interval ? ' on' : ''}`, 'aria-pressed': String(k === interval) }, text); b.addEventListener('click', () => { interval = k; per.querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); paint(); }); return b; }));
-    const picker = h('div', { class: 'bl-pick' }, h('label', { for: 'bl-range' }, 'How many assets do you want to track?'), slider,
-      ...(choosing ? [per] : []), h('p', { class: 'bl-sum' }, count, ' assets', free, choosing ? ' · ' : '', price), h('p', { class: 'hint' }, `${usd(PLAN.baseCents)} a month includes ${PLAN.included} assets, then ${extraText()}. Pay yearly and save ${Math.round(PLAN.yearlyOff * 100)}%. Up to ${PLAN.maxAssets} assets.`));
+    const picker = h('div', { class: 'bl-pick' }, h('label', { for: 'bl-range' }, 'How many leads a month do you want?'), slider,
+      ...(choosing ? [per] : []), h('p', { class: 'bl-sum' }, count, ' leads a month', free, choosing ? ' · ' : '', price), h('p', { class: 'hint' }, `${usd(PLAN.baseCents)} a month includes ${PLAN.included * LEADS_PER_PACK} leads, then ${PACK_PRICES}. Pay yearly and save ${Math.round(PLAN.yearlyOff * 100)}%. Up to ${PLAN.maxAssets * LEADS_PER_PACK} leads a month.`));
     const err = h('p', { class: 'err form-err', role: 'alert' });
     const btn = (text, fn, kind = 'btn btn-primary btn-sm') => { const b = h('button', { type: 'button', class: kind }, h('span', { class: 'lbl' }, text), h('span', { class: 'spin', 'aria-hidden': 'true' })); b.addEventListener('click', async () => { b.disabled = true; b.classList.add('busy'); try { await fn(); } finally { b.disabled = false; b.classList.remove('busy'); } }); return b; };
     const portal = btn(v.state === 'trial' ? 'Manage payment or cancel' : 'Manage payment and invoices', openPortal, 'btn btn-dark btn-sm');
@@ -45,7 +47,7 @@ export function createBillingUi(ctx) {
       body = h('p', { class: 'modal-text' }, 'Your account has unlimited access. There is nothing to pay.');
     } else if (v.state === 'none' || v.state === 'ended') {
       const trial = v.trialAvailable;
-      body = h('div', {}, h('p', { class: 'modal-text' }, v.state === 'ended' ? 'Your plan has ended. Your assets are all still here and you can still look at them; to add more, choose a plan again.' : trial ? `Try it free for ${PLAN.trialDays} days. A card is needed to start; you are charged the price shown below only when the trial ends, and you can cancel before then.` : 'Choose how many assets you want to track.'), picker, err,
+      body = h('div', {}, h('p', { class: 'modal-text' }, v.state === 'ended' ? 'Your plan has ended. Your leads are all still here and you can still look at them; to get more, choose a plan again.' : trial ? `Try it free for ${PLAN.trialDays} days. A card is needed to start; you are charged the price shown below only when the trial ends, and you can cancel before then.` : 'Choose how many leads a month you want.'), picker, err,
         h('div', { class: 'modal-actions' }, btn(trial ? `Start ${PLAN.trialDays}-day free trial` : 'Subscribe', async () => { err.textContent = ''; const r = await go({ action: 'checkout', assets: cleanAssets(slider.value), interval: cleanInterval(interval) }, 'Could not start checkout'); if (r?.url) location.href = r.url; })));
     } else {
       const changed = () => cleanAssets(slider.value) !== v.allowed;
@@ -56,12 +58,12 @@ export function createBillingUi(ctx) {
       });
       body = h('div', {},
         h('p', { class: `bl-line ${v.state}` }, v.state === 'trial' ? `Free trial: ${v.trialDaysLeft} day${v.trialDaysLeft === 1 ? '' : 's'} left. Your card is charged on ${v.renews} unless you cancel before then.` : v.state === 'past_due' ? 'Your last payment failed. Stripe will try again; update your card to avoid losing access.' : v.cancelAtEnd ? `Your plan ends on ${v.renews}. You keep access until then.` : `Active. Next payment on ${v.renews}.`),
-        h('p', { class: 'hint' }, `Using ${v.used} of ${v.allowed} assets.`), picker, err,
+        h('p', { class: 'hint' }, `Using ${v.used} of ${v.allowed * LEADS_PER_PACK} leads this month.`), picker, err,
         h('div', { class: 'modal-actions' }, portal, update));
     }
     openModal(h('div', { class: 'modal-card wide bl' },
       h('div', { class: 'modal-head' }, h('h2', { id: 'modal-title' }, 'Plan and billing'), h('button', { type: 'button', class: 'modal-x', 'aria-label': 'Close', onclick: () => modal().close() }, '×')),
-      body, h('p', { class: 'hint' }, 'Payments are handled by Stripe; we never see your card. Nothing is ever deleted if a plan ends or shrinks: you only cannot add more assets.')));
+      body, h('p', { class: 'hint' }, 'Payments are handled by Stripe; we never see your card. Nothing is ever deleted if a plan ends or shrinks: you only stop getting new leads.')));
   }
   return { open, load, label, waitForPlan, view, portal: openPortal };
 }

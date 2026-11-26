@@ -3,10 +3,11 @@
 import { cp, rm, readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { PLAN, priceCents, extraText } from '../src/billing-core.js';
+import { PLAN, priceCents } from '../src/billing-core.js';
 import { TEMPLATE_CSV } from '../src/csv-import.js';
 import { SREO_CSV } from '../content/sreo-template.mjs';
 import { renderAll, compareUrls } from './compare.mjs';
+import { zip } from '../src/xlsx.js';
 
 const check = f => {
   const r = spawnSync(process.execPath, ['--check', f], { encoding: 'utf8' });
@@ -19,7 +20,7 @@ check('landing.js'); check('login.js');
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
-for (const p of ['index.html', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'compare.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
+for (const p of ['index.html', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'share.html', 'welcome.html', 'legal.css', 'compare.css', 'landing.css', 'landing.js', 'app.css', 'leads.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
   await cp(p, `dist/${p}`, { recursive: true });
 }
 
@@ -36,10 +37,10 @@ const jsonLd = (html, site) => {
   const graph = [
     { '@type': 'Organization', '@id': `${site}/#org`, name: 'Owned Map', url: `${site}/`, logo: `${site}/assets/logo-o.png`, email: 'support@ownedmap.com' },
     { '@type': 'WebSite', '@id': `${site}/#website`, url: `${site}/`, name: 'Owned Map', inLanguage: 'en-US', publisher: { '@id': `${site}/#org` } },
-    { '@type': 'SoftwareApplication', '@id': `${site}/#app`, name: 'Owned Map', url: `${site}/`, applicationCategory: 'FinanceApplication', operatingSystem: 'Web', inLanguage: 'en-US', publisher: { '@id': `${site}/#org` },
-      description: 'Owned Map puts property, vehicles, boats, aircraft, land and equipment on one interactive map, with the value, income, expenses, yield and net worth of each asset, plus PDF, Excel and CSV reports.',
-      featureList: ['Interactive world map of every asset you own', 'Value, income, expenses, yield and net worth per asset', 'Mortgages and loans per asset', 'Documents and renewal reminders', 'PDF, Excel and CSV reports', 'CSV import'],
-      offers: [offer('Monthly', PLAN.baseCents, 'P1M', `Includes ${PLAN.included} assets; extra assets: ${extraText()}, per month. 7-day free trial.`), offer('Yearly', priceCents(PLAN.included, 'year'), 'P1Y', `Includes ${PLAN.included} assets, ${Math.round(PLAN.yearlyOff * 100)}% less than monthly billing. 7-day free trial.`)] },
+    { '@type': 'SoftwareApplication', '@id': `${site}/#app`, name: 'Owned Map', url: `${site}/`, applicationCategory: 'BusinessApplication', operatingSystem: 'Web', inLanguage: 'en-US', publisher: { '@id': `${site}/#org` },
+      description: 'Owned Map finds people who are asking for what you sell. Paste your website and it searches public posts, scores how ready each person is to buy, and puts them on a global map with what they said and a reply you can copy.',
+      featureList: ['Interactive world map of the people asking for what you sell', 'Intent score from 0 to 100 for every lead', 'The original post and a link to it', 'A reply drafted in your tone, never sent for you', 'Lead status and history from signal to customer', 'CSV export and private read-only share links'],
+      offers: [offer('Monthly', PLAN.baseCents, 'P1M', `Includes ${PLAN.included * 25} leads a month; each extra pack of 25 leads costs $15 for packs 4 to 10, $10 for packs 11 to 25 and $5 from the 26th, per month. 7-day free trial.`), offer('Yearly', priceCents(PLAN.included, 'year'), 'P1Y', `Includes ${PLAN.included * 25} leads a month, ${Math.round(PLAN.yearlyOff * 100)}% less than monthly billing. 7-day free trial.`)] },
   ];
   if (faq.length) graph.push({ '@type': 'FAQPage', '@id': `${site}/#faq`, mainEntity: faq });
   return `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replaceAll('</', '<\/')}</script>`;
@@ -61,6 +62,7 @@ for (const page of INDEXABLE) {
 await mkdir('dist/compare', { recursive: true }); await mkdir('dist/solutions', { recursive: true }); await mkdir('dist/guides', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
 for (const g of renderAll(site)) await writeFile(`dist${g.file}`, g.html);
 await writeFile('dist/downloads/asset-inventory-template.csv', TEMPLATE_CSV);
+await writeFile('dist/downloads/owned-map-extension.zip', zip(await Promise.all((await readdir('extension')).sort().map(async name => ({ name: `owned-map-extension/${name}`, data: new Uint8Array(await readFile(`extension/${name}`)) })))));
 await writeFile('dist/downloads/schedule-of-real-estate-owned-template.csv', SREO_CSV);
 
 if (site) {
@@ -80,10 +82,10 @@ if (sbUrl && sbKey) {
 export const CONFIG = ${JSON.stringify({ supabaseUrl: sbUrl, supabaseAnonKey: sbKey, remindersEmail: Boolean(process.env.RESEND_API_KEY && process.env.CRON_SECRET), extractor: Boolean(process.env.OPENAI_API_KEY), billing: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET), googleClientId: process.env.GOOGLE_CLIENT_ID || '' })};
 `);
   console.log('App configured for Supabase (' + new URL(sbUrl).host + ').');
-} else console.warn('SUPABASE_URL / SUPABASE_ANON_KEY not set: the app will save assets on the visitor device only.');
+} else console.warn('SUPABASE_URL / SUPABASE_ANON_KEY not set: the app will save leads on the visitor device only.');
 
 const generated = renderAll(site).map(g => g.file.slice(1));
-for (const page of ['index.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html', ...generated]) {
+for (const page of ['index.html', 'app.html', 'login.html', 'share.html', 'welcome.html', 'privacy.html', 'terms.html', ...generated]) {
   const src = await readFile(`dist/${page}`, 'utf8');
   const missing = [...src.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:)([^"?#]+)/g)].map(m => m[1]).filter(p => !p.startsWith('/api/') && !existsSync(`dist/${p}`) && !existsSync(`dist/${p}.html`)); // /api/... is answered by a serverless function, not a file
   if (missing.length) { console.error(`Missing files referenced by ${page}:`, missing); process.exit(1); }

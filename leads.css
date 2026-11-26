@@ -90,3 +90,18 @@
   .act-grid, .set-grid { grid-template-columns: 1fr; }
   .lt-sig { min-width: 180px; }
 }
+
+/* the website: the line under the hero button, one lead in full, and the cards of intents and promises */
+.proof-line { margin-top: 18px; font-size: 14px; color: var(--text-2); }
+.lead-feature { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+.lf-col { border: 1px solid var(--line); border-radius: var(--r-card, 16px); background: #fff; padding: 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.lf-h { font-size: 13px; font-weight: 600; color: var(--text-3); }
+.lf-draft { padding: 14px; border-radius: 12px; background: var(--alt); border: 1px solid var(--line); font-size: 14.5px; line-height: 1.55; }
+.lead-feature .ld-steps .step { cursor: default; }
+.intent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.intent-card { border: 1px solid var(--line); border-radius: var(--r-card, 16px); background: #fff; padding: 18px; display: grid; gap: 8px; align-content: start; }
+.intent-card b { color: var(--navy); font-size: 15px; }
+.intent-card p { color: var(--text-2); font-size: 14px; line-height: 1.5; }
+.rows .ac-ico.src { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--navy); flex: none; }
+.rows .ac-ico.src .ico { fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 800px) { .lead-feature { grid-template-columns: 1fr; } }

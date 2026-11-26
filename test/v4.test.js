@@ -4,13 +4,6 @@ import { setRates, toUsd, loadRates, formatIn, currencies } from '../src/fx.js';
 import { amortize, paymentFor, balanceAfter, driftFactor, projectAsset, projectPortfolio, concentration, breaches, yieldRows, goalStatus, saleSim } from '../src/finance.js';
 import { enrich } from '../src/portfolio.js';
 import { validateAsset, toView, fromDb, quickValues } from '../src/asset-store.js';
-import { standardFor, validateReminder } from '../src/reminders.js';
-import { cleanSettings, createLocalSettings, DEFAULTS } from '../src/settings-store.js';
-import { isVin, fromNhtsa } from '../src/vin.js';
-import { runVin } from '../api/vin.js';
-import { emergencyHtml } from '../src/emergency.js';
-import { runShare } from '../api/share.js';
-import { normalizeExtraction } from '../src/extract-core.js';
 
 const RATES = { date: '2026-10-28', rates: { EUR: 0.5, GBP: 0.8, JPY: 100 } };
 const mem = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; };
@@ -130,66 +123,3 @@ test('sale simulator: costs, tax only on a gain, loan payoff, net worth effect',
   assert.equal(saleSim(enrich(asset({ value: 100000, debt: 200000 })), { costsPct: 0, taxPct: 0 }).underwater, true);
 });
 
-test('the usual reminders: per kind of asset, skipping what exists, dates in the future, all valid', () => {
-  const car = standardFor('car', [], '2026-10-29');
-  assert.ok(car.length >= 4 && car.some(r => r.kind === 'inspection') && car.every(r => r.repeat === 'yearly' && r.dueOn > '2026-10-29'));
-  assert.ok(car.every(r => validateReminder({ ...r, notifyDays: 14 }, { today: '2026-10-29' }).ok));
-  assert.ok(standardFor('house', []).some(r => r.kind === 'tax')); assert.ok(standardFor('aircraft', []).some(r => /Annual inspection/.test(r.title))); assert.ok(standardFor('sailboat', []).some(r => /survey/i.test(r.title)));
-  const left = standardFor('car', [{ title: 'vehicle insurance renewal' }]); assert.equal(left.length, car.length - 1);
-  assert.deepEqual(standardFor('unknown', []), []);
-});
-
-test('settings are cleaned: limits, goal, contacts, and nothing unknown gets through', () => {
-  const s = cleanSettings({ concentrationLimit: '55', goal: { target: '$5,000,000', date: '2030-01-01' }, sale: { costsPct: 7, taxPct: 99 }, contacts: [{ role: 'Lawyer', name: ' Ana ', phone: '1', email: 'a@b.co', evil: 1 }, { role: 'x' }], emergencyNote: 'Keys in the safe', admin: true });
-  assert.equal(s.concentrationLimit, 55); assert.equal(s.goal.target, 5000000); assert.equal(s.sale.costsPct, 7); assert.equal(s.sale.taxPct, DEFAULTS.sale.taxPct, 'out of range falls back');
-  assert.deepEqual(s.contacts, [{ role: 'Lawyer', name: 'Ana', phone: '1', email: 'a@b.co' }]); assert.equal(s.admin, undefined);
-  assert.deepEqual(cleanSettings(null).goal, { target: null, date: '' }); assert.equal(cleanSettings({ concentrationLimit: 2 }).concentrationLimit, 40);
-  assert.equal(cleanSettings({ contacts: Array.from({ length: 30 }, (_, i) => ({ name: 'n' + i })) }).contacts.length, 12);
-});
-
-test('settings on this device persist between loads', async () => {
-  const st = mem(), a = createLocalSettings(st);
-  await a.save({ goal: { target: 1000000, date: '' } });
-  assert.equal((await createLocalSettings(st).get()).goal.target, 1000000);
-  await a.save({ concentrationLimit: 30 }); const s = await a.get(); assert.equal(s.concentrationLimit, 30); assert.equal(s.goal.target, 1000000, 'saving one thing keeps the rest');
-});
-
-test('VIN: validation and the decoder answer', async () => {
-  assert.equal(isVin('1HGCM82633A004352'), true); assert.equal(isVin(' 1hgcm82633a004352 '), true); assert.equal(isVin('1HGCM82633A00435I'), false); assert.equal(isVin('123'), false);
-  const d = fromNhtsa({ Make: 'HONDA', Model: 'Accord', ModelYear: '2003', Trim: 'EX', VehicleType: 'PASSENGER CAR', BodyClass: 'Coupe', ErrorCode: '0', PlantCountry: 'UNITED STATES (USA)' }, '1HGCM82633A004352');
-  assert.equal(d.name, '2003 Honda Accord'); assert.equal(d.type, 'car'); assert.equal(d.checkDigitOk, true); assert.ok(d.details.includes('Built in United States'));
-  assert.equal(fromNhtsa({ Make: 'X', Model: 'Y', ErrorCode: '1' }, 'v').checkDigitOk, false); assert.equal(fromNhtsa({ Make: '' }, 'v'), null);
-  assert.equal(fromNhtsa({ Make: 'YAMAHA', Model: 'R1', VehicleType: 'MOTORCYCLE', ErrorCode: '0' }, 'v').type, 'motorcycle');
-  assert.equal((await runVin({ vin: 'bad' })).status, 400);
-  const fake = async url => ({ ok: true, json: async () => ({ Results: [{ Make: 'FORD', Model: 'F-150', ModelYear: '2020', VehicleType: 'TRUCK', ErrorCode: '0' }] }), url });
-  const r = await runVin({ vin: '1FTEW1EP5LFA12345', fetchImpl: fake }); assert.equal(r.status, 200); assert.equal(r.body.type, 'truck'); assert.equal(r.body.name, '2020 Ford F-150');
-  assert.equal((await runVin({ vin: '1FTEW1EP5LFA12345', fetchImpl: async () => ({ ok: true, json: async () => ({ Results: [{ Make: '' }] }) }) })).status, 404);
-  assert.equal((await runVin({ vin: '1FTEW1EP5LFA12345', fetchImpl: async () => { throw new Error('x'); } })).status, 502);
-});
-
-test('emergency sheet: lists assets, places, papers and contacts, and escapes what people typed', () => {
-  setRates(RATES);
-  const a = enrich({ ...asset({ id: 'h', name: 'Lake <House>', currency: 'EUR', value: 200000, debt: 50000, debtPayment: 900, owner: 'Acme & Co', notes: 'Spare keys at the notary' }), category: 'residential', kind: 'House or apartment' });
-  const html = emergencyHtml({ assets: [{ ...a, kind: 'House or apartment' }], docs: [{ assetId: 'h', name: 'deed.pdf', kind: 'deed' }], reminders: [{ assetId: 'h', title: 'Insurance renewal', dueOn: '2026-12-01', done: false }, { assetId: 'h', title: 'Old', dueOn: '2025-01-01', done: true }],
-    settings: { contacts: [{ role: 'Lawyer', name: 'Ana <b>', phone: '+34 600', email: 'ana@x.es' }], emergencyNote: 'Start with the lawyer' }, today: '2026-10-29', owner: 'carlos@x.es' });
-  assert.ok(html.includes('Lake &lt;House&gt;') && !html.includes('Lake <House>')); assert.ok(html.includes('Ana &lt;b&gt;')); assert.ok(html.includes('deed.pdf') && html.includes('Deed or title'));
-  assert.ok(html.includes('Insurance renewal') && !html.includes('>Old<')); assert.ok(html.includes('Start with the lawyer') && html.includes('+34 600') && html.includes('Acme &amp; Co'));
-  assert.ok(html.includes('€200,000'), 'shows the amount as entered'); assert.ok(html.includes('30.0000, -97.0000'));
-  assert.ok(emergencyHtml({ assets: [], settings: {} }).includes('No contacts added yet'));
-});
-
-test('share API: returns only public columns, including the new ones, and works before the migration', async () => {
-  const row = { id: 'a', user_id: 'SECRET', name: 'x', type: 'house', value: 1, cost: 1, currency: 'EUR', debt_rate: 4, annual_change: 2, debt: 5, debt_payment: 1, history: [{ d: '2026-01-01', v: 1, b: 5 }], password_hash: 'no' };
-  const calls = [];
-  const fetchImpl = async url => { calls.push(String(url)); if (String(url).includes('asset_shares')) return { ok: true, json: async () => [{ id: 's', user_id: 'u', label: 'Acct', include_debt: false, expires_at: null, revoked: false }] }; if (String(url).includes('/assets')) return { ok: true, json: async () => [row] }; return { ok: true, json: async () => [] }; };
-  const r = await runShare({ env: { SUPABASE_URL: 'https://x.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'k' }, fetchImpl, token: 'a'.repeat(43) });
-  assert.equal(r.status, 200); const x = r.body.assets[0];
-  assert.equal(x.currency, 'EUR'); assert.equal(x.annual_change, 2); assert.equal(x.user_id, undefined); assert.equal(x.password_hash, undefined);
-  assert.equal(x.debt, 0); assert.equal(x.debt_rate, 0); assert.equal(x.history[0].b, undefined, 'debt hidden when the owner chose so');
-  assert.ok(calls.some(u => u.includes('select=*')), 'does not name columns that may not exist yet');
-});
-
-test('autofill sets the currency, and rates are not applied twice', () => {
-  const r = normalizeExtraction({ documentKind: 'purchase_deed', assetType: 'house', name: 'Flat', addressLine: 'Calle 1', city: 'Madrid', countryCode: 'ES', currency: 'eur', purchasePrice: 300000, confidence: 'high' }, null);
-  assert.equal(r.fields.currency, 'EUR'); assert.equal(r.fields.cost, 300000);
-});
