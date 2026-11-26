@@ -2,7 +2,8 @@
 //   { items: [{ externalId, authorName, authorRole, authorUrl, text, url, postedAt }] }  posts the person was looking at on LinkedIn:
 //       scored against their business, drafted, and saved as leads.
 //   { profile: { url, location } }  a profile page the person opened: the leads of that author get a place on the map.
-// The extension reads only what the person has on screen. It never sends a message, an invitation or a click on their behalf.
+//   { outreach: { url, kind } }  the person sent an invitation or message from their own browser to a lead they queued: that lead becomes 'contacted'.
+// Sending happens in the person's own browser, never here: this server never holds a LinkedIn login or cookie.
 // Env: OPENAI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY. Test hooks: OPENAI_BASE_URL, NOMINATIM_URL.
 import { createHash } from 'node:crypto';
 import { scoreCandidates, locateLeads, geocodePlace } from '../src/leads-engine.js';
@@ -41,6 +42,15 @@ export async function runIngest({ env, fetchImpl = fetch, token, body, now = Dat
     if (!g) return { status: 200, body: { placed: 0 } };
     const upd = await db('PATCH', `/leads?user_id=eq.${row.user_id}&author_url=like.${encodeURIComponent(`${url}*`)}&lat=is.null`, { place: g.place, country: g.country, lat: g.lat, lon: g.lon, updated_at: new Date(now).toISOString() }, 'return=representation');
     return { status: 200, body: { placed: (upd || []).length } };
+  }
+
+  // an invitation or message the person sent from their own browser, for a lead they queued: the lead becomes "contacted"
+  if (body?.outreach) {
+    const url = String(body.outreach.url || '').split('?')[0].replace(/\/$/, '').slice(0, 300);
+    if (!/^https:\/\/([a-z]+\.)?linkedin\.com\/in\//i.test(url)) return { status: 400, body: { error: 'bad_profile' } };
+    const rows = await db('GET', `/leads?user_id=eq.${row.user_id}&status=eq.new&author_url=like.${encodeURIComponent(`${url}*`)}&select=id,history`).catch(() => []);
+    for (const r of rows || []) await db('PATCH', `/leads?id=eq.${r.id}&user_id=eq.${row.user_id}`, { status: 'contacted', history: nextHistory(r.history, 'contacted'), updated_at: new Date(now).toISOString() }, 'return=minimal').catch(() => {});
+    return { status: 200, body: { contacted: (rows || []).length } };
   }
 
   const items = (Array.isArray(body?.items) ? body.items : []).slice(0, MAX_ITEMS).map(i => ({

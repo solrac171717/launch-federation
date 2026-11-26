@@ -200,6 +200,28 @@ await step('the extension reads posts and a profile place from LinkedIn-like mar
   if (r.posts.length !== 1 || r.posts[0].authorName !== 'Eve Hart' || r.posts[0].authorRole !== 'COO at Zed' || r.posts[0].authorUrl !== 'https://www.linkedin.com/in/eve-hart' || !r.posts[0].url.endsWith('urn:li:activity:111/')) throw new Error(`posts: ${out}`);
   if (r.place !== 'Greater London Area') throw new Error(`place: ${out}`);
 });
+await step('the extension finds the invitation and message buttons on profile-like markup, and never guesses when they are missing', async () => {
+  const out = JSON.parse(await ev(`(()=>{
+    const L = OwnedMapLib, kind = html => { document.body.innerHTML = html; return L.profileAction(document).kind; };
+    const r = {
+      connect: kind('<main><button aria-label="Invite Eve Hart to connect">Connect</button><button>Message</button></main>'),
+      message: kind('<main><button><span>Message</span></button><button>More</button></main>'),
+      pending: kind('<main><button aria-label="Pending, click to withdraw invitation sent to Eve">Pending</button></main>'),
+      more: kind('<main><button aria-label="More actions">More</button><button>Follow</button></main>'),
+      none: kind('<main><p>Nothing to press</p></main>'),
+    };
+    document.body.innerHTML = '<div role="dialog"><button aria-label="Add a note">Add a note</button><button aria-label="Send without a note">Send without a note</button></div>';
+    const d1 = L.inviteDialog(document); r.addNote = !!d1.addNote; r.noSendYet = !d1.send;
+    document.body.innerHTML = '<div role="dialog"><textarea id="custom-message"></textarea><button aria-label="Send invitation">Send</button></div>';
+    const d2 = L.inviteDialog(document); r.note = !!d2.note; r.send = !!d2.send;
+    document.body.innerHTML = '<form class="msg-form"><div class="msg-form__contenteditable" contenteditable="true" role="textbox"></div><button type="submit">Send</button></form>';
+    const m = L.messageBox(document); r.box = !!m.box; r.msgSend = !!m.send;
+    r.note200 = L.noteFrom('Sentence one is short. ' + 'x'.repeat(300)).length <= 200;
+    return JSON.stringify(r);
+  })()`));
+  const want = { connect: 'connect', message: 'message', pending: 'pending', more: 'more', none: 'none', addNote: true, noSendYet: true, note: true, send: true, box: true, msgSend: true, note200: true };
+  for (const [k, v] of Object.entries(want)) if (out[k] !== v) throw new Error(`${k}: ${JSON.stringify(out)}`);
+});
 await step('another account sees none of these leads (row isolation)', async () => {
   const other = 'other@example.com'; await realFetch(`${mock.origin}/__user?email=${other}&password=${PW}`);
   await goto(`${mock.origin}/app.html`); await ev(`localStorage.clear()`); await goto(`${mock.origin}/app.html`); await until(`!document.getElementById('auth').hidden`, 'sign in');

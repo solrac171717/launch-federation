@@ -174,3 +174,12 @@ export function linkedinSearchUrl(phrase) {
   const q = String(phrase || '').replace(/\s+/g, ' ').trim().slice(0, 80);
   return `https://www.linkedin.com/search/results/content/?keywords=${encodeURIComponent(q)}&datePosted=%22past-week%22&sortBy=%22date_posted%22`;
 }
+
+/** What an invitation note can hold (LinkedIn allows 200 characters): whole sentences while they fit, else cut at a word. */
+export function inviteNote(text, max = 200) {
+  const t = String(text || '').replace(/\s+/g, ' ').trim(); if (t.length <= max) return t;
+  const parts = t.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [t]; let out = '';
+  for (const p of parts) { if ((out + p).trim().length > max) break; out += p; }
+  if (out.trim()) return out.trim();
+  const cut = t.slice(0, max); return cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trim();
+}

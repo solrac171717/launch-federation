@@ -37,5 +37,42 @@
     return t.length >= 2 && t.length <= 120 && !/connections?|followers?|contact info/i.test(t) ? t : '';
   }
 
-  root.OwnedMapLib = { extractPosts, extractLocation };
+  /* ---- the buttons on a profile (used only for a lead the person queued themselves) ---- */
+  const label = el => clean(el.getAttribute('aria-label') || el.textContent).toLowerCase();
+  const clickables = scope => [...scope.querySelectorAll('button, a[role="button"], div[role="button"], [role="menuitem"]')].filter(b => !b.disabled && b.getAttribute('aria-disabled') !== 'true');
+  const pick = (scope, test) => clickables(scope).find(b => test(label(b)));
+  /** 'pending', 'connect' (a Connect button in view), 'message' (already connected), 'more' (Connect may be under More) or 'none'. */
+  function profileAction(doc) {
+    const top = doc.querySelector('main') || doc;
+    if (pick(top, l => /^pending\b|^withdraw/.test(l))) return { kind: 'pending' };
+    const connect = pick(top, l => /^connect$|^invite .* to connect/.test(l));
+    if (connect) return { kind: 'connect', el: connect };
+    const message = pick(top, l => /^message\b/.test(l));
+    if (message) return { kind: 'message', el: message };
+    const more = pick(top, l => /^more( actions)?$/.test(l));
+    return more ? { kind: 'more', el: more } : { kind: 'none' };
+  }
+  /** With the More menu open: its Connect entry. */
+  const menuConnect = doc => pick(doc, l => /^connect$|^invite .* to connect/.test(l));
+  /** The pieces of the invitation dialog: the Add a note button, the note box, the Send button. */
+  function inviteDialog(doc) {
+    const d = doc.querySelector('[role="dialog"]') || doc;
+    return { addNote: pick(d, l => /^add a note/.test(l)), note: d.querySelector('textarea#custom-message, textarea[name="message"], textarea'), send: pick(d, l => /^send( invitation| now)?$/.test(l)) };
+  }
+  /** The message composer and its Send button. */
+  function messageBox(doc) {
+    const box = doc.querySelector('.msg-form__contenteditable, div[role="textbox"][contenteditable="true"]');
+    const form = box && (box.closest('form') || box.closest('[role="dialog"]') || doc);
+    return { box, send: form ? pick(form, l => /^send$/.test(l)) : null };
+  }
+  /** What an invitation note can hold (LinkedIn allows 200 characters): whole sentences while they fit, else cut at a word. */
+  function noteFrom(text, max = 200) {
+    const t = clean(text); if (t.length <= max) return t;
+    const parts = t.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [t]; let out = '';
+    for (const p of parts) { if ((out + p).trim().length > max) break; out += p; }
+    if (out.trim()) return out.trim();
+    const cut = t.slice(0, max); return cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trim();
+  }
+
+  root.OwnedMapLib = { extractPosts, extractLocation, profileAction, menuConnect, inviteDialog, messageBox, noteFrom };
 })(typeof window !== 'undefined' ? window : globalThis);

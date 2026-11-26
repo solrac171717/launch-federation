@@ -2,7 +2,7 @@
 
 Owned Map gets you customers from LinkedIn on autopilot: it finds the people asking for what you sell, scores how ready they are to buy, and shows them on an interactive globe with what they said and a reply you can copy.
 
-You paste your website. It works out what you sell and the phrases buyers use, searches public posts, scores each person from 0 to 100, places them where they are, and drafts a reply in your tone. **Nothing is ever posted, sent or clicked for you.**
+You paste your website. It works out what you sell and the phrases buyers use, searches public posts, scores each person from 0 to 100, places them where they are, and drafts a reply in your tone. **Everything is approved by you: the extension sends only the leads you queue, from your own browser, a few a day.**
 
 > This branch (`leads-pivot`) turned the earlier asset-tracking product into this one. Same stack, same Supabase project, same Vercel project, same Stripe and OpenAI accounts. See "What changed" at the end.
 

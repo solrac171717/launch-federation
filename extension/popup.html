@@ -17,11 +17,15 @@
 </head>
 <body>
   <h1>Owned Map for LinkedIn</h1>
-  <p>Reads the posts and profiles you are looking at and sends them to your account to be scored. It never sends a message or an invitation for you.</p>
+  <p>Reads the posts you look at and sends them to your account to be scored. For the leads you queue in the app it fills in your invitation or message, from your own browser.</p>
   <label for="token">Pairing code (Settings, Connect the extension)</label>
   <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste the code from the app">
   <label for="base">Your Owned Map address</label>
   <input id="base" type="text" placeholder="https://ownedmap.com">
+  <label for="cap">Invitations and messages per day (1 to 25)</label>
+  <input id="cap" type="number" min="1" max="25" value="15">
+  <label style="display:flex;gap:8px;align-items:center;font-weight:500"><input id="auto" type="checkbox" style="width:auto;margin:0"> Press Send for me (otherwise I press it)</label>
+  <p id="today"></p>
   <button id="save">Save</button><button id="off" class="ghost">Disconnect</button>
   <div id="status" aria-live="polite"></div>
   <script src="popup.js"></script>

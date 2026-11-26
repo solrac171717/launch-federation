@@ -86,7 +86,7 @@ const HEADLINES = {
       h('p', { class: 'hint' }, 'You edit it, you copy it, you send it. Nothing is posted for you.')));
   const items = Object.entries(INTENTS).map(([k, label]) => { const l = LEADS.find(x => x.intent === k); return h('li', { class: 'intent-card' }, h('b', {}, label), l ? h('p', {}, `“${snippet(l.text, 120)}”`) : null); });
   clear(document.getElementById('intents')).append(...items);
-  const trust = [['Public posts only', 'We read what people chose to post in public on LinkedIn, only the posts and profiles you have open yourself. We never log in for you, and we do not buy contact lists.'], ['You send every reply', 'Each lead comes with a draft. You edit it and send it yourself, where the conversation is. Nothing is ever posted, sent or clicked for you.'], ['Your leads are yours', 'Export them as a CSV whenever you like, remove any of them in one click, and keep what you learn about your own buyers.']];
+  const trust = [['Public posts only', 'We read what people chose to post in public on LinkedIn, only the posts and profiles you have open yourself. We never log in for you, and we do not buy contact lists.'], ['You approve every message', 'Each lead comes with a draft message and a 200-character invitation note. You edit them and queue only the leads you choose. The extension sends from your own browser, a few a day with pauses, and never without a lead you queued.'], ['Your leads are yours', 'Export them as a CSV whenever you like, remove any of them in one click, and keep what you learn about your own buyers.']];
   clear(document.getElementById('trust-grid')).append(...trust.map(([t, p]) => h('li', { class: 'intent-card' }, h('b', {}, t), h('p', {}, p))));
 }
 

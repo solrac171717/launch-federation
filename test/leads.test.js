@@ -220,3 +220,26 @@ test('linkedinSearchUrl: content search, past week, newest first, phrase encoded
   assert.equal(u.searchParams.get('sortBy'), '"date_posted"');
   assert.equal(u.searchParams.get('datePosted'), '"past-week"');
 });
+
+test('ingest: an invitation sent from the person’s own browser marks only their own new lead as contacted', async () => {
+  const patched = []; const senv = { ...env, SUPABASE_SERVICE_ROLE_KEY: 'svc' };
+  const fetchImpl = async (url, init = {}) => {
+    const u = String(url), m = init.method || 'GET';
+    if (u.includes('/rest/v1/ingest_tokens')) return json(m === 'GET' ? [{ id: 't1', user_id: 'u1' }] : null);
+    if (u.includes('/rest/v1/leads') && m === 'GET') return json(u.includes('user_id=eq.u1') && u.includes('status=eq.new') ? [{ id: 'l1', history: [{ d: '2026-11-01', e: 'found' }] }] : []);
+    if (u.includes('/rest/v1/leads') && m === 'PATCH') { patched.push([u, JSON.parse(init.body)]); return json(null); }
+    throw new Error(`unexpected ${m} ${u}`);
+  };
+  const r = await runIngest({ env: senv, fetchImpl, token: 'a'.repeat(43), body: { outreach: { url: 'https://www.linkedin.com/in/eve/?x=1', kind: 'invite' } } });
+  assert.equal(r.status, 200); assert.equal(r.body.contacted, 1);
+  assert.match(patched[0][0], /id=eq\.l1&user_id=eq\.u1/); assert.equal(patched[0][1].status, 'contacted'); assert.equal(patched[0][1].history.at(-1).e, 'contacted');
+  assert.equal((await runIngest({ env: senv, fetchImpl, token: 'a'.repeat(43), body: { outreach: { url: 'https://evil.example/in/eve' } } })).status, 400);
+});
+
+test('inviteNote: whole sentences within 200 characters, else cut at a word', async () => {
+  const { inviteNote } = await import('../src/leads-core.js');
+  assert.equal(inviteNote('Short one.'), 'Short one.');
+  const long = 'First sentence is fine. ' + 'Second sentence '.repeat(20) + 'ends here.';
+  assert.equal(inviteNote(long), 'First sentence is fine.');
+  const n = inviteNote('word '.repeat(80)); assert.ok(n.length <= 200 && !n.endsWith(' '));
+});

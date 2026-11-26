@@ -14,7 +14,7 @@ import { createAccountUi } from './app-account.js';
 import { makeToken, sha256Hex, createShareUi } from './app-share.js';
 import { planFor, isSuperadmin } from './plan.js';
 import { createBillingUi } from './app-billing.js';
-import { linkedinSearchUrl, SOURCES, INTENTS, STATUSES, HIGH_SCORE, HISTORY_LABEL, toView, stats, funnel, quotaState, nextHistory, createLocalStore, createCloudStore, toCsvRows, LEAD_COLUMNS } from './leads-core.js';
+import { linkedinSearchUrl, inviteNote, SOURCES, INTENTS, STATUSES, HIGH_SCORE, HISTORY_LABEL, toView, stats, funnel, quotaState, nextHistory, createLocalStore, createCloudStore, toCsvRows, LEAD_COLUMNS } from './leads-core.js';
 import { sampleLeads } from './leads-demo.js';
 import { ago, snippet, sourceIcon, scorePill, leadCard, funnelBars } from './leads-view.js';
 import { createProfileStore, profileForm, queriesFromText, PROFILE_EMPTY } from './leads-profile.js';
@@ -29,6 +29,24 @@ const UNITS = 3; // the base plan; the monthly allowance is read from here until
 
 /* ------------------------------------------------------------------ small helpers */
 let toastTimer = 0;
+
+/* The extension, when it is installed in this browser: it tells the page it is there, and takes the leads the person chooses to contact.
+   It sends the invitation or message from the person's own LinkedIn session; nothing about their LinkedIn login ever reaches us. */
+let ext = null; // { queued, sentToday, cap, auto } or null
+const toExt = m => window.postMessage({ source: 'ownedmap-app', ...m }, location.origin);
+window.addEventListener('message', e => {
+  if (e.source !== window || e.origin !== location.origin || e.data?.source !== 'ownedmap-ext') return;
+  const d = e.data;
+  if (d.type === 'hello') toExt({ type: 'ping' });
+  else if (d.type === 'ready' || d.type === 'queued') {
+    ext = { queued: d.queued || 0, sentToday: d.sentToday || 0, cap: d.cap || 15, auto: !!d.auto };
+    if (d.type === 'queued') toast(`Queued. ${ext.queued} waiting; up to ${ext.cap} a day, with pauses between them.`);
+    if (state.view === 'leads' || $('modal-title')) render();
+  }
+});
+/** Leads worth contacting from the list: LinkedIn, with a profile link and a draft, still new, and a high score. */
+const contactable = vs => vs.filter(v => v.source === 'linkedin' && v.authorUrl && v.draft && v.status === 'new' && v.score >= HIGH_SCORE);
+const asJob = (v, text = v.draft, note = inviteNote(text)) => ({ id: v.id, url: v.authorUrl, text, note });
 function toast(msg, kind = 'ok') {
   const t = $('toast'); t.className = `toast show ${kind}`; t.replaceChildren(h('span', {}, msg));
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = 'toast'; }, 4200);
@@ -137,10 +155,26 @@ async function removeLead(l) {
   await run('remove', () => store.remove(l.id)); raw = raw.filter(x => x.id !== l.id); if (state.sel === l.id) state.sel = null; modal().close(); refresh();
 }
 
+/** "Send on LinkedIn": the invitation note (200 characters) and the message, both yours to edit; the extension puts them in your own LinkedIn. */
+function sendBlock(v, draft) {
+  const note = h('textarea', { id: 'lead-note', rows: 3, maxlength: 200 }, inviteNote(v.draft));
+  const count = h('span', { class: 'hint' }), left = () => { count.textContent = `${note.value.length} / 200 characters (LinkedIn's limit for an invitation note)`; };
+  note.addEventListener('input', left); left();
+  const btn = h('button', { type: 'button', class: 'btn btn-primary btn-sm', id: 'lead-queue', disabled: !ext, onclick: () => {
+    if (!draft.value.trim() || !note.value.trim()) { toast('Write the message and the note first.', 'err'); return; }
+    toExt({ type: 'queue', items: [asJob(v, draft.value.trim(), note.value.trim())] });
+  } }, 'Queue on LinkedIn');
+  return h('div', { class: 'field send-block' }, h('label', { for: 'lead-note' }, 'Invitation note (used if you are not connected yet)'), note, count,
+    h('div', { class: 'modal-actions am-left' }, btn),
+    h('p', { class: 'hint' }, ext
+      ? `The extension opens their profile in your browser with your own LinkedIn session and ${ext.auto ? 'sends it' : 'fills it in so you press Send'}. ${ext.sentToday} of ${ext.cap} done today.`
+      : 'Install and pair the Owned Map extension (Settings) to send from your own LinkedIn. We never ask for your LinkedIn password.'));
+}
+
 /* ------------------------------------------------------------------ one lead, in full */
 function openLead(id, { keep = false } = {}) {
   const v = find(id); if (!v) return;
-  const draft = h('textarea', { id: 'lead-draft', rows: 6, maxlength: 2000, placeholder: 'Your reply, ready to copy. Nothing is ever posted for you.' }, v.draft);
+  const draft = h('textarea', { id: 'lead-draft', rows: 6, maxlength: 2000, placeholder: 'Your message, ready to copy or to queue on LinkedIn.' }, v.draft);
   const steps = Object.entries(STATUSES).map(([k, label]) => h('button', { type: 'button', class: `step${v.status === k ? ' on' : ''}`, 'aria-pressed': String(v.status === k), onclick: () => setStatus(v, k) }, label));
   const hist = [...v.history].reverse().map(e => h('li', {}, h('time', {}, e.d), h('span', {}, HISTORY_LABEL[e.e] || e.e)));
   const card = h('div', { class: 'modal-card wide lead-detail' },
@@ -157,6 +191,7 @@ function openLead(id, { keep = false } = {}) {
       h('div', { class: 'modal-actions am-left' },
         h('button', { type: 'button', class: 'btn btn-primary btn-sm', onclick: async () => toast((await copyText(draft.value)) ? 'Copied. Paste it where the conversation is.' : 'Could not copy. Select the text and copy it.') }, 'Copy reply'),
         h('button', { type: 'button', class: 'btn btn-dark btn-sm', onclick: () => saveDraft(v, draft.value) }, 'Save my edits'))),
+    v.source === 'linkedin' && v.authorUrl ? sendBlock(v, draft) : null,
     h('div', { class: 'ld-steps', role: 'group', 'aria-label': 'Where this lead is' }, steps),
     h('h3', { class: 'ld-h' }, 'History'), h('ul', { class: 'ld-hist' }, hist),
     h('div', { class: 'modal-actions am-left' }, h('button', { type: 'button', class: 'btn btn-ghost-danger btn-sm', onclick: () => removeLead(v) }, 'Remove this lead')));
@@ -245,7 +280,7 @@ function onboarding() {
     h('b', {}, 'Who is looking for what you sell?'),
     h('p', {}, 'Paste your website. We work out who buys from you and what they write on LinkedIn, give you the searches to open, and put every buyer the extension finds on the globe with what they said.'),
     h('div', { class: 'field' }, h('label', { for: 'onb-url' }, 'Your website'), url), txt, err, go,
-    h('p', { class: 'hint' }, 'We only read public pages and public posts. Nothing is ever posted or sent for you.'),
+    h('p', { class: 'hint' }, 'We only read public pages and posts. You approve every message before it goes out.'),
     h('button', { type: 'button', class: 'link-btn', onclick: loadSample }, 'Or look around with sample leads first'));
 }
 async function loadSample() { const made = await run('sample', () => store.addMany(sampleLeads(), { sample: true })); if (made) { merge(made); refresh(); } }
@@ -270,7 +305,9 @@ function renderLeads() {
     if (!rows.length) tbody.append(h('tr', {}, h('td', { colspan: 7, class: 'lt-none' }, 'No lead matches these filters.')));
   };
   q.addEventListener('input', draw);
-  host.append(h('div', { class: 'tbl-bar' }, q, sel('Status', 'status', [['all', 'Any status'], ...Object.entries(STATUSES)]), sel('Minimum score', 'min', [[0, 'Any score'], [40, '40 or more'], [HIGH_SCORE, `${HIGH_SCORE} or more`], [85, '85 or more']]), count),
+  const ready = contactable(views.filter(inFilter));
+  const bulk = ready.length ? h('button', { type: 'button', class: 'btn btn-primary btn-sm', id: 'queue-all', disabled: !ext, title: ext ? '' : 'Install and pair the extension first', onclick: () => { toExt({ type: 'queue', items: ready.slice(0, 25).map(v => asJob(v)) }); } }, `Queue ${Math.min(ready.length, 25)} new leads on LinkedIn`) : null;
+  host.append(h('div', { class: 'tbl-bar' }, q, bulk,sel('Status', 'status', [['all', 'Any status'], ...Object.entries(STATUSES)]), sel('Minimum score', 'min', [[0, 'Any score'], [40, '40 or more'], [HIGH_SCORE, `${HIGH_SCORE} or more`], [85, '85 or more']]), count),
     h('div', { class: 'tbl-wrap' }, h('table', { class: 'lt' }, h('thead', {}, h('tr', {}, th('score', 'Score'), th('name', 'Who'), h('th', {}, 'What they said'), th('intent', 'Intent'), th('source', 'Source'), th('status', 'Status'), th('signalAt', 'Detected'))), tbody)));
   draw();
 }
@@ -326,7 +363,7 @@ function extensionBox() {
     loadTokens();
   } }, 'Connect the extension');
   loadTokens();
-  return h('div', {}, h('p', { class: 'hint' }, 'The extension reads the LinkedIn posts and profiles you are already looking at and sends them here to be scored. It never sends a message or an invitation for you. To install it: download the file below, unzip it, then in Chrome open Extensions, turn on Developer mode, press Load unpacked and choose the folder. It is new and has not been published to the Chrome Web Store yet.'), h('p', {}, h('a', { class: 'link-btn', href: '/downloads/owned-map-extension.zip', download: '' }, 'Download the extension (.zip)')), make, out, list);
+  return h('div', {}, h('p', { class: 'hint' }, 'The extension reads the LinkedIn posts you look at and sends them here to be scored. For the leads you queue, it opens their profile in your own browser, with your own LinkedIn session, and fills in your invitation or message (you press Send, or you can let it press it for you, up to the daily limit you set, 25 at most). We never see or store your LinkedIn password or session. To install it: download the file below, unzip it, then in Chrome open Extensions, turn on Developer mode, press Load unpacked and choose the folder. It is new and has not been published to the Chrome Web Store yet.'), h('p', {}, h('a', { class: 'link-btn', href: '/downloads/owned-map-extension.zip', download: '' }, 'Download the extension (.zip)')), make, out, list);
 }
 
 function exportCsv() {
