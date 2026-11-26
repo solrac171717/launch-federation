@@ -16,11 +16,12 @@ const USD0 = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD'
 analytics.track('landing_page_view');
 
 /* ------------------------------------------------------------ headline variants */
-// Default stays Variant A. `?hv=B` or `?hv=C` previews a variant for QA / future testing.
+// Default is variant A. `?hv=B`, `C` or `D` shows another headline (for ads, QA and testing); D is the previous headline.
 const HEADLINES = {
-  A: ['Every asset.', 'One intelligent view.'],
-  B: ['Your entire asset portfolio.', 'One clear view.'],
-  C: ['See the full picture of', 'everything you own.'],
+  A: ['Never miss a renewal.', 'Never leave your family guessing.'],
+  B: ['If something happens to you,', 'will your family know what you own?'],
+  C: ['One missed renewal can cost more', 'than a year of Owned Map.'],
+  D: ['Every asset.', 'One intelligent view.'],
 };
 {
   const v = new URLSearchParams(location.search).get('hv');
