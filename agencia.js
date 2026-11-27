@@ -58,7 +58,7 @@ const PROMPTS = [
   ['asesor financiero para emprendedores', 'Sevilla', [0, 0, 0, 0, 1]],
 ];
 const WORK = [
-  ['6 artículos publicados', 'Respuestas a las preguntas que más buscan tus clientes, con tus datos y tu voz.'],
+  ['31 artículos publicados', 'Respuestas a las preguntas que más buscan tus clientes, con tus datos y tu voz.'],
   ['Datos estructurados en 12 páginas', 'Para que las IA entiendan quién eres, qué ofreces y dónde.'],
   ['3 menciones en foros y directorios', 'Fuentes que las IA ya leen y en las que ahora apareces.'],
   ['2 páginas comerciales nuevas', 'Una por cada zona prioritaria, con su propia pregunta.'],
