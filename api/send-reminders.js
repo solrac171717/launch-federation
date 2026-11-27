@@ -3,6 +3,7 @@
 //      RESEND_API_KEY and REMINDER_FROM (a sender address verified in Resend), optional SITE_URL.
 // If anything is missing it answers 503 and sends nothing. A reminder is only marked as notified after its email was accepted.
 import { shouldNotify, digestEmail, isoDay } from '../src/reminders.js';
+import { runHeirCheck } from './_heir-check.js';
 
 function send(res, status, body) {
   res.statusCode = status;
@@ -46,6 +47,11 @@ export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return send(res, 503, { error: 'not_configured' });
   if (req.headers.authorization !== `Bearer ${secret}`) return send(res, 401, { error: 'unauthorized' });
-  try { const { status, body } = await runReminders({ env: process.env }); return send(res, status, body); }
+  // One daily job does both: Vercel's free plan allows 12 functions, so the trusted-person check (api/_heir-check.js) runs here too.
+  try {
+    const { status, body } = await runReminders({ env: process.env });
+    let heir = null; try { heir = (await runHeirCheck({ env: process.env })).body; } catch (e) { console.error('heir-check error', e); heir = { error: 'server_error' }; }
+    return send(res, status, { ...body, heir });
+  }
   catch (e) { console.error('send-reminders error', e); return send(res, 500, { error: 'server_error' }); }
 }

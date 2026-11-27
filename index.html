@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agencia de SEO con IA (AEO y GEO): aparece en ChatGPT y Google | Owned Map</title>
-<meta name="description" content="Agencia de SEO con IA en español. Conseguimos clientes haciendo que ChatGPT, Claude, Perplexity y Gemini te citen. Garantía: +30% de crecimiento en 90 días o trabajamos gratis. Desde 997 €/mes.">
+<title>Agencia de SEO con IA: aparece en ChatGPT y Google | Owned Map</title>
+<meta name="description" content="Agencia de SEO con IA en español: conseguimos clientes haciendo que ChatGPT, Claude, Perplexity y Gemini te citen. +30% en 90 días o trabajamos gratis.">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
 <meta name="theme-color" content="#ffffff">
 <!--site-url:start-->
@@ -16,7 +16,7 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="es_ES">
 <meta property="og:site_name" content="Owned Map">
-<meta property="og:title" content="Agencia de SEO con IA (AEO y GEO): aparece en ChatGPT y Google | Owned Map">
+<meta property="og:title" content="Agencia de SEO con IA: aparece en ChatGPT y Google | Owned Map">
 <meta property="og:description" content="Conseguimos clientes haciendo que las IA te citen. +30% de crecimiento en 90 días o trabajamos gratis.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Agencia de SEO con IA (AEO y GEO) | Owned Map">
@@ -28,6 +28,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="landing.css">
 <link rel="stylesheet" href="agencia.css">
+<link rel="stylesheet" href="agencia-v2.css">
 <!--jsonld-->
 </head>
 <body class="ag">
@@ -51,15 +52,21 @@
   <div class="aurora" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
   <div class="wrap">
     <div class="hero-copy">
-      <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Agencia de SEO con IA, en español</p>
-      <h1 id="hero-title">La agencia que te consigue clientes haciendo que aparezcas en <span class="rot" aria-hidden="true"><span class="rot-i on" data-logo="chatgpt">ChatGPT</span><span class="rot-i" data-logo="claude">Claude</span><span class="rot-i" data-logo="perplexity">Perplexity</span><span class="rot-i" data-logo="gemini">Gemini</span></span><span class="sr">ChatGPT, Claude, Perplexity y Gemini</span></h1>
+      <h1 id="hero-title">La agencia que te consigue clientes haciendo que aparezcas en las respuestas de <span class="rot" aria-hidden="true"><span class="rot-i on" data-logo="chatgpt">ChatGPT</span><span class="rot-i" data-logo="claude">Claude</span><span class="rot-i" data-logo="perplexity">Perplexity</span><span class="rot-i" data-logo="gemini">Gemini</span></span><span class="sr">ChatGPT, Claude, Perplexity y Gemini</span></h1>
       <h2 class="guarantee"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5z" fill="#DCE9FF" stroke="#2563EB" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.2 12.2l2.7 2.7 5-5.4" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Aumentamos tu crecimiento un 30% en 90 días o trabajamos gratis hasta que lo consigas.<b class="auto">Todo hecho para ti en piloto automático.</b></span></h2>
-      <div class="cta-row">
-        <a class="btn btn-primary btn-xl" href="%BOOKING_URL%" data-where="hero">Reservar llamada gratuita</a>
-        <a class="btn btn-dark btn-xl" href="%BOOKING_URL%" data-where="hero-audit">Pedir informe AEO gratis</a>
-      </div>
-      <p class="proof-line">Primera llamada e informe sin coste &middot; Todo lo que publicamos es tuyo &middot; <a href="#garantia">Cómo funciona la garantía</a></p>
+
+      <form class="start" id="start" novalidate>
+        <label class="sr" for="start-url">La dirección de tu web</label>
+        <div class="start-pill">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="#778195" stroke-width="1.7"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="#778195" stroke-width="1.5"/></svg>
+          <input id="start-url" name="url" type="text" inputmode="url" autocomplete="url" autocapitalize="off" spellcheck="false" placeholder="tuweb.com" maxlength="300">
+          <button class="btn btn-primary" type="submit">Empezar gratis</button>
+        </div>
+        <p class="start-note" id="start-note" role="status">Diagnóstico gratuito de tu web en 30 segundos &middot; Sin tarjeta</p>
+      </form>
     </div>
+
+    <p class="panel-lead"><b>Gestionamos y hacemos todo por ti</b><span>No necesitas iniciar sesión en ningún sitio</span></p>
 
     <figure class="device" id="preview" aria-label="Panel de visibilidad de ejemplo, con datos de muestra">
       <div class="window">
@@ -67,7 +74,6 @@
         <div class="app">
           <aside class="side" aria-label="Navegación del panel">
             <div class="side-brand" aria-hidden="true"><span class="lmark" style="--s:28px" aria-hidden="true"><img src="assets/logo-o.png" alt="" width="192" height="192"></span>OWNED MAP</div>
-            <div class="ag-acct" aria-hidden="true"><b>Tu empresa, S.L.</b><span>Plan Crecimiento · mes 3</span></div>
             <ul id="ag-nav"></ul>
             <div class="side-foot"><span class="auto-on"><i aria-hidden="true"></i>Piloto automático activo</span><span>Datos de ejemplo</span></div>
           </aside>
@@ -108,7 +114,7 @@
   <div class="wrap">
     <p>Trabajamos tu visibilidad en</p>
     <ul>
-      <li data-logo="chatgpt">ChatGPT</li><li data-logo="claude">Claude</li><li data-logo="perplexity">Perplexity</li><li data-logo="gemini">Gemini</li><li class="g">Google AI Overviews</li>
+      <li data-logo="chatgpt">ChatGPT</li><li data-logo="claude">Claude</li><li data-logo="perplexity">Perplexity</li><li data-logo="gemini">Gemini</li><li data-logo="google">Google AI Overviews</li>
     </ul>
   </div>
 </section>
@@ -121,11 +127,31 @@
       <h2 id="prob-title">Tus clientes ya preguntan a una IA antes de elegir.</h2>
       <p class="lead">Si la respuesta no te nombra, para ellos no existes. Y la mayoría de las empresas en español todavía no trabaja esto.</p>
     </div>
-    <ul class="ag-grid3">
-      <li class="ag-card"><h3>Ya no hacen clic en diez enlaces</h3><p>ChatGPT, Perplexity, Gemini y los resúmenes de Google dan una respuesta directa y citan a unas pocas empresas.</p></li>
-      <li class="ag-card"><h3>Salir en Google no basta</h3><p>Las IA eligen fuentes claras, con datos estructurados, contenido que responde la pregunta y menciones de terceros. Es otro trabajo, y se apoya en el SEO.</p></li>
-      <li class="ag-card"><h3>Quien empiece ahora, gana ventaja</h3><p>Casi nadie hace esto bien en español. Cada mes que esperas, tu competidor se queda con esas citas.</p></li>
-    </ul>
+    <ol class="how-steps ag-reveal">
+      <li class="how-step">
+        <div class="how-art" aria-hidden="true">
+          <div class="ha-serp"><i></i><i></i><i></i><i></i><i></i><span>10 enlaces</span></div>
+          <div class="ha-arrow"></div>
+          <div class="ha-ans"><span>Respuesta IA</span><b>Empresa A</b><b class="me">Tu empresa</b><b>Empresa C</b></div>
+        </div>
+        <div class="how-body"><span class="how-n" aria-hidden="true">1</span><h3>Ya no hacen clic en diez enlaces</h3><p>ChatGPT, Perplexity, Gemini y los resúmenes de Google dan una respuesta directa y citan a unas pocas empresas.</p></div>
+      </li>
+      <li class="how-step">
+        <div class="how-art" aria-hidden="true">
+          <div class="ha-read">
+            <div class="rank"><b>#1</b><s>en Google</s><i>≠</i><em>citado por la IA</em></div>
+            <ul><li>Datos estructurados</li><li>Responde la pregunta</li><li>Menciones de terceros</li></ul>
+          </div>
+        </div>
+        <div class="how-body"><span class="how-n" aria-hidden="true">2</span><h3>Salir en Google no basta</h3><p>Las IA eligen fuentes claras, con datos estructurados, contenido que responde la pregunta y menciones de terceros. Es otro trabajo, y se apoya en el SEO.</p></div>
+      </li>
+      <li class="how-step">
+        <div class="how-art" aria-hidden="true">
+          <svg class="ha-race" viewBox="0 0 230 120" width="230" height="120"><path d="M8 100H222" stroke="#CBD7EC" stroke-width="1.2"/><path d="M8 96C60 92 120 78 222 22" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/><path d="M8 96C80 94 150 92 222 88" fill="none" stroke="#B6C2D8" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 7"/><circle cx="222" cy="22" r="5" fill="#2563EB"/><text x="14" y="24" font-size="11" font-weight="600" fill="#1D4ED8">Si empiezas hoy</text><text x="128" y="114" font-size="11" fill="#778195">Si esperas</text></svg>
+        </div>
+        <div class="how-body"><span class="how-n" aria-hidden="true">3</span><h3>Quien empiece ahora, gana ventaja</h3><p>Casi nadie hace esto bien en español. Cada mes que esperas, tu competidor se queda con esas citas.</p></div>
+      </li>
+    </ol>
   </div>
 </section>
 
@@ -148,16 +174,36 @@
 <!-- MÉTODO -->
 <section class="section how" id="metodo" aria-labelledby="how-title">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head wide">
       <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Método</p>
       <h2 id="how-title">Auditamos, arreglamos y medimos. Cada semana.</h2>
       <p class="lead">Un equipo humano decide la estrategia y revisa cada entrega. Agentes de IA hacen el trabajo pesado: investigación, redacción, datos estructurados y reportes.</p>
     </div>
-    <ol class="ag-steps">
-      <li><span class="how-n" aria-hidden="true">1</span><h3>Auditoría</h3><p>Medimos dónde te citan hoy las IA y dónde no, y quién aparece en tu lugar. Revisamos tu web y las preguntas de tus compradores.</p></li>
-      <li><span class="how-n" aria-hidden="true">2</span><h3>Arreglar y crear</h3><p>Corregimos lo técnico, añadimos datos estructurados y publicamos contenido que responde mejor que nadie, con tu voz y tus datos.</p></li>
-      <li><span class="how-n" aria-hidden="true">3</span><h3>Autoridad</h3><p>Conseguimos menciones y enlaces en sitios que las IA ya leen, para que no dependas solo de lo que dices tú.</p></li>
-      <li><span class="how-n" aria-hidden="true">4</span><h3>Medir</h3><p>Cada semana ves en tu panel qué preguntas, qué zonas y qué citas se han movido, con tus propios datos.</p></li>
+    <ol class="how-steps four ag-reveal">
+      <li class="how-step">
+        <div class="how-art" aria-hidden="true">
+          <div class="ha-audit"><div class="ring"><b>62</b></div><ul><li class="bad">Sin FAQPage</li><li class="bad">Sin llms.txt</li><li class="ok">robots.txt</li></ul><i class="scan"></i></div>
+        </div>
+        <div class="how-body"><span class="how-n" aria-hidden="true">1</span><h3>Auditoría</h3><p>Medimos dónde te citan hoy las IA y dónde no, y quién aparece en tu lugar. Revisamos tu web y las preguntas de tus compradores.</p></div>
+      </li>
+      <li class="how-step">
+        <div class="how-art" aria-hidden="true">
+          <div class="ha-code"><code>{ "@type": "FAQPage" }</code><s></s><s></s><s class="short"></s><span class="pub">Publicado</span></div>
+        </div>
+        <div class="how-body"><span class="how-n" aria-hidden="true">2</span><h3>Arreglar y crear</h3><p>Corregimos lo técnico, añadimos datos estructurados y publicamos contenido que responde mejor que nadie, con tu voz y tus datos.</p></div>
+      </li>
+      <li class="how-step">
+        <div class="how-art" aria-hidden="true">
+          <svg class="ha-net" viewBox="0 0 220 130" width="220" height="130"><g stroke="#9DB6E4" stroke-width="1.4"><path d="M110 65L34 28M110 65L186 24M110 65L28 98M110 65L194 100M110 65L110 12"/></g><g fill="#fff" stroke="#9DB6E4" stroke-width="1.6"><circle cx="34" cy="28" r="9"/><circle cx="186" cy="24" r="9"/><circle cx="28" cy="98" r="9"/><circle cx="194" cy="100" r="9"/><circle cx="110" cy="12" r="8"/></g><circle cx="110" cy="65" r="17" fill="#2563EB"/><circle class="pulse" cx="110" cy="65" r="17" fill="none" stroke="#2563EB" stroke-width="2"/><path d="M103 65l5 5 9-10" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="how-body"><span class="how-n" aria-hidden="true">3</span><h3>Autoridad</h3><p>Conseguimos menciones y enlaces en sitios que las IA ya leen, para que no dependas solo de lo que dices tú.</p></div>
+      </li>
+      <li class="how-step">
+        <div class="how-art" aria-hidden="true">
+          <div class="ha-meas"><span class="chip">+38 %</span><svg viewBox="0 0 200 80" width="200" height="80" preserveAspectRatio="none"><path d="M0 70L25 64L50 66L75 52L100 48L125 36L150 30L175 16L200 8V80H0Z" fill="rgba(37,99,235,.14)"/><path d="M0 70L25 64L50 66L75 52L100 48L125 36L150 30L175 16L200 8" fill="none" stroke="#2563EB" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg><em>Cada semana, en tu panel</em></div>
+        </div>
+        <div class="how-body"><span class="how-n" aria-hidden="true">4</span><h3>Medir</h3><p>Cada semana ves en tu panel qué preguntas, qué zonas y qué citas se han movido, con tus propios datos.</p></div>
+      </li>
     </ol>
     <div class="cta-row ag-mid"><a class="btn btn-primary btn-lg" href="%BOOKING_URL%" data-where="metodo">Reservar llamada gratuita</a></div>
   </div>
@@ -169,7 +215,6 @@
     <div class="sec-head">
       <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Planes</p>
       <h2 id="px-title">Elige el ritmo al que quieres crecer.</h2>
-      <p class="lead">Precios sin letra pequeña. Pagando al año, 30 % de descuento.</p>
       <div class="ag-per" role="group" aria-label="Periodo de pago"><button type="button" class="ag-per-b on" data-per="month" aria-pressed="true">Mensual</button><button type="button" class="ag-per-b" data-per="year" aria-pressed="false">Anual <i>Ahorra 30 %</i></button></div>
     </div>
     <div class="ag-plans">
@@ -179,7 +224,7 @@
         <p class="ag-price"><b data-price>997 €</b><span>/mes</span></p>
         <p class="ag-bill" data-bill>Facturación mensual</p>
         <ul class="ag-feats">
-          <li><b>Garantía: +30% en 90 días o trabajamos gratis</b></li>
+          <li><b>Mínimo +30% en 90 días o trabajamos gratis hasta lograrlo</b></li>
           <li>Auditoría inicial de visibilidad en IA y en Google</li>
           <li>Optimización técnica y datos estructurados de tu web</li>
           <li>31 artículos al mes pensados para ser citados</li>
@@ -196,7 +241,7 @@
         <p class="ag-price"><b data-price>2.999 €</b><span>/mes</span></p>
         <p class="ag-bill" data-bill>Facturación mensual</p>
         <ul class="ag-feats">
-          <li><b>Garantía: +30% en 90 días o trabajamos gratis</b></li>
+          <li><b>Mínimo +30% en 90 días o trabajamos gratis hasta lograrlo</b></li>
           <li>Todo lo del plan Inicial</li>
           <li>62 artículos al mes y páginas comerciales nuevas</li>
           <li>Campaña mensual de autoridad: menciones y enlaces de calidad</li>
@@ -238,10 +283,19 @@
         <p class="lead">Medimos tu punto de partida antes de empezar. Si no llegamos, seguimos trabajando sin cobrar la cuota de gestión hasta lograrlo.</p>
       </div>
     </div>
-    <ul class="ag-grid3 ag-gar-rules">
-      <li class="ag-card"><h3>Cómo se mide</h3><p>Comparamos el tráfico orgánico y desde IA de tus 90 días anteriores con los 90 días de trabajo, en Search Console y Analytics. Los números son tuyos y los ves en tu panel.</p></li>
-      <li class="ag-card"><h3>Qué necesitamos de ti</h3><p>Acceso a tu web, a Search Console y a Analytics, y que aprobemos juntos el plan de trabajo. Si se frena por el lado del cliente, el plazo se ajusta.</p></li>
-      <li class="ag-card"><h3>Para quién aplica</h3><p>Para clientes cualificados: webs con tráfico medible, sin penalizaciones activas, que contraten los planes Inicial o Crecimiento. Lo confirmamos en la llamada, antes de que pagues nada.</p></li>
+    <ul class="ag-vcards c3">
+      <li class="ag-vcard">
+        <div class="how-art" aria-hidden="true"><div class="ha-ba"><div><i style="height:46%"></i><span>90 días antes</span></div><div><i class="up" style="height:100%"></i><span>90 días de trabajo</span></div><em>+30%</em></div></div>
+        <div class="how-body"><h3>Cómo se mide</h3><p>Comparamos el tráfico orgánico y desde IA de tus 90 días anteriores con los 90 días de trabajo, en Search Console y Analytics. Los números son tuyos y los ves en tu panel.</p></div>
+      </li>
+      <li class="ag-vcard">
+        <div class="how-art" aria-hidden="true"><ul class="ha-acc"><li>Tu web</li><li>Search Console</li><li>Analytics</li></ul></div>
+        <div class="how-body"><h3>Qué necesitamos de ti</h3><p>Acceso a tu web, a Search Console y a Analytics, y que aprobemos juntos el plan de trabajo. Si se frena por el lado del cliente, el plazo se ajusta.</p></div>
+      </li>
+      <li class="ag-vcard">
+        <div class="how-art" aria-hidden="true"><div class="ha-qual"><svg viewBox="0 0 24 24" width="46" height="46"><path d="M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5z" fill="#DCE9FF" stroke="#2563EB" stroke-width="1.5" stroke-linejoin="round"/><path d="M8.2 12.2l2.7 2.7 5-5.4" fill="none" stroke="#2563EB" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Cliente cualificado</b><span>Tráfico medible · Sin penalizaciones</span></div></div>
+        <div class="how-body"><h3>Para quién aplica</h3><p>Para clientes cualificados: webs con tráfico medible, sin penalizaciones activas, que contraten los planes Inicial o Crecimiento. Lo confirmamos en la llamada, antes de que pagues nada.</p></div>
+      </li>
     </ul>
   </div>
 </section>
@@ -254,31 +308,29 @@
       <h2 id="who-title">Hecho para empresas donde un cliente vale mucho.</h2>
       <p class="lead">Cuando un cliente nuevo te deja miles de euros, que una IA te recomiende se paga solo.</p>
     </div>
-    <ul class="ag-grid4">
-      <li class="ag-card"><h3>SaaS y software</h3><p>Aparece cuando preguntan por la mejor herramienta de tu categoría o por alternativas a tus competidores.</p></li>
-      <li class="ag-card"><h3>Servicios profesionales</h3><p>Despachos, consultoras y asesorías que se eligen por confianza y por reputación.</p></li>
-      <li class="ag-card"><h3>Salud y clínicas privadas</h3><p>Pacientes que preguntan a una IA dónde ir antes de pedir cita.</p></li>
-      <li class="ag-card"><h3>Ecommerce y marcas</h3><p>Que tu marca sea la recomendada cuando alguien compara productos.</p></li>
+    <ul class="ag-vcards c4">
+      <li class="ag-vcard">
+        <div class="how-art" aria-hidden="true"><div class="ha-chat"><p>¿Qué herramienta de facturación me recomiendas?</p><b>TuSaaS <em>recomendado</em></b></div></div>
+        <div class="how-body"><h3>SaaS y software</h3><p>Aparece cuando preguntan por la mejor herramienta de tu categoría o por alternativas a tus competidores.</p></div>
+      </li>
+      <li class="ag-vcard">
+        <div class="how-art" aria-hidden="true"><div class="ha-pro"><div class="stars">★★★★★</div><b>Tu despacho</b><span>Mercantil · Madrid</span><i>Elegido por reputación</i></div></div>
+        <div class="how-body"><h3>Servicios profesionales</h3><p>Despachos, consultoras y asesorías que se eligen por confianza y por reputación.</p></div>
+      </li>
+      <li class="ag-vcard">
+        <div class="how-art" aria-hidden="true"><div class="ha-cita"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.400 7 11 7 11z" fill="#DCE9FF" stroke="#2563EB" stroke-width="1.6"/><circle cx="12" cy="10" r="2.4" fill="#2563EB"/></svg><b>Tu clínica</b><span>Pedir cita · mañana 10:30</span></div></div>
+        <div class="how-body"><h3>Salud y clínicas privadas</h3><p>Pacientes que preguntan a una IA dónde ir antes de pedir cita.</p></div>
+      </li>
+      <li class="ag-vcard">
+        <div class="how-art" aria-hidden="true"><div class="ha-prod"><div class="tile"></div><b>Tu producto</b><em>Recomendado por IA</em></div></div>
+        <div class="how-body"><h3>Ecommerce y marcas</h3><p>Que tu marca sea la recomendada cuando alguien compara productos.</p></div>
+      </li>
     </ul>
   </div>
 </section>
 
-<!-- COMPROMISO -->
-<section class="section" id="compromiso" aria-labelledby="com-title">
-  <div class="wrap ag-narrow">
-    <div class="sec-head">
-      <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Cómo trabajamos</p>
-      <h2 id="com-title">Lo que prometemos y lo que no.</h2>
-    </div>
-    <div class="ag-two">
-      <div class="ag-card"><h3>Sí prometemos</h3><ul class="ag-ticks"><li>Medir tu punto de partida antes de empezar, con tus datos de Search Console y Analytics.</li><li>Un panel siempre abierto y un informe claro: dónde apareces, qué fuentes te citan y cuánto tráfico llega.</li><li>Que todo lo que publicamos es tuyo y se queda en tu web si te vas.</li></ul></div>
-      <div class="ag-card"><h3>No prometemos</h3><ul class="ag-ticks no"><li>Ser el primero en ChatGPT de un día para otro. Nadie controla lo que decide una IA.</li><li>Ventas concretas: medimos tráfico, citas y consultas, que son lo que podemos influir.</li><li>Trucos que Google o las IA puedan penalizar.</li></ul></div>
-    </div>
-  </div>
-</section>
-
 <!-- FAQ -->
-<section class="section faq alt" id="faq" aria-labelledby="faq-title">
+<section class="section faq" id="faq" aria-labelledby="faq-title">
   <div class="wrap faq-grid">
     <div class="faq-head">
       <p class="pill-label"><i class="dotlive" aria-hidden="true"></i>Preguntas</p>
@@ -295,28 +347,32 @@
         <div class="faq-a" id="faq-a1" role="region" aria-labelledby="faq-q1"><div class="faq-in"><p>Antes de empezar fijamos tu punto de partida: tu tráfico orgánico y desde IA de los 90 días anteriores, medido en Search Console y Analytics. Si pasados 90 días de trabajo no hay un 30 % más, seguimos trabajando sin cobrar la cuota de gestión hasta que lo consigas. Aplica a clientes cualificados de los planes Inicial y Crecimiento, y siempre que se apliquen las acciones acordadas.</p></div></div>
       </div>
       <div class="faq-item" data-faq>
-        <h3><button type="button" class="faq-q" id="faq-q2" aria-expanded="false" aria-controls="faq-a2"><span>¿Qué es el panel de zonas?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
-        <div class="faq-a" id="faq-a2" role="region" aria-labelledby="faq-q2"><div class="faq-in"><p>Es un panel con un globo donde ves de dónde vienen tus impresiones y tus posibles clientes, qué zonas son prioritarias y en qué preguntas te citan ChatGPT, Claude, Perplexity, Gemini y Google. Lo gestionamos nosotros; tú tienes acceso para verlo cuando quieras. Las citas por zona se miden repitiendo cada pregunta con la ciudad incluida, así que muestran una tendencia, no una cifra exacta.</p></div></div>
+        <h3><button type="button" class="faq-q" id="faq-q2" aria-expanded="false" aria-controls="faq-a2"><span>¿Qué es el diagnóstico gratuito de mi web?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
+        <div class="faq-a" id="faq-a2" role="region" aria-labelledby="faq-q2"><div class="faq-in"><p>Lees tu página de inicio y comprobamos 30 puntos técnicos y de contenido que influyen en que una IA pueda entenderte y citarte: acceso de los bots, datos estructurados, contenido que responde preguntas y señales de confianza. Te mostramos las brechas más graves y el resto se desbloquea en la llamada. No necesitas iniciar sesión en ningún sitio ni dar una tarjeta.</p></div></div>
       </div>
       <div class="faq-item" data-faq>
-        <h3><button type="button" class="faq-q" id="faq-q3" aria-expanded="false" aria-controls="faq-a3"><span>¿Qué es GEO?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
-        <div class="faq-a" id="faq-a3" role="region" aria-labelledby="faq-q3"><div class="faq-in"><p>GEO significa optimización para motores generativos. En la práctica es lo mismo que AEO visto desde otro ángulo: lograr que los modelos de IA te tengan en cuenta y te citen cuando generan una respuesta. Trabajamos las dos cosas a la vez.</p></div></div>
+        <h3><button type="button" class="faq-q" id="faq-q3" aria-expanded="false" aria-controls="faq-a3"><span>¿Qué es el panel de zonas?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
+        <div class="faq-a" id="faq-a3" role="region" aria-labelledby="faq-q3"><div class="faq-in"><p>Es un panel con un globo donde ves de dónde vienen tus impresiones y tus posibles clientes, qué zonas son prioritarias y en qué preguntas te citan ChatGPT, Claude, Perplexity, Gemini y Google. Lo gestionamos nosotros; tú tienes acceso para verlo cuando quieras. Las citas por zona se miden repitiendo cada pregunta con la ciudad incluida, así que muestran una tendencia, no una cifra exacta.</p></div></div>
       </div>
       <div class="faq-item" data-faq>
-        <h3><button type="button" class="faq-q" id="faq-q4" aria-expanded="false" aria-controls="faq-a4"><span>¿Cuánto tarda en notarse?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
-        <div class="faq-a" id="faq-a4" role="region" aria-labelledby="faq-q4"><div class="faq-in"><p>Lo técnico se nota en semanas; el contenido y la autoridad suelen necesitar de tres a seis meses para mover resultados de forma estable. Por eso el periodo inicial es de tres meses, con el panel abierto desde el primer día para que veas el avance.</p></div></div>
+        <h3><button type="button" class="faq-q" id="faq-q4" aria-expanded="false" aria-controls="faq-a4"><span>¿Qué es GEO?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
+        <div class="faq-a" id="faq-a4" role="region" aria-labelledby="faq-q4"><div class="faq-in"><p>GEO significa optimización para motores generativos. En la práctica es lo mismo que AEO visto desde otro ángulo: lograr que los modelos de IA te tengan en cuenta y te citen cuando generan una respuesta. Trabajamos las dos cosas a la vez.</p></div></div>
       </div>
       <div class="faq-item" data-faq>
-        <h3><button type="button" class="faq-q" id="faq-q5" aria-expanded="false" aria-controls="faq-a5"><span>¿Cómo cerráis el trato?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
-        <div class="faq-a" id="faq-a5" role="region" aria-labelledby="faq-q5"><div class="faq-in"><p>Primero hacemos una llamada de unos 30 minutos y un informe de visibilidad sin coste. Si encaja, eliges plan y pagas con tarjeta mediante un enlace seguro de Stripe. No hay letra pequeña ni permanencia de años.</p></div></div>
+        <h3><button type="button" class="faq-q" id="faq-q5" aria-expanded="false" aria-controls="faq-a5"><span>¿Cuánto tarda en notarse?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
+        <div class="faq-a" id="faq-a5" role="region" aria-labelledby="faq-q5"><div class="faq-in"><p>Lo técnico se nota en semanas; el contenido y la autoridad suelen necesitar de tres a seis meses para mover resultados de forma estable. Por eso el periodo inicial es de tres meses, con el panel abierto desde el primer día para que veas el avance.</p></div></div>
       </div>
       <div class="faq-item" data-faq>
-        <h3><button type="button" class="faq-q" id="faq-q6" aria-expanded="false" aria-controls="faq-a6"><span>¿Qué pasa si me voy?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
-        <div class="faq-a" id="faq-a6" role="region" aria-labelledby="faq-q6"><div class="faq-in"><p>Todo el contenido, los datos estructurados y los enlaces que hayamos creado se quedan en tu web y son tuyos. Los planes tienen un periodo inicial de tres meses; después puedes cancelar avisando con un mes.</p></div></div>
+        <h3><button type="button" class="faq-q" id="faq-q6" aria-expanded="false" aria-controls="faq-a6"><span>¿Cómo cerráis el trato?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
+        <div class="faq-a" id="faq-a6" role="region" aria-labelledby="faq-q6"><div class="faq-in"><p>Primero hacemos una llamada de unos 30 minutos y un informe de visibilidad sin coste. Si encaja, eliges plan y pagas con tarjeta mediante un enlace seguro de Stripe. No hay letra pequeña ni permanencia de años.</p></div></div>
       </div>
       <div class="faq-item" data-faq>
-        <h3><button type="button" class="faq-q" id="faq-q7" aria-expanded="false" aria-controls="faq-a7"><span>¿Trabajáis fuera de España?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
-        <div class="faq-a" id="faq-a7" role="region" aria-labelledby="faq-q7"><div class="faq-in"><p>Sí. Trabajamos en español para empresas de España, Latinoamérica y el mercado hispano de Estados Unidos, con cobro en euros. Si tu mercado es el inglés, también lo hablamos en la llamada.</p></div></div>
+        <h3><button type="button" class="faq-q" id="faq-q7" aria-expanded="false" aria-controls="faq-a7"><span>¿Qué pasa si me voy?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
+        <div class="faq-a" id="faq-a7" role="region" aria-labelledby="faq-q7"><div class="faq-in"><p>Todo el contenido, los datos estructurados y los enlaces que hayamos creado se quedan en tu web y son tuyos. Los planes tienen un periodo inicial de tres meses; después puedes cancelar avisando con un mes.</p></div></div>
+      </div>
+      <div class="faq-item" data-faq>
+        <h3><button type="button" class="faq-q" id="faq-q8" aria-expanded="false" aria-controls="faq-a8"><span>¿Trabajáis fuera de España?</span><i class="faq-plus" aria-hidden="true"></i></button></h3>
+        <div class="faq-a" id="faq-a8" role="region" aria-labelledby="faq-q8"><div class="faq-in"><p>Sí. Trabajamos en español para empresas de España, Latinoamérica y el mercado hispano de Estados Unidos, con cobro en euros. Si tu mercado es el inglés, también lo hablamos en la llamada.</p></div></div>
       </div>
     </div>
   </div>
@@ -326,8 +382,7 @@
 <section class="section ag-final" aria-labelledby="fin-title">
   <div class="wrap">
     <div class="ag-final-card">
-      <h2 id="fin-title">Descubre cuánto te ven hoy las IA.</h2>
-      <p class="lead">En la llamada revisamos tu visibilidad en ChatGPT, Claude, Perplexity, Gemini y Google, quién aparece en tu lugar y qué haría falta para que seas tú.</p>
+      <h2 id="fin-title">Te conseguimos los clientes que hoy se van a tu competencia</h2>
       <div class="cta-row">
         <a class="btn btn-primary btn-xl" href="%BOOKING_URL%" data-where="final">Reservar llamada gratuita</a>
       </div>
@@ -338,12 +393,21 @@
 
 </main>
 
+<!-- DIAGNÓSTICO GRATUITO: onboarding de 4 pasos -->
+<div class="ob" id="ob" hidden role="dialog" aria-modal="true" aria-labelledby="ob-title">
+  <div class="ob-card">
+    <button type="button" class="ob-x" id="ob-x" aria-label="Cerrar el diagnóstico">&times;</button>
+    <ol class="ob-steps" id="ob-steps" aria-label="Pasos del diagnóstico"><li>Tu web</li><li>Competidores</li><li>Brechas</li><li>Informe</li></ol>
+    <div class="ob-body" id="ob-body" aria-live="polite"></div>
+  </div>
+</div>
+
 <div class="ag-sticky" id="ag-sticky" hidden><a class="btn btn-primary block" href="%BOOKING_URL%" data-where="sticky">Reservar llamada gratuita</a></div>
 
 <footer class="ag-footer">
   <div class="wrap ag-foot">
-    <p>&copy; 2026 Owned Map. Agencia de SEO con IA. ChatGPT, Claude, Perplexity y Gemini son marcas de sus propietarios.</p>
-    <nav aria-label="Pie"><a href="privacidad.html">Privacidad</a><a href="terminos.html">Términos</a><a href="activos.html">Owned Map: rastreador de activos</a></nav>
+    <p>&copy; 2026 Owned Map. Agencia de SEO con IA. ChatGPT, Claude, Perplexity, Gemini y Google son marcas de sus propietarios.</p>
+    <nav aria-label="Pie"><a href="privacidad.html">Privacidad</a><a href="terminos.html">Términos</a><a href="mailto:support@ownedmap.com">Contacto</a><a href="activos.html">Owned Map: rastreador de activos</a></nav>
   </div>
 </footer>
 <script type="module" src="agencia.js"></script>

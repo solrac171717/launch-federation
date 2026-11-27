@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { heirStatus, warningEmail, openNotice, DAY, WARN_DAYS } from '../src/heir-core.js';
 import { runHeir } from '../api/heir.js';
-import { runHeirCheck } from '../api/heir-check.js';
+import { runHeirCheck } from '../api/_heir-check.js';
 import { daysText, SHARED_LIST } from '../src/app-heir.js';
 
 const NOW = Date.parse('2026-11-10T12:00:00Z');

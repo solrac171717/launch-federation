@@ -46,14 +46,14 @@ const PIN_ICO = 'M8 14.2s4.8-4 4.8-7.6a4.8 4.8 0 1 0-9.6 0C3.2 10.200 8 14.200 8
  * Globe / Country switcher with a drill-down inside Country: country -> region (state, province, autonomous community) -> city -> assets.
  * The globe draws the outlines and the count bubbles; this module owns where you are, the breadcrumb, the cards and the camera moves.
  */
-export function attachGeo(host, globe, { visible, all = visible, selected, lookup, onPick, onChange = () => {}, toggleAfter = null }) {
+export function attachGeo(host, globe, { visible, all = visible, selected, lookup, onPick, onChange = () => {}, toggleAfter = null, labels: L = {}, fmt = compact, countryName = c => COUNTRIES[c]?.name || c }) {
   const st = { mode: 'globe', cc: null, key: '', level: 'country', rid: null, city: null, data: null, tree: null, token: 0, pushed: '' };
   const ico = d => s('svg', { viewBox: '0 0 16 16', width: 15, height: 15, 'aria-hidden': 'true', class: 'gi' }, s('path', { d }));
-  const toggle = h('div', { class: 'geo-toggle', role: 'group', 'aria-label': 'Map view', 'data-mode': 'globe' }, h('i', { class: 'geo-thumb', 'aria-hidden': 'true' }),
-    h('button', { type: 'button', 'aria-pressed': 'true', onclick: () => setMode('globe') }, ico(GLOBE_ICO), 'Globe'),
-    h('button', { type: 'button', 'aria-pressed': 'false', onclick: () => setMode('country') }, ico(PIN_ICO), 'Country'));
-  const chips = h('ul', { class: 'geo-chips', 'aria-label': 'Countries' }), crumbs = h('nav', { class: 'geo-crumbs', 'aria-label': 'Where you are on the map' });
-  const row = h('div', { class: 'geo-assets', role: 'group', 'aria-label': 'Places and assets here' });
+  const toggle = h('div', { class: 'geo-toggle', role: 'group', 'aria-label': L.mapView || 'Map view', 'data-mode': 'globe' }, h('i', { class: 'geo-thumb', 'aria-hidden': 'true' }),
+    h('button', { type: 'button', 'aria-pressed': 'true', onclick: () => setMode('globe') }, ico(GLOBE_ICO), L.globe || 'Globe'),
+    h('button', { type: 'button', 'aria-pressed': 'false', onclick: () => setMode('country') }, ico(PIN_ICO), L.country || 'Country'));
+  const chips = h('ul', { class: 'geo-chips', 'aria-label': L.countries || 'Countries' }), crumbs = h('nav', { class: 'geo-crumbs', 'aria-label': L.where || 'Where you are on the map' });
+  const row = h('div', { class: 'geo-assets', role: 'group', 'aria-label': L.places || 'Places and assets here' });
   const ui = h('div', { class: 'geo-ui' }, ...(toggleAfter ? [] : [toggle]), chips, crumbs);
   if (toggleAfter) toggleAfter.after(toggle);
   host.append(ui, row);
@@ -123,8 +123,8 @@ export function attachGeo(host, globe, { visible, all = visible, selected, looku
   /* ---- breadcrumb + cards */
   const crumb = (label, fn) => (fn ? h('button', { type: 'button', onclick: fn }, label) : h('b', { 'aria-current': 'location' }, label));
   function drawCrumbs() {
-    const reg = curRegion(), city = curCity(), c = COUNTRIES[st.cc]?.name || st.cc, parts = [];
-    parts.push(crumb('World', () => setMode('globe')), crumb(c, st.level === 'country' ? null : () => toCountry(true)));
+    const reg = curRegion(), city = curCity(), c = countryName(st.cc), parts = [];
+    parts.push(crumb(L.world || 'World', () => setMode('globe')), crumb(c, st.level === 'country' ? null : () => toCountry(true)));
     if (reg) parts.push(crumb(reg.name, st.level === 'region' ? null : () => toRegion(reg.idx, { quiet: true })));
     if (city && st.level === 'city') parts.push(crumb(city.name, null));
     crumbs.replaceChildren(...parts.flatMap((p, i) => (i ? [h('i', { 'aria-hidden': 'true' }, '›'), p] : [p])));
@@ -132,7 +132,7 @@ export function attachGeo(host, globe, { visible, all = visible, selected, looku
     const deep = st.mode === 'country' && !!st.tree && st.level !== 'country';
     crumbs.hidden = !deep; ui.classList.toggle('deep', deep);
   }
-  const card = (label, n, value, fn, i) => h('button', { type: 'button', style: `--i:${i}`, class: 'geo-card', onclick: fn }, h('span', {}, label), h('em', {}, String(n)), h('b', {}, compact(value)));
+  const card = (label, n, value, fn, i) => h('button', { type: 'button', style: `--i:${i}`, class: 'geo-card', onclick: fn }, h('span', {}, label), h('em', {}, String(n)), h('b', {}, fmt(value)));
   function drawRow() {
     const keep = row.scrollLeft, vis = here(), sel = selected();
     let kids;
@@ -143,7 +143,7 @@ export function attachGeo(host, globe, { visible, all = visible, selected, looku
     row.replaceChildren(...kids); row.scrollLeft = keep;
     row.querySelectorAll('button[data-id]').forEach(b => { const on = b.dataset.id === sel; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   }
-  const assetBtn = (a, i) => h('button', { type: 'button', 'data-id': a.id, style: `--i:${i}`, onclick: () => onPick(a.id, false) }, thumb(a, 24), h('span', {}, a.name), h('b', {}, compact(a.value)));
+  const assetBtn = (a, i) => h('button', { type: 'button', 'data-id': a.id, style: `--i:${i}`, onclick: () => onPick(a.id, false) }, thumb(a, 24), h('span', {}, a.name), h('b', {}, fmt(a.value)));
 
   function build() {
     const vis = visible(), key = [st.mode, st.cc, st.level, st.rid, st.city, vis.map(a => a.id).join(), st.tree ? 1 : 0].join('|');
@@ -151,7 +151,7 @@ export function attachGeo(host, globe, { visible, all = visible, selected, looku
       st.key = key;
       const cs = [...new Set(all().map(a => a.country))];
       chips.replaceChildren(...cs.map((c, i) => {
-        const info = COUNTRIES[c] || { name: c };
+        const info = { name: countryName(c) };
         const n = vis.filter(a => a.country === c).length;
         return h('li', { style: `--i:${i}` }, h('button', { type: 'button', disabled: n === 0, 'data-c': c, onclick: () => setCountry(c) }, flag(c), h('span', {}, info.name), h('em', {}, String(n))));
       }));
@@ -205,7 +205,7 @@ export function attachGeo(host, globe, { visible, all = visible, selected, looku
     /** Name of the place currently shown, for titles. */
     placeName() {
       if (st.mode !== 'country' || !st.cc) return '';
-      return st.level === 'city' && curCity() ? `${curCity().name}, ${curRegion().name}` : st.level === 'region' && curRegion() ? `${curRegion().name}, ${COUNTRIES[st.cc]?.name || st.cc}` : (COUNTRIES[st.cc]?.name || st.cc);
+      return st.level === 'city' && curCity() ? `${curCity().name}, ${curRegion().name}` : st.level === 'region' && curRegion() ? `${curRegion().name}, ${countryName(st.cc)}` : (countryName(st.cc));
     },
     /** Call after the selection or the filter changed from outside. */
     sync() {
