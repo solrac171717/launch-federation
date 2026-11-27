@@ -12,7 +12,7 @@ const grab = (html, re) => { const m = html.match(re); return m ? m[1].replace(/
 
 // What each live page says about itself: the three places Google reads first.
 const pages = {};
-for (const f of ['index.html', 'activos.html', 'privacy.html', 'terms.html']) {
+for (const f of ['index.html', 'activos.html', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html']) {
   const h = readFileSync(f, 'utf8'); pages[f === 'index.html' ? '/' : f === 'activos.html' ? '/activos' : `/${f}`] = { html: h, body: h };
 }
 for (const p of renderAll(SITE)) pages[p.path] = { html: p.html, body: p.html };

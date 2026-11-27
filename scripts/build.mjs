@@ -19,7 +19,7 @@ check('landing.js'); check('login.js');
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
-for (const p of ['index.html', 'activos.html', 'agencia.css', 'agencia.js', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'compare.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
+for (const p of ['index.html', 'activos.html', 'agencia.css', 'agencia.js', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'compare.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
   await cp(p, `dist/${p}`, { recursive: true });
 }
 
@@ -58,7 +58,7 @@ const agencyLd = (html, site) => {
 };
 
 // pages search engines may index; everything else is noindex and left out of the sitemap
-const INDEXABLE = ['index.html', 'activos.html', 'privacy.html', 'terms.html'];
+const INDEXABLE = ['index.html', 'activos.html', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html'];
 for (const page of INDEXABLE) {
   let html = await readFile(`dist/${page}`, 'utf8');
   if (site) {
@@ -98,7 +98,7 @@ export const CONFIG = ${JSON.stringify({ supabaseUrl: sbUrl, supabaseAnonKey: sb
 } else console.warn('SUPABASE_URL / SUPABASE_ANON_KEY not set: the app will save assets on the visitor device only.');
 
 const generated = renderAll(site).map(g => g.file.slice(1));
-for (const page of ['index.html', 'activos.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html', ...generated]) {
+for (const page of ['index.html', 'activos.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html', ...generated]) {
   const src = await readFile(`dist/${page}`, 'utf8');
   const missing = [...src.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:)([^"?#]+)/g)].map(m => m[1]).filter(p => !p.startsWith('/api/') && !existsSync(`dist/${p}`) && !existsSync(`dist/${p}.html`)); // /api/... is answered by a serverless function, not a file
   if (missing.length) { console.error(`Missing files referenced by ${page}:`, missing); process.exit(1); }

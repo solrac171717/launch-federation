@@ -71,6 +71,7 @@ const NAV = [
   ['prompts', 'Preguntas', 'Preguntas seguidas en las IA', 'M2 3h12v8H6l-3 3v-3H2z'],
   ['trabajo', 'Trabajo', 'Trabajo de este mes', 'M2 13l4-5 3 3 5-7'],
 ];
+const NEXT = [['Lunes', '4 artículos para las zonas prioritarias'], ['Miércoles', 'Revisión de datos estructurados de las páginas nuevas'], ['Viernes', 'Informe semanal y decisiones de la semana siguiente']];
 const state = { view: 'zonas', filter: null, sel: 'madrid' };
 const $ = id => document.getElementById(id);
 const scope = () => ZONES.filter(z => !state.filter || z.category === state.filter);
@@ -105,6 +106,10 @@ function setView(k) {
   renderNav(); renderFilter();
 }
 
+function renderGoal() {
+  clear($('ag-goal')).append(h('span', {}, 'Garantía · objetivo +30% en 90 días'), h('b', {}, '+38 %'), h('div', { class: 'ag-bar', role: 'img', 'aria-label': 'Objetivo superado: día 62 de 90' }, h('i', { style: 'width:100%' }), h('u', { style: 'left:79%' })), h('em', {}, 'Objetivo cumplido · día 62 de 90 (ejemplo)'));
+}
+
 function renderZones() {
   const sc = scope(), z = ZONES.find(x => x.id === state.sel), imp = sum(sc, 'imp'), clk = sum(sc, 'clk'), cit = sum(sc, 'cit');
   clear($('ag-sel')).append(h('div', { class: 'ag-zone' },
@@ -131,9 +136,11 @@ function renderPrompts() {
     h('div', { class: 'ag-tablewrap' }, h('table', { class: 'ag-table' }, h('thead', {}, head), h('tbody', {}, ...rows))));
 }
 function renderWork() {
-  clear($('ag-v-trabajo')).append(h('ul', { class: 'ag-work' }, ...WORK.map(([t, d]) => h('li', {}, s('svg', { viewBox: '0 0 16 16', width: 18, height: 18, 'aria-hidden': 'true' }, s('circle', { cx: 8, cy: 8, r: 8, fill: '#DCE9FF' }), s('path', { d: 'M4.6 8.3l2.2 2.2 4.6-4.9', fill: 'none', stroke: '#2563EB', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })), h('div', {}, h('b', {}, t), h('span', {}, d))))));
+  const done = h('ul', { class: 'ag-work' }, ...WORK.map(([t, d]) => h('li', {}, s('svg', { viewBox: '0 0 16 16', width: 18, height: 18, 'aria-hidden': 'true' }, s('circle', { cx: 8, cy: 8, r: 8, fill: '#DCE9FF' }), s('path', { d: 'M4.6 8.3l2.2 2.2 4.6-4.9', fill: 'none', stroke: '#2563EB', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })), h('div', {}, h('b', {}, t), h('span', {}, d)))));
+  const next = h('ul', { class: 'ag-work next' }, ...NEXT.map(([day, t]) => h('li', {}, h('em', {}, day), h('div', {}, h('b', {}, t)))));
+  clear($('ag-v-trabajo')).append(h('div', { class: 'ag-cols' }, h('div', {}, h('p', { class: 'ag-colh' }, 'Hecho este mes'), done), h('div', {}, h('p', { class: 'ag-colh' }, 'Lo que viene, sin que tengas que pedirlo'), next)));
 }
-renderPrompts(); renderWork(); setView('zonas'); renderZones();
+renderPrompts(); renderWork(); renderGoal(); setView('zonas'); renderZones();
 
 /* ------------------------------------------------------------------ header, FAQ, pricing switch, sticky call button */
 const header = document.querySelector('.site-header');

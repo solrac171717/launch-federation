@@ -42,6 +42,8 @@ export const SEO_MAP = [
   { path: '/solutions/net-worth-tracker-without-bank-linking', type: 'solution', primary: 'net worth tracker without linking bank accounts', secondary: ['manual net worth tracker', 'net worth tracker no bank connection', 'private net worth tracker'] },
   { path: '/privacy.html', type: 'legal' },
   { path: '/terms.html', type: 'legal' },
+  { path: '/privacidad.html', type: 'legal' },
+  { path: '/terminos.html', type: 'legal' },
 ];
 
 /** Pages we intend to write, each with its own phrases, so nothing new can collide with what is live or with what is next.

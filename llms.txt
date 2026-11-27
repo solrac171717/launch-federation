@@ -1,23 +1,25 @@
 # Owned Map
 
-> Owned Map is a web app that puts everything a person owns (property, vehicles, boats, aircraft, land, parking and equipment) on one interactive map, with the value, income, expenses, yield and net worth of each asset side by side.
+> Owned Map is a Spanish-language AI SEO agency (AEO and GEO). It makes a company's website and brand citable by ChatGPT, Claude, Perplexity, Gemini and Google AI Overviews, so that those assistants recommend it to buyers. Garantía: +30% de crecimiento en 90 días o trabajamos gratis hasta que se consiga (para clientes cualificados de los planes Inicial y Crecimiento, con condiciones).
 
-Owned Map is a paid subscription product with a 7-day free trial (card required, charged only when the trial ends). Values are entered by the user; Owned Map does not pull market prices.
+Clients get a visibility dashboard (a globe of zones, tracked questions per AI assistant, and the work done each month); the agency manages everything. Calls and the first visibility report are free.
 
-## What it does
-- Shows every asset on an interactive map with a Globe view and a Country view, in any country.
-- Tracks value, purchase cost, yearly income, expenses and debt per asset, and calculates appreciation, net income, yield and net worth. Supports partial ownership by percentage.
-- Handles houses, apartments, commercial buildings, warehouses, land, parking spaces, cars, trucks, motorcycles, motorhomes, yachts, sailboats, jet skis, aircraft and heavy equipment.
-- Attaches documents (deeds, insurance, contracts), fills in asset details from an uploaded document, and sets reminders for renewals.
-- Exports PDF, Excel (.xlsx) and CSV reports, and imports assets from CSV.
-
-## Pricing
-- $47 per month includes 3 assets. Extra assets cost $15 each for assets 4 to 10, $10 each for assets 11 to 25 and $5 each from the 26th, up to 100 assets (25 assets: $302 a month, 100 assets: $677 a month).
-- Yearly billing is 30% less than monthly.
-- 7-day free trial.
+## Plans (euros, VAT not included; paying yearly is 30% cheaper)
+- Inicial: 997 € per month. 31 articles a month, technical and structured-data work, tracking of key questions in the AI assistants, dashboard, monthly report.
+- Crecimiento: 2.999 € per month. 62 articles a month, new commercial pages, a monthly authority campaign, weekly report.
+- Dominio: 10.000 € per month. All the articles needed to rank fast and safely (up to 300 a month), several languages, founder-led strategy, competitor measurement, press and editorial placements.
+- Initial term of three months; afterwards cancel with one month's notice.
 
 ## Pages
-- [Home, product overview, live demo, pricing and FAQ](%SITE_URL%/)
+- [Home: the agency, the dashboard, plans, guarantee and FAQ](%SITE_URL%/)
+- [Terms of service of the agency (Spanish)](%SITE_URL%/terminos.html)
+- [Privacy policy of the agency (Spanish)](%SITE_URL%/privacidad.html)
+
+## Separate product: Owned Map asset tracker (English)
+Owned Map also has an asset tracker for property, vehicles, boats and aircraft at %SITE_URL%/activos. It is a separate product with its own pricing.
+
+### Asset tracker pages
+- [Asset tracker home, live demo, pricing and FAQ](%SITE_URL%/activos)
 - [Owned Map compared with other trackers](%SITE_URL%/compare/)
 - [Kubera vs Owned Map: which net worth tracker fits you?](%SITE_URL%/compare/kubera-vs-owned-map)
 - [Monarch Money vs Owned Map: budgeting app or asset manager?](%SITE_URL%/compare/monarch-vs-owned-map)
