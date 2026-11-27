@@ -153,7 +153,9 @@ const COMPS = [
 const LOSSES = [['mejor asesoría para autónomos', 'Declarando', 'Madrid'], ['gestoría online para pymes', 'Ayuda-T Pymes', 'Barcelona'], ['asesor fiscal para freelance', 'Infoautónomos', 'Valencia']];
 const TREND = [1, 0, 1, 0, 0, 2, 0, 1];
 const delta = d => h('span', { class: 'dl ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'eq') }, d > 0 ? `▲ ${d}` : d < 0 ? `▼ ${-d}` : '= 0');
-const avatar = c => c.me ? h('img', { class: 'av me', src: 'assets/example-logo.svg', alt: '', width: 28, height: 28 }) : h('span', { class: 'av', style: `background:${c.c}` }, c.name[0]);
+const LOGO_BG = { 'Declarando': '#F97316', 'Ayuda-T Pymes': '#7C3AED', 'Infoautónomos': '#475569' };
+const LOGO_GLYPH = { 'Declarando': 'M10 8v12h4a6 6 0 0 0 0-12z', 'Ayuda-T Pymes': 'M8 20l6-12 6 12M10.5 15.5h7', 'Infoautónomos': 'M14 13v7M14 8.5v.1' };
+const avatar = c => c.me ? h('img', { class: 'av me', src: 'assets/example-logo.svg', alt: '', width: 28, height: 28 }) : s('svg', { class: 'av logo', viewBox: '0 0 28 28', width: 28, height: 28, 'aria-hidden': 'true' }, s('rect', { width: 28, height: 28, rx: 8, fill: LOGO_BG[c.name] || c.c }), s('path', { d: LOGO_GLYPH[c.name] || 'M10 14h8', fill: 'none', stroke: '#fff', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
 const stat = (label, big, sub, tone) => h('div', { class: 'agst ' + (tone || '') }, h('span', {}, label), h('b', {}, big), h('em', {}, sub));
 const bar = (pct, cls) => h('div', { class: 'pbar ' + (cls || ''), role: 'img', 'aria-label': `${Math.round(pct)} %` }, h('i', { style: `width:${pct}%` }));
 
