@@ -141,7 +141,7 @@ function renderZones() {
       s('circle', { cx: xy.at(-1)[0] - 1, cy: xy.at(-1)[1], r: 3.2, fill: '#2563EB' })));
 }
 function renderGoal() {
-  clear($('ag-goal')).append(h('span', {}, 'Garantía · objetivo +30% en 90 días'), h('b', {}, '+38 %'), h('div', { class: 'ag-bar', role: 'img', 'aria-label': 'Objetivo superado: día 62 de 90' }, h('i', { style: 'width:100%' }), h('u', { style: 'left:79%' })), h('em', {}, 'Objetivo cumplido · día 62 de 90 (ejemplo)'));
+  clear($('ag-goal')).append(h('span', {}, 'Garantía · objetivo +30% en 90 días'), h('b', {}, '+38 %'), h('div', { class: 'ag-bar', role: 'img', 'aria-label': 'Objetivo superado: día 62 de 90' }, h('i', { style: 'width:100%' }), h('u', { style: 'left:79%' })), h('em', {}, 'Objetivo cumplido · día 62 de 90'));
 }
 const ME = 'Cifra Asesores';
 const COMPS = [
@@ -342,7 +342,7 @@ if (!reduceMotion && 'IntersectionObserver' in window) {
 
 /* ------------------------------------------------------------------ landing visuals: animate only while on screen */
 {
-  const arts = [...document.querySelectorAll('.how-art')];
+  const arts = [...document.querySelectorAll('.how-art, .ag-g30')];
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => { for (const e of es) e.target.classList.toggle('live', e.isIntersecting); }, { threshold: .25 });
     arts.forEach(a => io.observe(a));

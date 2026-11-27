@@ -1,0 +1,86 @@
+/* v4: visuales del método, la garantía y «Para quién» (solo azules), y la tarjeta del 30 % */
+.how-steps.four .how-art, .ag-vcard .how-art { height: 208px; padding: 0; background: radial-gradient(120% 100% at 50% 0%, #F4F8FF, #E3EDFF); overflow: hidden; }
+.how-steps.four .how-body { padding: 16px 22px 22px; } .how-steps.four .how-body h3 { margin: 6px 0 0; }
+.ag-vcard .how-body { padding: 18px 22px 22px; }
+.vz { --b1: #2563EB; --b2: #3B82F6; --b3: #93C5FD; --b4: #DCE9FF; --b5: #EAF1FF; --ink: #0B1736; position: relative; }
+.vz s { display: block; height: 7px; border-radius: 4px; background: var(--b4); text-decoration: none; } .vz s.w2 { width: 62%; } .vz s.w3 { width: 40%; }
+.vz .rec { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; background: var(--b1); color: #fff; font-style: normal; font-size: 11px; font-weight: 700; box-shadow: 0 8px 16px -8px rgba(37,99,235,.8); white-space: nowrap; }
+.vz svg { display: block; }
+
+/* 1 auditoría */
+.vz-audit { display: flex; align-items: center; gap: 14px; width: 252px; padding: 14px; overflow: hidden; background: #fff; border: 1px solid #D3E2FB; border-radius: 18px; box-shadow: 0 24px 40px -26px rgba(37,99,235,.55); }
+.vz-ring { position: relative; flex: none; width: 66px; height: 66px; } .vz-ring svg { width: 100%; height: 100%; } .vz-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.25rem; letter-spacing: -.03em; color: var(--ink); }
+.vz-rows { display: grid; gap: 6px; flex: 1; list-style: none; margin: 0; padding: 0; }
+.vz-rows li { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 9px; font-size: 11.5px; font-weight: 600; color: var(--ink); border: 1px dashed var(--b3); background: var(--b5); }
+.vz-rows li i { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--b3); flex: none; } .vz-rows li em { margin-left: auto; font-style: normal; font-size: 10px; font-weight: 700; color: #5B7BB8; }
+.vz-rows li.okr { border: 1px solid var(--b1); background: var(--b1); color: #fff; } .vz-rows li.okr i { border-color: #fff; background: #fff; } .vz-rows li.okr em { color: #fff; }
+.vz-scan { position: absolute; left: 0; right: 0; top: -34px; height: 34px; background: linear-gradient(180deg, transparent, rgba(37,99,235,.22)); pointer-events: none; }
+
+/* 2 código */
+.vz-code { display: grid; gap: 8px; width: 232px; padding: 12px 14px 16px; border-radius: 16px; background: var(--ink); box-shadow: 0 26px 44px -26px rgba(11,23,54,.85); }
+.vz-code .vz-bar { display: flex; gap: 5px; } .vz-code .vz-bar i { width: 8px; height: 8px; border-radius: 50%; background: #2B4A8C; }
+.vz-code code { font: 600 11.5px/1.2 ui-monospace, Menlo, Consolas, monospace; color: #9BC1FF; } .vz-code s { background: #223B73; transform-origin: left; }
+.vz-pub { position: absolute; right: -8px; bottom: -12px; display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 999px; background: var(--b1); color: #fff; font-size: 11px; font-weight: 700; box-shadow: 0 10px 20px -8px rgba(37,99,235,.9); }
+
+/* 3 red */
+.vz-net { max-width: 100%; height: auto; } .vz-net .nd circle { fill: #fff; stroke: var(--b3); stroke-width: 1.8; } .vz-net .halo { transform-box: fill-box; transform-origin: center; }
+
+/* 4 gráfica */
+.vz-chart { width: 232px; height: 142px; padding: 14px 12px 12px; background: #fff; border: 1px solid #D3E2FB; border-radius: 18px; box-shadow: 0 24px 40px -26px rgba(37,99,235,.55); }
+.vz-chart svg { width: 100%; height: 100%; } .vz-chip { position: absolute; left: 12px; top: 10px; z-index: 1; padding: 3px 10px; border-radius: 999px; background: var(--b1); color: #fff; font-size: 12px; font-weight: 700; }
+.vz-chart .dot { position: absolute; right: 12px; top: 20px; width: 10px; height: 10px; margin: -1px; border-radius: 50%; background: var(--b1); box-shadow: 0 0 0 4px rgba(37,99,235,.2); }
+
+/* garantía */
+.vz-ba { display: flex; align-items: flex-end; gap: 26px; height: 148px; padding: 0 30px 0 6px; } .vz-ba .col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 7px; height: 100%; } .vz-ba .col i { display: block; width: 58px; border-radius: 12px 12px 5px 5px; background: #B8D0FA; transform-origin: bottom; } .vz-ba .col i.up { background: linear-gradient(180deg, var(--b2), var(--b1)); box-shadow: 0 16px 26px -14px rgba(37,99,235,.9); } .vz-ba .col span { font-size: 10.5px; font-weight: 600; color: #5B7BB8; }
+.vz-ba .tgt { position: absolute; left: 0; right: 0; bottom: 106px; border-top: 2px dashed var(--b1); text-decoration: none; } .vz-ba .tgt b { position: absolute; right: -2px; top: -13px; padding: 2px 9px; border-radius: 999px; background: var(--b1); color: #fff; font-size: 11px; }
+.vz-acc { display: grid; gap: 9px; width: 220px; margin: 0; padding: 0; list-style: none; } .vz-acc li { display: flex; align-items: center; gap: 11px; padding: 9px 12px; background: #fff; border: 1px solid #D3E2FB; border-radius: 13px; } .vz-acc li > svg { flex: none; box-sizing: content-box; width: 18px; height: 18px; padding: 7px; border-radius: 9px; background: var(--b1); } .vz-acc li s { flex: 1; } .vz-acc .sw { position: relative; flex: none; width: 34px; height: 20px; border-radius: 999px; background: var(--b4); } .vz-acc .sw::after { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(11,23,54,.3); }
+.vz-shield { display: grid; justify-items: center; width: 250px; height: 178px; } .vz-shield > svg { position: absolute; left: 50%; top: 50%; margin: -39px 0 0 -35px; z-index: 1; } .vz-shield .r { position: absolute; left: 50%; top: 50%; width: 92px; height: 92px; margin: -46px 0 0 -46px; border-radius: 50%; border: 2px solid rgba(37,99,235,.5); } .vz-shield .c { position: absolute; display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 999px; background: #fff; border: 1px solid #C2D6F8; color: var(--b1); font-style: normal; font-size: 11px; font-weight: 700; box-shadow: 0 10px 18px -12px rgba(37,99,235,.7); white-space: nowrap; } .vz-shield .c1 { left: -4px; top: 18px; } .vz-shield .c2 { right: -4px; bottom: 18px; }
+
+/* para quién */
+.vz-chat { display: grid; gap: 8px; width: 232px; } .vz-chat .q { justify-self: end; display: grid; gap: 5px; width: 60%; padding: 10px 12px; border-radius: 14px 14px 4px 14px; background: var(--b1); } .vz-chat .q s { background: rgba(255,255,255,.7); }
+.vz-chat .a { display: flex; align-items: center; gap: 9px; padding: 9px 11px; background: #fff; border: 1px solid #D3E2FB; border-radius: 14px; box-shadow: 0 16px 28px -22px rgba(37,99,235,.7); } .vz-chat .a .rk { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: var(--b4); color: var(--b1); font-size: 11px; font-weight: 800; } .vz-chat .a .ln { display: grid; gap: 5px; flex: 1; } .vz-chat .a.dim { opacity: .55; } .vz-chat .a:first-of-type { border-color: var(--b1); }
+.vz-pro { display: grid; gap: 10px; justify-items: center; width: 200px; padding: 14px; background: #fff; border: 1px solid #D3E2FB; border-radius: 18px; box-shadow: 0 24px 40px -26px rgba(37,99,235,.55); } .vz-pro .ph { display: flex; align-items: center; gap: 10px; width: 100%; } .vz-pro .av { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(180deg, var(--b2), var(--b1)); } .vz-pro .ln { display: grid; gap: 6px; flex: 1; } .vz-pro .stars { display: flex; gap: 3px; }
+.vz-cita { display: grid; gap: 11px; justify-items: center; width: 210px; padding: 14px; background: #fff; border: 1px solid #D3E2FB; border-radius: 18px; box-shadow: 0 24px 40px -26px rgba(37,99,235,.55); } .vz-cita .slots { display: flex; gap: 4px; } .vz-cita .slots span { padding: 6px 8px; border-radius: 9px; border: 1px solid var(--b3); color: var(--b1); font-size: 11.5px; font-weight: 700; background: var(--b5); } .vz-cita .slots .sel { background: var(--b1); border-color: var(--b1); color: #fff; }
+.vz-prod { display: grid; gap: 9px; width: 168px; padding: 10px; background: #fff; border: 1px solid #D3E2FB; border-radius: 18px; box-shadow: 0 24px 40px -26px rgba(37,99,235,.55); } .vz-prod .img { position: relative; height: 82px; border-radius: 12px; background: linear-gradient(135deg, #BFD6FB, #E3EDFF); } .vz-prod .img .rec { position: absolute; left: 6px; top: 6px; padding: 3px 8px; font-size: 10px; } .vz-prod .ln { display: grid; gap: 6px; } .vz-prod .pr { display: flex; align-items: center; justify-content: space-between; } .vz-prod .pr b { width: 44px; height: 10px; border-radius: 5px; background: var(--ink); } .vz-prod .pr span { width: 26px; height: 26px; border-radius: 8px; background: var(--b1); }
+
+/* tarjeta del 30 % */
+.ag-g30 { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: clamp(20px, 4vw, 56px); padding: clamp(24px, 3.4vw, 44px); border: 1px solid #C8DAFB; border-radius: 28px; background: radial-gradient(90% 120% at 0% 0%, #EEF4FF, #fff 70%); box-shadow: 0 50px 80px -56px rgba(37,99,235,.6); }
+.g30-l { display: grid; gap: 4px; justify-items: start; } .g30-up { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: #2563EB; color: #fff; font-size: 12.5px; font-weight: 700; }
+.g30-n { margin: 0; font-size: clamp(5rem, 11vw, 8.5rem); font-weight: 700; letter-spacing: -.07em; line-height: .95; background: linear-gradient(180deg, #3B82F6, #1D4ED8); -webkit-background-clip: text; background-clip: text; color: transparent; } .g30-n span { font-size: .55em; letter-spacing: -.02em; }
+.g30-r { display: grid; gap: 20px; } .g30-r h3 { margin: 0; font-size: clamp(1.15rem, 1.3vw + .8rem, 1.65rem); line-height: 1.3; letter-spacing: -.02em; color: var(--navy); }
+.g30-chart { position: relative; display: flex; align-items: flex-end; gap: 18px; height: 120px; max-width: 360px; } .g30-chart .gb { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; height: 100%; } .g30-chart .gb i { display: block; border-radius: 10px 10px 4px 4px; background: #BCD3FA; transform-origin: bottom; } .g30-chart .gb i.up { background: linear-gradient(180deg, #3B82F6, #2563EB); box-shadow: 0 14px 24px -14px rgba(37,99,235,.9); } .g30-chart .gb span { font-size: 11px; font-weight: 600; color: #5B7BB8; text-align: center; }
+.g30-chart u { position: absolute; left: 0; right: 0; bottom: 90px; border-top: 2px dashed #2563EB; text-decoration: none; } .g30-chart u b { position: absolute; right: 0; top: -13px; padding: 2px 9px; border-radius: 999px; background: #2563EB; color: #fff; font-size: 11px; }
+@media (max-width: 760px) { .ag-g30 { grid-template-columns: 1fr; } }
+
+/* movimiento */
+@keyframes vz-arc { 0% { stroke-dashoffset: 213.6; } 55%, 100% { stroke-dashoffset: 81; } }
+@keyframes vz-scan { to { top: 100%; } }
+@keyframes vz-w { 0%, 8% { transform: scaleX(0); } 40%, 90% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+@keyframes vz-flow { to { stroke-dashoffset: -18; } }
+@keyframes vz-node { 0%, 10% { fill: #fff; stroke: #93C5FD; } 25%, 85% { fill: #DCE9FF; stroke: #2563EB; } 100% { fill: #fff; stroke: #93C5FD; } }
+@keyframes vz-halo { 0% { transform: scale(1); opacity: .8; } 100% { transform: scale(2.1); opacity: 0; } }
+@keyframes vz-draw { 0% { stroke-dashoffset: 330; } 55%, 100% { stroke-dashoffset: 0; } }
+@keyframes vz-fadein { 0%, 40% { opacity: 0; } 60%, 100% { opacity: 1; } }
+@keyframes vz-up { 0%, 6% { transform: scaleY(0); } 40%, 92% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
+@keyframes vz-sw { 0%, 12% { background: #DCE9FF; } 28%, 88% { background: #2563EB; } 100% { background: #DCE9FF; } }
+@keyframes vz-sw2 { 0%, 12% { transform: none; } 28%, 88% { transform: translateX(14px); } 100% { transform: none; } }
+@keyframes vz-ring { 0% { transform: scale(.6); opacity: .8; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes vz-in { 0% { opacity: 0; transform: translateY(8px) scale(.96); } 14%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes vz-tw { 0%, 100% { transform: scale(1); opacity: .85; } 50% { transform: scale(1.22); opacity: 1; } }
+@keyframes vz-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); } 50% { box-shadow: 0 0 0 6px rgba(37,99,235,.22); } }
+@keyframes vz-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes vz-shine { to { background-position: -200% 0; } }
+
+.live .vz-audit .arc { animation: vz-arc 5s ease-in-out infinite; } .live .vz-scan { animation: vz-scan 3.4s ease-in-out infinite; }
+.live .vz-rows li.miss { animation: vz-pulse 2.6s ease-in-out infinite; } .live .vz-rows li.miss:nth-child(2) { animation-delay: .5s; }
+.live .vz-code s { animation: vz-w 5s ease infinite; } .live .vz-code s.w2 { animation-delay: .35s; } .live .vz-code s.w3 { animation-delay: .7s; } .live .vz-pub { animation: vz-in 5s ease 1.2s infinite both; }
+.live .vz-net .ln path { animation: vz-flow 1.2s linear infinite; } .live .vz-net .nd circle { animation: vz-node 5s ease infinite; } .live .vz-net .nd circle:nth-child(2) { animation-delay: .5s; } .live .vz-net .nd circle:nth-child(3) { animation-delay: 1s; } .live .vz-net .nd circle:nth-child(4) { animation-delay: 1.5s; } .live .vz-net .nd circle:nth-child(5) { animation-delay: 2s; } .live .vz-net .halo { animation: vz-halo 2.4s ease-out infinite; }
+.vz-chart .line { stroke-dasharray: 330; } .live .vz-chart .line { animation: vz-draw 5s ease-in-out infinite; } .live .vz-chart .area { animation: vz-fadein 5s ease infinite; } .live .vz-chart .dot { animation: vz-pulse 1.6s ease-in-out infinite; } .live .vz-chip { animation: vz-in 5s ease infinite both; }
+.live .vz-ba .col i, .live .g30-chart .gb i { animation: vz-up 5s cubic-bezier(.22,1,.36,1) infinite; } .live .vz-ba .col:nth-child(2) i, .live .g30-chart .gb:nth-child(2) i { animation-delay: .35s; } .live .vz-ba .tgt b { animation: vz-in 5s ease .6s infinite both; }
+.live .vz-acc .sw { animation: vz-sw 5.4s ease infinite; } .live .vz-acc .sw::after { animation: vz-sw2 5.4s ease infinite; } .live .vz-acc li:nth-child(2) .sw, .live .vz-acc li:nth-child(2) .sw::after { animation-delay: .6s; } .live .vz-acc li:nth-child(3) .sw, .live .vz-acc li:nth-child(3) .sw::after { animation-delay: 1.2s; }
+.live .vz-shield .r { animation: vz-ring 2.8s ease-out infinite; } .live .vz-shield .r2 { animation-delay: 1.4s; } .live .vz-shield > svg { animation: vz-bob 3s ease-in-out infinite; } .live .vz-shield .c { animation: vz-in 5.6s ease infinite both; } .live .vz-shield .c2 { animation-delay: .8s; }
+.live .vz-chat .q { animation: vz-in 6s ease infinite both; } .live .vz-chat .a { animation: vz-in 6s ease .8s infinite both; } .live .vz-chat .a.dim { animation-delay: 1.3s; } .live .vz-chat .rec { animation: vz-tw 1.8s ease-in-out infinite; }
+.live .vz-pro .stars svg { animation: vz-tw 1.9s ease-in-out infinite; } .live .vz-pro .stars svg:nth-child(2) { animation-delay: .15s; } .live .vz-pro .stars svg:nth-child(3) { animation-delay: .3s; } .live .vz-pro .stars svg:nth-child(4) { animation-delay: .45s; } .live .vz-pro .stars svg:nth-child(5) { animation-delay: .6s; } .live .vz-pro .rec { animation: vz-in 5s ease infinite both; }
+.live .vz-cita .pin { animation: vz-bob 1.8s ease-in-out infinite; } .live .vz-cita .slots .sel { animation: vz-pulse 1.8s ease-in-out infinite; } .live .vz-cita .rec { animation: vz-in 5s ease infinite both; }
+.live .vz-prod .img { background: linear-gradient(110deg, #BFD6FB 30%, #EAF2FF 50%, #BFD6FB 70%) 0 0 / 200% 100%; animation: vz-shine 2.2s linear infinite; } .live .vz-prod .pr span { animation: vz-pulse 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .live .vz *, .live .vz, .live .g30-chart * { animation: none !important; } }

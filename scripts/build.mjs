@@ -17,7 +17,7 @@ check('landing.js'); check('login.js');
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
-for (const p of ['index.html', 'activos.html', 'agencia.css', 'agencia-v2.css', 'agencia-v3.css', 'agencia.js', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
+for (const p of ['index.html', 'activos.html', 'agencia.css', 'agencia-v2.css', 'agencia-v3.css', 'agencia-v4.css', 'agencia.js', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
   await cp(p, `dist/${p}`, { recursive: true });
 }
 
