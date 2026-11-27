@@ -6,6 +6,7 @@ import { createGlobe } from './src/globe.js';
 import { attachGeo } from './src/geoui.js';
 import { ICON } from './src/ui.js';
 import { AI_LOGOS } from './assets/ai-logos.js';
+import { createNetGlobe } from './src/netglobe.js';
 
 document.documentElement.classList.add('js');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -244,4 +245,16 @@ if (!reduceMotion && 'IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => { for (const e of es) e.target.classList.toggle('live', e.isIntersecting); }, { threshold: .25 });
     arts.forEach(a => io.observe(a));
   } else arts.forEach(a => a.classList.add('live'));
+}
+
+/* ------------------------------------------------------------------ «Ahora mismo»: globo de conexiones */
+{
+  const stage = $('ng-stage');
+  if (stage) {
+    const QUERIES = ['mejor asesoría fiscal', 'gestoría online para pymes', 'abogado de inmigración', 'clínica dental con implantes', 'agencia de marketing', 'contador para autónomos'];
+    const ENG = [['chatgpt', 'ChatGPT'], ['claude', 'Claude'], ['perplexity', 'Perplexity'], ['gemini', 'Gemini']];
+    const makeNote = (city, i) => { const [k, name] = ENG[i % ENG.length]; return h('div', { class: 'ng-note' }, h('div', { class: 'r1' }, mark(k), name, h('span', {}, '· ' + city.n)), h('div', { class: 'r2' }, `«${QUERIES[i % QUERIES.length]}» → `, h('em', {}, 'recomienda a otra empresa'))); };
+    const ng = createNetGlobe(stage, { canvas: $('ng-canvas'), notes: $('ng-notes'), makeNote, reduceMotion });
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => { for (const e of es) e.isIntersecting ? ng.start() : ng.stop(); }, { threshold: .15 }).observe(stage); else ng.start();
+  }
 }
