@@ -54,35 +54,8 @@ const ZONES = [
 ].map(z => ({ ...z, value: z.imp, place: z.name }));
 const COUNTRY_ES = { ES: 'España', MX: 'México', US: 'Estados Unidos' };
 const WEEKLY = [1, 1, 2, 2, 3, 3, 4, 5, 6, 6, 7, 6]; // citations per week in the sample (sums to the zone total)
-const ENGINES = [['chatgpt', 'ChatGPT'], ['claude', 'Claude'], ['perplexity', 'Perplexity'], ['gemini', 'Gemini'], [null, 'Google IA']];
-const PROMPTS = [
-  ['mejor asesoría fiscal para startups', 'Madrid', [1, 1, 0, 1, 1]],
-  ['asesoría para autónomos', 'Barcelona', [1, 0, 1, 1, 0]],
-  ['gestoría online para empresas', 'Ciudad de México', [1, 1, 0, 0, 0]],
-  ['abogado mercantil', 'Valencia', [0, 0, 0, 1, 0]],
-  ['contador para pymes', 'Guadalajara', [0, 0, 0, 0, 0]],
-  ['asesoría para negocios hispanos', 'Miami', [1, 1, 1, 0, 1]],
-  ['consultoría fiscal', 'Monterrey', [1, 0, 0, 1, 0]],
-  ['asesor financiero para emprendedores', 'Sevilla', [0, 0, 0, 0, 1]],
-];
-const WORK = [
-  ['31 artículos publicados', 'Respuestas a las preguntas que más buscan tus clientes, con tus datos y tu voz.'],
-  ['Datos estructurados en 12 páginas', 'Para que las IA entiendan quién eres, qué ofreces y dónde.'],
-  ['3 menciones en foros y directorios', 'Fuentes que las IA ya leen y en las que ahora apareces.'],
-  ['2 páginas comerciales nuevas', 'Una por cada zona prioritaria, con su propia pregunta.'],
-  ['Informe semanal enviado', 'Qué se movió, qué viene y qué decidimos contigo.'],
-];
-const NEXT = [['Lunes', '4 artículos para las zonas prioritarias'], ['Miércoles', 'Revisión de datos estructurados de las páginas nuevas'], ['Viernes', 'Informe semanal y decisiones de la semana siguiente']];
-const NAV = [
-  ['zonas', 'Zonas', 'Visibilidad por zonas', 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM2 8h12M8 2c2.5 2 2.5 10 0 12M8 2c-2.5 2-2.5 10 0 12'],
-  ['prompts', 'Preguntas', 'Preguntas seguidas en las IA', 'M2 3h12v8H6l-3 3v-3H2z'],
-  ['trabajo', 'Trabajo', 'Trabajo de este mes', 'M2 13l4-5 3 3 5-7'],
-  ['competidores', 'Competidores', 'Quién aparece en tu lugar', 'M5.5 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM11 7.5a2 2 0 1 0 0-4M1.5 14c0-2.5 1.8-4 4-4s4 1.5 4 4M10.5 10c2 0 4 1 4 3.5'],
-  ['informes', 'Informes', 'Informe semanal', 'M4 2h6l3 3v9H4zM10 2v3h3M6 9h5M6 11.5h3'],
-];
-const REPORTS = [['Semana 9 · 24 a 30 nov', '6 citas nuevas en IA', 'Valencia ya te cita en Gemini. Decisión: priorizar Guadalajara.'], ['Semana 8 · 17 a 23 nov', '7 citas nuevas en IA', 'Nueva página comercial para Miami publicada.'], ['Semana 7 · 10 a 16 nov', '6 citas nuevas en IA', 'Menciones conseguidas en 2 directorios del sector.'], ['Semana 6 · 3 a 9 nov', '5 citas nuevas en IA', 'Datos estructurados corregidos en toda la web.']];
 const LABEL = { cited: 'Te citan aquí', grow: 'Zona prioritaria' };
-const state = { view: 'zonas', filter: null, sel: 'madrid' };
+const state = { filter: null, sel: 'madrid' };
 const byId = id => ZONES.find(z => z.id === id);
 const visible = () => ZONES.filter(z => !state.filter || z.category === state.filter);
 const sum = (arr, k) => arr.reduce((t, z) => t + z[k], 0);
@@ -100,29 +73,15 @@ const scope = () => visible().filter(z => geo.inScope(z));
 
 function select(id, focus) { state.sel = id; globe.setSelected(id); if (focus) globe.focus(id); renderZones(); geo.sync(); }
 
-function renderNav() {
-  const mk = cls => NAV.map(([k, label, , d]) => h('button', { type: 'button', class: cls + (state.view === k ? ' on' : ''), 'aria-current': state.view === k ? 'page' : null, onclick: () => setView(k) },
-    s('svg', { viewBox: '0 0 16 16', width: 16, height: 16, 'aria-hidden': 'true', class: 'ni' }, s('path', { d })), label));
-  clear($('ag-nav')).append(...mk('nav-btn').map(b => h('li', {}, b)));
-  clear($('ag-tabs')).append(...mk('tab-btn'));
-}
 function renderFilter() {
   const opts = [[null, 'Todas'], ['cited', 'Te citan'], ['grow', 'Prioritarias']];
   clear($('ag-filter')).append(...opts.map(([k, label]) => h('button', { type: 'button', class: state.filter === k ? 'on' : '', 'aria-pressed': String(state.filter === k), onclick: () => setFilter(k) }, label)));
-  $('ag-filter').hidden = state.view !== 'zonas';
-  geo.toggle.hidden = state.view !== 'zonas';
 }
 function setFilter(k) {
   state.filter = k; globe.setFilter(k);
   if (!visible().some(z => z.id === state.sel)) state.sel = visible()[0].id;
   globe.setSelected(state.sel); renderFilter(); geo.sync(); renderZones();
 }
-function setView(k) {
-  state.view = k; $('ag-title').textContent = NAV.find(n => n[0] === k)[2];
-  for (const [id] of NAV) $('ag-v-' + id).hidden = id !== k;
-  renderNav(); renderFilter();
-}
-
 function renderZones() {
   const sc = scope(), z = byId(state.sel), where = geo.placeName(), imp = sum(sc, 'imp'), clk = sum(sc, 'clk'), cit = sum(sc, 'cit');
   clear($('ag-sel')).append(h('div', { class: 'ag-zone' },
@@ -143,126 +102,7 @@ function renderZones() {
 function renderGoal() {
   clear($('ag-goal')).append(h('span', {}, 'Garantía · objetivo +30% en 90 días'), h('b', {}, '+38 %'), h('div', { class: 'ag-bar', role: 'img', 'aria-label': 'Objetivo superado: día 62 de 90' }, h('i', { style: 'width:100%' }), h('u', { style: 'left:79%' })), h('em', {}, 'Objetivo cumplido · día 62 de 90'));
 }
-const ME = 'Cifra Asesores';
-const svgEl = (vb, kids, cls) => s('svg', { viewBox: vb, class: cls || 'lg', 'aria-hidden': 'true' }, ...kids);
-const grad = (id, a, b) => s('defs', {}, s('linearGradient', { id, x1: 0, y1: 0, x2: 1, y2: 1 }, s('stop', { offset: 0, 'stop-color': a }), s('stop', { offset: 1, 'stop-color': b })));
-// Marcas dibujadas para el ejemplo: parecidas en estilo a un logo real de empresa, pero no son los logos oficiales.
-const LOGOS = {
-  'Declarando': () => svgEl('0 0 40 40', [grad('lgD', '#FFAA55', '#F05A00'), s('rect', { width: 40, height: 40, rx: 11, fill: 'url(#lgD)' }), s('path', { d: 'M10.5 13a3.5 3.5 0 0 1 3.5-3.5h12a3.5 3.5 0 0 1 3.5 3.5v8.5a3.5 3.5 0 0 1-3.5 3.5h-6.2L14 30.5V25a3.5 3.5 0 0 1-3.5-3.5z', fill: '#fff' }), s('path', { d: 'M15.2 17.4l3.3 3.3 6.3-6.6', fill: 'none', stroke: '#F05A00', 'stroke-width': 2.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })]),
-  'Ayuda-T Pymes': () => svgEl('0 0 40 40', [grad('lgA', '#9B6BFF', '#4C1DB3'), s('circle', { cx: 20, cy: 20, r: 20, fill: 'url(#lgA)' }), s('path', { d: 'M11.5 28.5L20 10.5l8.5 18', fill: 'none', stroke: '#fff', 'stroke-width': 3.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }), s('path', { d: 'M15 23h10', stroke: '#fff', 'stroke-width': 3, 'stroke-linecap': 'round' }), s('circle', { cx: 30, cy: 11, r: 2.6, fill: '#C9B2FF' })]),
-  'Infoautónomos': () => svgEl('0 0 40 40', [grad('lgI', '#1FB7B0', '#0B4F6C'), s('rect', { width: 40, height: 40, rx: 11, fill: 'url(#lgI)' }), s('circle', { cx: 20, cy: 20, r: 11.5, fill: 'none', stroke: '#fff', 'stroke-width': 2.6 }), s('path', { d: 'M20 18.5v7', stroke: '#fff', 'stroke-width': 3, 'stroke-linecap': 'round' }), s('circle', { cx: 20, cy: 14.6, r: 1.9, fill: '#fff' })]),
-};
-const COMPS = [
-  { name: 'Declarando', n: 24, prev: 22, c: '#F05A00', dom: 'declarando.es', mat: [6, 7, 5, 4, 5] },
-  { name: 'Ayuda-T Pymes', n: 19, prev: 20, c: '#6D3FD6', dom: 'ayudatpymes.com', mat: [4, 5, 3, 4, 4] },
-  { name: ME, n: 17, prev: 12, c: '#0F766E', me: true, dom: 'cifraasesores.es', mat: [5, 3, 2, 4, 3] },
-  { name: 'Infoautónomos', n: 11, prev: 12, c: '#0EA5E9', dom: 'infoautonomos.com', mat: [3, 2, 2, 2, 2] },
-];
-const logo = (c, size = 32) => { const el = c.me ? h('img', { class: 'lg', src: 'assets/example-logo.svg', alt: '', width: size, height: size }) : LOGOS[c.name](); el.style.width = el.style.height = size + 'px'; return el; };
-const SERIES = (() => { const me = [9, 11, 13, 15, 18, 20, 22, 24], de = [38, 37, 36, 36, 35, 35, 34, 34], ay = [30, 30, 29, 29, 28, 27, 27, 27]; const inf = me.map((_, i) => 100 - me[i] - de[i] - ay[i]); return { 'Declarando': de, 'Ayuda-T Pymes': ay, [ME]: me, 'Infoautónomos': inf }; })();
-const delta = d => h('span', { class: 'dl ' + (d > 0 ? 'up' : d < 0 ? 'down' : 'eq') }, d > 0 ? `▲ ${d}` : d < 0 ? `▼ ${-d}` : '= 0');
-const stat = (label, big, sub, tone, icon) => h('div', { class: 'agst ' + (tone || '') }, h('span', {}, label), h('b', {}, big), h('em', {}, sub));
-const bar = (pct, cls) => h('div', { class: 'pbar ' + (cls || ''), role: 'img', 'aria-label': `${Math.round(pct)} %` }, h('i', { style: `width:${pct}%` }));
-const engMark = (k, size) => k ? mark(k) : h('span', { class: 'gtxt' }, 'G');
-const ico = (d, w = 14) => s('svg', { viewBox: '0 0 16 16', width: w, height: w, 'aria-hidden': 'true' }, s('path', { d, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-
-/* ---------------- Preguntas: lista a la izquierda, respuesta real de cada IA a la derecha */
-const TREND = [1, 0, 1, 0, 0, 2, 0, 1];
-const px = { sel: 0, eng: 0, f: 'all' };
-const SRC = { cited: ['cifraasesores.es', 'infoautonomos.com', 'es.wikipedia.org'], not: ['declarando.es', 'ayudatpymes.com', 'infoautonomos.com'] };
-function answer(q, zone, cited) {
-  const rest = ['Declarando', 'Ayuda-T Pymes', 'Infoautónomos'];
-  return cited
-    ? [`Para «${q}» en ${zone}, las opciones más recomendadas son `, h('mark', {}, ME), `, por su atención a autónomos y su facturación online, `, h('b', {}, rest[0]), ' y ', h('b', {}, rest[1]), '. Conviene comparar tarifas y qué incluye cada una.']
-    : [`Para «${q}» en ${zone}, las opciones más citadas son `, h('b', {}, rest[0]), ', ', h('b', {}, rest[1]), ' e ', h('b', {}, rest[2]), '. Conviene comparar tarifas y qué incluye cada una.'];
-}
-function renderPrompts() {
-  const cells = PROMPTS.flatMap(p => p[2]), hit = cells.filter(Boolean).length;
-  const cov = ENGINES.map((e, i) => PROMPTS.reduce((t, p) => t + p[2][i], 0) / PROMPTS.length * 100);
-  const best = cov.indexOf(Math.max(...cov)), zero = PROMPTS.filter(p => !p[2].some(Boolean)).length;
-  const strip = h('div', { class: 'ag-stats' }, stat('Citas esta semana', `${hit} de ${cells.length}`, `${Math.round(hit / cells.length * 100)} % de las respuestas`, 'blue'), stat('Mejor motor', ENGINES[best][1], `${Math.round(cov[best])} % de las preguntas`), stat('Sin citas aún', String(zero), zero === 1 ? 'pregunta prioritaria' : 'preguntas prioritarias', 'warn'));
-  const idx = PROMPTS.map((_, i) => i).filter(i => px.f === 'all' || (px.f === 'yes' ? PROMPTS[i][2].some(Boolean) : !PROMPTS[i][2].some(Boolean)));
-  if (!idx.includes(px.sel)) px.sel = idx[0] ?? 0;
-  const chips = h('div', { class: 'x-chips', role: 'group', 'aria-label': 'Filtrar preguntas' }, ...[['all', 'Todas'], ['yes', 'Te citan'], ['no', 'No te citan']].map(([k, l]) => h('button', { type: 'button', class: px.f === k ? 'on' : '', 'aria-pressed': String(px.f === k), onclick: () => { px.f = k; renderPrompts(); } }, l)));
-  const list = h('ul', { class: 'x-qlist' }, ...idx.map(i => { const [q, zone, r] = PROMPTS[i], n = r.filter(Boolean).length;
-    return h('li', {}, h('button', { type: 'button', class: 'x-q' + (i === px.sel ? ' on' : ''), 'aria-pressed': String(i === px.sel), onclick: () => { px.sel = i; px.eng = Math.max(0, r.indexOf(1)); renderPrompts(); } },
-      h('span', { class: 'qt' }, q), h('span', { class: 'qm' }, h('span', { class: 'zc' }, zone), h('span', { class: 'dots', 'aria-label': `${n} de 5 motores te citan` }, ...r.map((v, k) => h('i', { class: v ? 'on' : '' }))), delta(TREND[i]))));
-  }));
-  const [q, zone, r] = PROMPTS[px.sel], cited = !!r[px.eng], eng = ENGINES[px.eng];
-  const tabs = h('div', { class: 'x-tabs', role: 'tablist' }, ...ENGINES.map(([k, label], i) => h('button', { type: 'button', role: 'tab', class: (i === px.eng ? 'on ' : '') + (r[i] ? 'yes' : 'no'), 'aria-selected': String(i === px.eng), onclick: () => { px.eng = i; renderPrompts(); } }, engMark(k), h('span', {}, label), h('i', { class: 'st', 'aria-label': r[i] ? 'te cita' : 'no te cita' }))));
-  const detail = h('div', { class: 'x-detail' },
-    h('div', { class: 'x-dh' }, h('div', {}, h('p', { class: 'ag-colh' }, 'Pregunta que hace tu cliente'), h('b', {}, q)), h('span', { class: 'zc' }, zone)), tabs,
-    h('div', { class: 'x-chat' }, h('div', { class: 'u' }, h('span', { class: 'bub' }, `${q} en ${zone}`)), h('div', { class: 'ai' }, h('span', { class: 'ava' }, engMark(eng[0])), h('div', { class: 'bubai' }, h('p', {}, ...answer(q, zone, cited)), h('div', { class: 'src' }, h('span', {}, 'Fuentes'), ...(cited ? SRC.cited : SRC.not).map(d => h('em', {}, d)))))),
-    h('div', { class: 'x-facts' }, h('div', {}, h('span', {}, 'Estado'), h('b', { class: cited ? 'yes' : 'no' }, cited ? 'Te citan' : 'No te citan')), h('div', {}, h('span', {}, 'Posición'), h('b', {}, cited ? '1.º de 3' : '—')), h('div', {}, h('span', {}, 'Siguiente paso'), h('b', {}, cited ? 'Mantener y ampliar' : 'Artículo + datos'))));
-  clear($('ag-v-prompts')).append(strip, h('div', { class: 'x-split' }, h('div', { class: 'x-left' }, chips, list), detail));
-}
-
-/* ---------------- Trabajo: tablero con aprobación */
-const BOARD = [
-  { id: 1, col: 0, type: 'Artículo', t: 'Cómo elegir asesoría fiscal siendo autónomo', zone: 'Madrid', date: 'Lun 25' },
-  { id: 2, col: 0, type: 'Página', t: 'Asesoría para pymes en Guadalajara', zone: 'Guadalajara', date: 'Mié 27' },
-  { id: 3, col: 1, type: 'Técnico', t: 'Datos estructurados FAQPage en 6 páginas', zone: 'Toda la web', date: 'En curso' },
-  { id: 4, col: 1, type: 'Mención', t: 'Presencia en directorio del sector', zone: 'España', date: 'En curso' },
-  { id: 5, col: 2, type: 'Artículo', t: 'Gestoría online: qué incluye y cuánto cuesta', zone: 'Barcelona', date: 'Hace 1 día' },
-  { id: 6, col: 2, type: 'Página', t: 'Asesoría para negocios hispanos en Miami', zone: 'Miami', date: 'Hace 3 días' },
-  { id: 7, col: 2, type: 'Técnico', t: 'llms.txt y mapa del sitio actualizados', zone: 'Toda la web', date: 'Hace 5 días' },
-];
-const TYPEICO = { 'Artículo': 'M3 2h7l3 3v9H3zM10 2v3h3M5.5 8h5M5.5 11h3', 'Página': 'M2 3h12v10H2zM2 6h12M5 9h6', 'Técnico': 'M6 5L3 8l3 3M10 5l3 3-3 3', 'Mención': 'M3 4h10v7H8l-3 3v-3H3z' };
-function renderWork() {
-  const prog = [['Artículos publicados', 31, 31], ['Datos estructurados', 12, 12], ['Menciones en fuentes', 3, 5], ['Páginas comerciales', 2, 2]];
-  const cards = h('div', { class: 'ag-prog' }, ...prog.map(([l, a, b]) => h('div', { class: 'agpg' + (a === b ? ' done' : '') }, h('span', {}, l), h('b', {}, `${a}`, h('small', {}, ` / ${b}`)), bar(a / b * 100, a === b ? 'full' : ''), h('em', {}, a === b ? 'Completado' : 'En curso'))));
-  const week = h('div', { class: 'x-week' }, ...[['Lun', 4, 'hoy'], ['Mar', 2], ['Mié', 3], ['Jue', 2], ['Vie', 1]].map(([d, n, t]) => h('div', { class: t ? 'now' : '' }, h('span', {}, d), h('b', {}, String(n)), h('i', { style: `height:${n * 14}px` }))));
-  const cols = [['Para tu visto bueno', 'x-c0'], ['Lo estamos haciendo', 'x-c1'], ['Publicado', 'x-c2']];
-  const board = h('div', { class: 'x-board' }, ...cols.map(([name, cls], ci) => h('div', { class: 'x-col ' + cls }, h('p', { class: 'x-ch' }, name, h('em', {}, String(BOARD.filter(t => t.col === ci).length))),
-    ...BOARD.filter(t => t.col === ci).map(t => h('div', { class: 'x-task' }, h('div', { class: 'top' }, h('span', { class: 'ty' }, ico(TYPEICO[t.type], 13), t.type), h('span', { class: 'dt' }, t.date)), h('b', {}, t.t), h('div', { class: 'bt' }, h('span', { class: 'zc' }, t.zone),
-      ci === 0 ? h('button', { type: 'button', class: 'x-ok', onclick: () => { t.col = 1; t.date = 'En curso'; renderWork(); } }, ico('M3.5 8.4l3 3 6-6.4', 12), 'Aprobar') : ci === 2 ? h('span', { class: 'done' }, ico('M3.5 8.4l3 3 6-6.4', 12), 'Hecho') : h('span', { class: 'prog' }, h('i', {}), h('i', {}), h('i', {}))))))));
-  clear($('ag-v-trabajo')).append(cards, h('div', { class: 'x-weekrow' }, h('div', { class: 'x-wk' }, h('p', { class: 'ag-colh' }, 'Entregas de esta semana'), week), h('p', { class: 'x-hint' }, 'Tú solo apruebas. Nosotros planificamos, escribimos, publicamos y medimos.')), board);
-}
-
-/* ---------------- Competidores */
-const cx = { hide: new Set() };
-function renderCompetitors() {
-  const total = COMPS.reduce((t, c) => t + c.n, 0), me = COMPS.find(c => c.me), ranked = [...COMPS].sort((a, b) => b.n - a.n), pos = ranked.indexOf(me) + 1;
-  const W = 900, H = 170, pad = 8, wk = 8, X = i => pad + i / (wk - 1) * (W - pad * 2), Y = v => H - 14 - v / 45 * (H - 26);
-  const lines = COMPS.filter(c => !cx.hide.has(c.name)).map(c => { const pts = SERIES[c.name], d = pts.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(''); return s('g', {}, s('path', { d, fill: 'none', stroke: c.c, 'stroke-width': c.me ? 3.4 : 2.2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', class: 'x-line' + (c.me ? ' me' : '') }), s('circle', { cx: X(wk - 1), cy: Y(pts[wk - 1]), r: c.me ? 4.5 : 3.4, fill: c.c, stroke: '#fff', 'stroke-width': 2 })); });
-  const grid = [0, 15, 30, 45].map(v => s('g', {}, s('path', { d: `M${pad} ${Y(v)}H${W - pad}`, stroke: '#E8EEF8', 'stroke-width': 1 }), s('text', { x: W - pad, y: Y(v) - 4, 'text-anchor': 'end', 'font-size': 11, fill: '#98A2B8' }, v + ' %')));
-  const chart = h('div', { class: 'ag-card2 x-trend' }, h('div', { class: 'x-th' }, h('p', { class: 'ag-colh' }, 'Cuota de voz · últimas 8 semanas'), h('div', { class: 'x-leg', role: 'group', 'aria-label': 'Mostrar u ocultar empresas' }, ...COMPS.map(c => h('button', { type: 'button', class: cx.hide.has(c.name) ? 'off' : '', 'aria-pressed': String(!cx.hide.has(c.name)), onclick: () => { cx.hide.has(c.name) ? cx.hide.delete(c.name) : cx.hide.add(c.name); renderCompetitors(); } }, logo(c, 18), c.name)))),
-    s('svg', { viewBox: `0 0 ${W} ${H}`, class: 'x-chart', role: 'img', 'aria-label': 'Evolución de la cuota de voz de cada empresa en las respuestas de IA' }, ...grid, ...lines));
-  const list = h('ol', { class: 'ag-rank2' }, ...ranked.map((c, i) => h('li', { class: c.me ? 'me' : '' }, h('span', { class: 'pos' }, String(i + 1)), logo(c, 34), h('div', { class: 'nm' }, h('b', {}, c.name, c.me ? h('em', {}, 'Tú') : null), h('small', {}, c.dom), bar(c.n / 40 * 100, c.me ? 'me' : '')), h('span', { class: 'ct' }, `${c.n}`, h('small', {}, ' / 40')), delta(c.n - c.prev))));
-  const head = h('tr', {}, h('th', { scope: 'col' }, 'Empresa'), ...ENGINES.map(([k, l]) => h('th', { scope: 'col', class: 'eng', title: l }, engMark(k), h('span', { class: 'sr' }, l))), h('th', { scope: 'col', class: 'eng' }, 'Total'));
-  const rows = ranked.map(c => h('tr', { class: c.me ? 'me' : '' }, h('td', { class: 'q' }, h('span', { class: 'who' }, logo(c, 22), c.name)), ...c.mat.map(v => h('td', { class: 'eng' }, h('span', { class: 'heat', style: `--a:${(v / 8).toFixed(2)}` }, String(v)))), h('td', { class: 'eng tot' }, String(c.mat.reduce((a, b) => a + b, 0)))));
-  const matrix = h('div', { class: 'ag-card2 x-mx' }, h('p', { class: 'ag-colh' }, 'Menciones por motor (de 8 preguntas)'), h('div', { class: 'ag-tablewrap flat' }, h('table', { class: 'ag-table' }, h('thead', {}, head), h('tbody', {}, ...rows))));
-  const LOSSES = [['mejor asesoría para autónomos', 'Declarando', 'Madrid'], ['gestoría online para pymes', 'Ayuda-T Pymes', 'Barcelona'], ['asesor fiscal para freelance', 'Infoautónomos', 'Valencia']];
-  const loss = h('div', { class: 'ag-card2 x-loss' }, h('p', { class: 'ag-colh' }, 'Preguntas donde te ganan hoy'), ...LOSSES.map(([q, w, z]) => { const c = COMPS.find(x => x.name === w); return h('div', { class: 'ls' }, logo(c, 26), h('div', { class: 'lm' }, h('b', {}, q), h('span', {}, `${z} · gana `, h('em', {}, w))), h('span', { class: 'lt' }, 'Prioridad')); }));
-  clear($('ag-v-competidores')).append(
-    h('div', { class: 'ag-stats' }, stat('Tu posición', `${pos}.º de ${COMPS.length}`, 'en respuestas de IA del sector', 'blue'), stat('Cuota de voz', Math.round(me.n / total * 100) + ' %', `+${SERIES[ME][7] - SERIES[ME][0]} puntos en 8 semanas`, 'good'), stat('Para ser 1.º', `${ranked[0].n - me.n + 1}`, 'menciones más por semana', 'warn')),
-    chart, h('div', { class: 'ag-split b' }, h('div', { class: 'ag-card2' }, h('p', { class: 'ag-colh' }, 'Quién aparece en las respuestas (de 40)'), list), h('div', { class: 'x-stack' }, matrix, loss)));
-}
-
-/* ---------------- Informes: lista a la izquierda, documento a la derecha */
-const REP = [
-  { w: 'Semana 9', r: '24 a 30 nov', cit: '+6', imp: '+4,2 %', art: '8', voz: '24 %', series: [3, 4, 5, 5, 6, 7, 9], did: ['8 artículos publicados para Madrid y Barcelona', 'Datos estructurados en 4 páginas nuevas', '2 menciones en directorios del sector'], dec: ['Priorizar Guadalajara con 2 páginas comerciales', 'Reforzar «asesoría para autónomos» en Barcelona', 'Pedir 2 menciones más en directorios'] },
-  { w: 'Semana 8', r: '17 a 23 nov', cit: '+7', imp: '+3,1 %', art: '7', voz: '22 %', series: [2, 3, 4, 4, 5, 7, 8], did: ['Nueva página comercial para Miami', '7 artículos publicados', 'Revisión de llms.txt y mapa del sitio'], dec: ['Abrir Miami como zona prioritaria', 'Medir Gemini por separado'] },
-  { w: 'Semana 7', r: '10 a 16 nov', cit: '+6', imp: '+2,6 %', art: '9', voz: '20 %', series: [3, 3, 4, 5, 5, 6, 7], did: ['Menciones conseguidas en 2 directorios', '9 artículos publicados'], dec: ['Reforzar respuestas con datos propios', 'Ampliar preguntas seguidas a 40'] },
-  { w: 'Semana 6', r: '3 a 9 nov', cit: '+5', imp: '+1,9 %', art: '7', voz: '18 %', series: [2, 2, 3, 4, 4, 5, 6], did: ['Datos estructurados corregidos en toda la web', '7 artículos publicados'], dec: ['Empezar la campaña de autoridad', 'Fijar el punto de partida del 30 %'] },
-];
-const rp = { sel: 0 };
-const spark = (pts, w = 96, hh = 30, sw = 2) => { const mx = Math.max(...pts), xy = pts.map((v, i) => [i / (pts.length - 1) * w, hh - 3 - v / mx * (hh - 8)]); const d = xy.map(([x, y], i) => (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1)).join(''); return s('svg', { viewBox: `0 0 ${w} ${hh}`, class: 'sp', 'aria-hidden': 'true', preserveAspectRatio: 'none' }, s('path', { d: `${d}L${w} ${hh}L0 ${hh}Z`, fill: 'rgba(37,99,235,.12)' }), s('path', { d, fill: 'none', stroke: '#2563EB', 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' })); };
-function renderReports() {
-  const R = REP[rp.sel];
-  const list = h('ul', { class: 'x-rl' }, ...REP.map((r, i) => h('li', {}, h('button', { type: 'button', class: 'x-ri' + (i === rp.sel ? ' on' : ''), 'aria-pressed': String(i === rp.sel), onclick: () => { rp.sel = i; renderReports(); } },
-    h('span', { class: 'fi' }, ico('M4 2h6l3 3v9H4zM10 2v3h3M6 9h5M6 11.5h3', 18)), h('span', { class: 'tx' }, h('b', {}, r.w, i === 0 ? h('em', { class: 'new' }, 'Nuevo') : null), h('small', {}, r.r)), h('span', { class: 'mt' }, h('b', {}, r.cit), h('small', {}, 'citas'))))));
-  const bars = R.series.map((v, i) => h('div', { class: 'bc' }, h('i', { style: `height:${v / 9 * 100}%` }, h('u', {}, String(v))), h('span', {}, 'S' + (i + 3)))); // semanas relativas
-  const doc = h('article', { class: 'x-doc', 'aria-label': `Informe ${R.w}` },
-    h('header', {}, h('span', { class: 'dl2' }, h('img', { src: 'assets/logo-o.png', alt: '', width: 20, height: 20 }), 'OWNED MAP'), h('div', {}, h('b', {}, `Informe semanal · ${R.w}`), h('small', {}, `${ME} · ${R.r}`))),
-    h('div', { class: 'k4' }, ...[['Citas nuevas en IA', R.cit], ['Impresiones', R.imp], ['Artículos', R.art], ['Cuota de voz', R.voz]].map(([l, v]) => h('div', {}, h('span', {}, l), h('b', {}, v)))),
-    h('div', { class: 'cg' }, h('p', { class: 'ag-colh' }, 'Citas en IA por semana'), h('div', { class: 'bars' }, ...bars)),
-    h('div', { class: 'two' }, h('div', {}, h('p', { class: 'ag-colh' }, 'Lo que hicimos'), h('ul', {}, ...R.did.map(t => h('li', {}, ico('M3.5 8.4l3 3 6-6.4', 13), t)))), h('div', {}, h('p', { class: 'ag-colh' }, 'Decisiones de la semana'), h('ul', { class: 'dec' }, ...R.dec.map(t => h('li', {}, ico('M3 8h9M8.5 4.5L12 8l-3.5 3.5', 13), t))))),
-    h('footer', {}, 'Enviado el lunes · 08:00'));
-  clear($('ag-v-informes')).append(h('div', { class: 'x-rsplit' }, list, doc));
-}
-
-renderPrompts(); renderWork(); renderCompetitors(); renderReports(); renderGoal(); setView('zonas'); renderZones(); geo.sync();
+renderGoal(); renderFilter(); renderZones(); geo.sync();
 
 /* ------------------------------------------------------------------ free diagnosis: 4-step onboarding */
 const ob = $('ob'), obBody = $('ob-body'), obSteps = [...$('ob-steps').children];
