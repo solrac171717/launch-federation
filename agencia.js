@@ -80,7 +80,8 @@ const NAV = [
   ['competidores', 'Competidores', 'Quién aparece en tu lugar', 'M5.5 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM11 7.5a2 2 0 1 0 0-4M1.5 14c0-2.5 1.8-4 4-4s4 1.5 4 4M10.5 10c2 0 4 1 4 3.5'],
   ['informes', 'Informes', 'Informe semanal', 'M4 2h6l3 3v9H4zM10 2v3h3M6 9h5M6 11.5h3'],
 ];
-const COMPETITORS = [['Competidor A', 24], ['Competidor B', 19], ['Tu empresa', 17], ['Competidor C', 11]]; // answers (of 40) that name each company
+const ME = 'Cifra Asesores';
+const COMPETITORS = [['Declarando', 24], ['Ayuda-T Pymes', 19], [ME, 17], ['Infoautónomos', 11]]; // answers (of 40) that name each company
 const REPORTS = [['Semana 9 · 24 a 30 nov', '6 citas nuevas en IA', 'Valencia ya te cita en Gemini. Decisión: priorizar Guadalajara.'], ['Semana 8 · 17 a 23 nov', '7 citas nuevas en IA', 'Nueva página comercial para Miami publicada.'], ['Semana 7 · 10 a 16 nov', '6 citas nuevas en IA', 'Menciones conseguidas en 2 directorios del sector.'], ['Semana 6 · 3 a 9 nov', '5 citas nuevas en IA', 'Datos estructurados corregidos en toda la web.']];
 const LABEL = { cited: 'Te citan aquí', grow: 'Zona prioritaria' };
 const state = { view: 'zonas', filter: null, sel: 'madrid' };
@@ -159,8 +160,8 @@ function renderWork() {
 }
 function renderCompetitors() {
   const max = Math.max(...COMPETITORS.map(c => c[1]));
-  clear($('ag-v-competidores')).append(h('div', { class: 'ag-pr-top' }, h('b', {}, '3.º de 4'), h('span', {}, 'en respuestas de IA que nombran a empresas como la tuya (de 40 respuestas medidas esta semana)')),
-    h('ul', { class: 'ag-rank' }, ...COMPETITORS.map(([name, n]) => h('li', { class: name === 'Tu empresa' ? 'me' : '' }, h('span', { class: 'rn' }, name), h('div', { class: 'rb', role: 'img', 'aria-label': `${name}: ${n} de 40 respuestas` }, h('i', { style: `width:${(n / max) * 100}%` })), h('b', {}, `${n} / 40`)))),
+  clear($('ag-v-competidores')).append(h('div', { class: 'ag-pr-top' }, h('b', {}, '3.º de 4'), h('span', {}, 'en respuestas de IA sobre asesorías para autónomos y pymes (de 40 respuestas medidas esta semana)')),
+    h('ul', { class: 'ag-rank' }, ...COMPETITORS.map(([name, n]) => h('li', { class: name === ME ? 'me' : '' }, h('span', { class: 'rn' }, name), h('div', { class: 'rb', role: 'img', 'aria-label': `${name}: ${n} de 40 respuestas` }, h('i', { style: `width:${(n / max) * 100}%` })), h('b', {}, `${n} / 40`)))),
     h('p', { class: 'ag-note' }, 'Objetivo del plan: pasar al primer puesto en las zonas prioritarias. Los competidores se miden señal por señal en el plan Dominio.'));
 }
 function renderReports() {

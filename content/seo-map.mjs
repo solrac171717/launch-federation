@@ -14,92 +14,19 @@
 export const BRAND = 'owned map';
 
 export const SEO_MAP = [
-  { path: '/', type: 'home', primary: 'agencia de seo con ia', secondary: ['agencia aeo', 'agencia geo', 'agencia de seo para chatgpt'] },
+  { path: '/', type: 'home', primary: 'agencia seo ia', secondary: ['agencia de seo con ia', 'agencia aeo', 'agencia geo', 'agencia de seo para chatgpt'] },
   { path: '/activos', type: 'home', primary: 'track every asset you own', secondary: ['asset tracker', 'personal asset tracker', 'asset tracking app', 'real asset tracker'] },
-  { path: '/compare/', type: 'hub', primary: 'net worth tracker comparison', secondary: ['net worth tracker alternatives'] },
-  { path: '/compare/kubera-vs-owned-map', type: 'comparison', rival: 'Kubera', primary: 'kubera vs owned map', secondary: ['kubera alternative', 'kubera competitors'] },
-  { path: '/compare/monarch-vs-owned-map', type: 'comparison', rival: 'Monarch Money', primary: 'monarch money vs owned map', secondary: ['monarch money alternative', 'monarch money competitors'] },
-  { path: '/compare/empower-vs-owned-map', type: 'comparison', rival: 'Empower', primary: 'empower vs owned map', secondary: ['empower alternative', 'empower personal dashboard alternative'] },
-  { path: '/compare/stessa-vs-owned-map', type: 'comparison', rival: 'Stessa', primary: 'stessa vs owned map', secondary: ['stessa alternative', 'stessa competitors'] },
-  { path: '/compare/landlord-studio-vs-owned-map', type: 'comparison', rival: 'Landlord Studio', primary: 'landlord studio vs owned map', secondary: ['landlord studio alternative'] },
-  { path: '/compare/baselane-vs-owned-map', type: 'comparison', rival: 'Baselane', primary: 'baselane vs owned map', secondary: ['baselane alternative'] },
-  { path: '/compare/best-net-worth-trackers-for-real-assets', type: 'roundup', primary: 'best net worth tracker for real estate', secondary: ['best app to track rental properties'] },
-  { path: '/compare/projectionlab-vs-owned-map', type: 'comparison', rival: 'ProjectionLab', primary: 'projectionlab vs owned map', secondary: ['projectionlab alternative'] },
-  { path: '/compare/quicken-simplifi-vs-owned-map', type: 'comparison', rival: 'Quicken Simplifi', primary: 'quicken simplifi vs owned map', secondary: ['quicken simplifi alternative'] },
-  { path: '/guides/schedule-of-real-estate-owned-template', type: 'guide', primary: 'schedule of real estate owned template', secondary: ['sreo template', 'real estate owned schedule for lenders'] },
-  { path: '/guides/rental-portfolio-ltv-calculator', type: 'guide', primary: 'rental portfolio ltv calculator', secondary: ['portfolio loan to value calculator'] },
-  { path: '/solutions/luxury-asset-portfolio-tracker', type: 'solution', primary: 'luxury asset portfolio tracker', secondary: ['passion assets tracker', 'family office software for individuals'] },
-  { path: '/compare/spreadsheet-vs-owned-map', type: 'comparison', rival: 'Spreadsheets', primary: 'asset tracking spreadsheet vs owned map', secondary: ['asset tracking spreadsheet alternative', 'excel template for tracking assets'] },
-  { path: '/solutions/co-owned-property-tracker', type: 'solution', primary: 'co-owned property tracker', secondary: ['shared property ownership tracker', 'co-ownership property tracking app'] },
-  { path: '/solutions/boat-ownership-tracker', type: 'solution', primary: 'boat ownership tracker app', secondary: ['track boat expenses and registration', 'boat documents and insurance tracker'] },
-  { path: '/solutions/classic-car-collection-tracker', type: 'solution', primary: 'classic car collection tracker', secondary: ['car collection value tracker', 'track collector car documents'] },
-  { path: '/compare/copilot-vs-owned-map', type: 'comparison', rival: 'Copilot Money', primary: 'copilot money vs owned map', secondary: ['copilot money alternative'] },
-  { path: '/compare/tiller-vs-owned-map', type: 'comparison', rival: 'Tiller', primary: 'tiller vs owned map', secondary: ['tiller alternative'] },
-  { path: '/compare/lunch-money-vs-owned-map', type: 'comparison', rival: 'Lunch Money', primary: 'lunch money vs owned map', secondary: ['lunch money alternative'] },
-  { path: '/compare/doorloop-vs-owned-map', type: 'comparison', rival: 'DoorLoop', primary: 'doorloop vs owned map', secondary: ['doorloop alternative'] },
-  { path: '/compare/rentredi-vs-owned-map', type: 'comparison', rival: 'RentRedi', primary: 'rentredi vs owned map', secondary: ['rentredi alternative'] },
-  { path: '/solutions/rental-property-portfolio-tracker', type: 'solution', primary: 'rental property portfolio tracker', secondary: ['real estate portfolio tracker', 'real estate portfolio tracking software', 'rental portfolio tracker', 'rental property equity tracker', 'track equity across rental properties'] },
-  { path: '/solutions/net-worth-tracker-without-bank-linking', type: 'solution', primary: 'net worth tracker without linking bank accounts', secondary: ['manual net worth tracker', 'net worth tracker no bank connection', 'private net worth tracker'] },
   { path: '/privacy.html', type: 'legal' },
   { path: '/terms.html', type: 'legal' },
   { path: '/privacidad.html', type: 'legal' },
   { path: '/terminos.html', type: 'legal' },
 ];
 
-/** Pages we intend to write, each with its own phrases, so nothing new can collide with what is live or with what is next.
- *  `wave` is the order of work (see marketing/seo-keyword-plan.md); `stage` is the buyer's stage: bofu (ready to choose), mofu (comparing), tofu (learning).
- *  Several wordings of one search are ONE page: the secondaries are the other wordings, and they are answered on that page, never on a page of their own. */
-export const PLANNED = [
-  // wave 1: the pages closest to a purchase, on searches where today's results are weak or off-target
-  { wave: 1, stage: 'mofu', path: '/guides/estate-asset-inventory-template', type: 'guide', primary: 'estate asset inventory template', secondary: ['asset inventory for estate planning', 'list of assets for executor'] },
-  // wave 2: narrower audiences, high value per customer
-  { wave: 2, stage: 'mofu', path: '/solutions/property-and-vehicle-records-app', type: 'solution', primary: 'app to manage property and vehicle records', secondary: ['organize family asset documents', 'digital asset records for family'] },
-  // wave 3: only after the data from Search Console says which of these earns clicks
-  { wave: 3, stage: 'bofu', path: '/solutions/aircraft-ownership-tracker', type: 'solution', primary: 'aircraft ownership tracker', secondary: ['aircraft ownership cost tracker'] }, // dedicated logbook apps own this SERP; Owned Map is not a logbook, so only the cost, value and documents angle
-  { wave: 3, stage: 'bofu', path: '/solutions/track-real-estate-in-multiple-countries', type: 'solution', primary: 'track real estate in multiple countries', secondary: ['net worth tracker for international property'] }, // needs a product check first: currencies
-  { wave: 3, stage: 'mofu', path: '/solutions/insurance-renewal-tracker-for-rental-properties', type: 'solution', primary: 'insurance renewal tracker for rental properties', secondary: ['track property insurance renewal dates'] },
-  { wave: 3, stage: 'tofu', path: '/guides/yield-on-cost-vs-cap-rate', type: 'guide', primary: 'yield on cost vs cap rate', secondary: ['cap rate vs yield on cost', 'yield on cost real estate'] },
-  { wave: 3, stage: 'tofu', path: '/guides/boat-ownership-cost-calculator', type: 'guide', primary: 'boat ownership cost calculator', secondary: ['boat ownership costs per year', 'true cost of owning a boat'] }, // an interactive calculator: SERP is thin sites and pages.dev; no rule of thumb is quoted without a source
-  { wave: 3, stage: 'mofu', path: '/guides/personal-financial-statement-template', type: 'guide', primary: 'personal financial statement template for real estate investors', secondary: ['pfs template for investment property loans', 'personal financial statement for a lender'] }, // pairs with the SREO page; lenders ask for both
-  { wave: 3, stage: 'mofu', path: '/guides/rental-property-tracking-spreadsheet', type: 'guide', primary: 'rental property tracking spreadsheet', secondary: ['multi property rental tracker template'] }, // free CSV with a portfolio roll-up; SERP is Etsy, Gumroad, forums and vendor templates
-  // wave 5 (19 nov 2026): "vs" pages. Rival pages answer "X alternative"; the neutral pairs ("A vs B", type 'versus') are a different search: someone choosing between two tools we have already read. They mention Owned Map only as the third option, and never use another page's phrase.
-  { wave: 5, stage: 'bofu', path: '/compare/turbotenant-vs-owned-map', type: 'comparison', rival: 'TurboTenant', primary: 'turbotenant vs owned map', secondary: ['turbotenant alternative'] },
-  { wave: 5, stage: 'bofu', path: '/compare/avail-vs-owned-map', type: 'comparison', rival: 'Avail', primary: 'avail vs owned map', secondary: ['avail alternative'] },
-  { wave: 5, stage: 'bofu', path: '/compare/hemlane-vs-owned-map', type: 'comparison', rival: 'Hemlane', primary: 'hemlane vs owned map', secondary: ['hemlane alternative'] },
-  { wave: 5, stage: 'bofu', path: '/compare/innago-vs-owned-map', type: 'comparison', rival: 'Innago', primary: 'innago vs owned map', secondary: ['innago alternative'] },
-  { wave: 5, stage: 'bofu', path: '/compare/origin-vs-owned-map', type: 'comparison', rival: 'Origin', primary: 'origin vs owned map', secondary: ['origin net worth alternative'] },
-  { wave: 5, stage: 'bofu', path: '/compare/kubera-vs-monarch-money', type: 'versus', primary: 'kubera vs monarch money', secondary: ['monarch money vs kubera'] },
-  { wave: 5, stage: 'bofu', path: '/compare/kubera-vs-empower', type: 'versus', primary: 'kubera vs empower', secondary: ['kubera vs personal capital'] },
-  { wave: 5, stage: 'bofu', path: '/compare/stessa-vs-baselane', type: 'versus', primary: 'stessa vs baselane', secondary: ['baselane vs stessa'] },
-  { wave: 5, stage: 'bofu', path: '/compare/landlord-studio-vs-stessa', type: 'versus', primary: 'landlord studio vs stessa', secondary: ['stessa vs landlord studio'] },
-  { wave: 5, stage: 'bofu', path: '/compare/baselane-vs-landlord-studio', type: 'versus', primary: 'baselane vs landlord studio', secondary: ['landlord studio vs baselane'] },
-];
+/** Pages we intend to write, each with its own phrases. Empty: the old property comparison, guide and solution pages were removed (the agency is the focus). */
+export const PLANNED = [];
 
 /** The phrases a page claims: its primary first, then its secondaries. */
 export const phrases = e => [e.primary, ...(e.secondary || [])].filter(Boolean);
 
-/** The groups (topic clusters). A pillar is the page that owns the group's main search; a spoke owns a narrower one and points up to its pillar.
- *  Link rules, checked by test/seo-map.test.js:
- *   - a spoke links to its pillar and to at most two sibling spokes; the pillar links to every live spoke of its group;
- *   - only pages that are live are linked (a link to a page that does not exist yet would break the build);
- *   - the link text is the target's own title, so it carries the target's phrase and never another page's;
- *   - the best-net-worth roundup is a bridge: it is a spoke of both groups, so the two groups feed each other through it. */
-export const CLUSTERS = [
-  { id: 'rental', name: 'Rental and real estate portfolio', pillar: '/solutions/rental-property-portfolio-tracker', spokes: ['/compare/stessa-vs-owned-map', '/compare/landlord-studio-vs-owned-map', '/compare/baselane-vs-owned-map', '/compare/doorloop-vs-owned-map', '/compare/rentredi-vs-owned-map', '/compare/turbotenant-vs-owned-map', '/compare/avail-vs-owned-map', '/compare/hemlane-vs-owned-map', '/compare/innago-vs-owned-map', '/compare/best-net-worth-trackers-for-real-assets', '/solutions/co-owned-property-tracker', '/solutions/insurance-renewal-tracker-for-rental-properties', '/guides/yield-on-cost-vs-cap-rate', '/solutions/track-real-estate-in-multiple-countries', '/guides/schedule-of-real-estate-owned-template', '/guides/rental-portfolio-ltv-calculator', '/guides/rental-property-tracking-spreadsheet'] },
-  { id: 'networth', name: 'Net worth without bank linking', pillar: '/solutions/net-worth-tracker-without-bank-linking', spokes: ['/compare/kubera-vs-owned-map', '/compare/monarch-vs-owned-map', '/compare/empower-vs-owned-map', '/compare/spreadsheet-vs-owned-map', '/compare/copilot-vs-owned-map', '/compare/projectionlab-vs-owned-map', '/compare/quicken-simplifi-vs-owned-map', '/compare/tiller-vs-owned-map', '/compare/lunch-money-vs-owned-map', '/compare/origin-vs-owned-map', '/solutions/luxury-asset-portfolio-tracker', '/compare/best-net-worth-trackers-for-real-assets'] },
-  { id: 'vehicles', name: 'Vehicles, boats and collections', pillar: '/solutions/property-and-vehicle-records-app', spokes: ['/solutions/boat-ownership-tracker', '/solutions/classic-car-collection-tracker', '/solutions/aircraft-ownership-tracker', '/guides/boat-ownership-cost-calculator', '/solutions/luxury-asset-portfolio-tracker'] },
-  { id: 'estate', name: 'Estate and family records', pillar: '/guides/estate-asset-inventory-template', spokes: ['/solutions/property-and-vehicle-records-app', '/guides/personal-financial-statement-template'] },
-];
-
-/** The pages `path` links to inside its groups, among the live ones, in a fixed order. */
-export function groupLinks(path, live = SEO_MAP.map(e => e.path)) {
-  const isLive = new Set(live), out = [];
-  for (const cl of CLUSTERS) {
-    if (cl.pillar === path) out.push(...cl.spokes.filter(p => isLive.has(p)));
-    else if (cl.spokes.includes(path)) {
-      if (isLive.has(cl.pillar)) out.push(cl.pillar);
-      out.push(...cl.spokes.filter(p => p !== path && isLive.has(p)).slice(0, 2));
-    }
-  }
-  return [...new Set(out)].filter(p => p !== path);
-}
+export const CLUSTERS = [];
+export function groupLinks() { return []; }

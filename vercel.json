@@ -8,23 +8,28 @@
     }
   ],
   "redirects": [
-    { "source": "/compare/index.html", "destination": "/compare/", "permanent": true },
-    { "source": "/compare/owned-map-vs-kubera(.html)?", "destination": "/compare/kubera-vs-owned-map", "permanent": true },
-    { "source": "/compare/:slug.html", "destination": "/compare/:slug", "permanent": true },
-    { "source": "/solutions/:slug.html", "destination": "/solutions/:slug", "permanent": true },
-    { "source": "/guides/:slug.html", "destination": "/guides/:slug", "permanent": true },
+    {
+      "source": "/(compare|solutions|guides|downloads)(/.*)?",
+      "destination": "/activos",
+      "permanent": true
+    },
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "www.ownedmap.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "www.ownedmap.com"
+        }
+      ],
       "destination": "https://ownedmap.com/$1",
       "permanent": true
     }
   ],
   "rewrites": [
-    { "source": "/activos", "destination": "/activos.html" },
-    { "source": "/compare/:slug", "destination": "/compare/:slug.html" },
-    { "source": "/solutions/:slug", "destination": "/solutions/:slug.html" },
-    { "source": "/guides/:slug", "destination": "/guides/:slug.html" }
+    {
+      "source": "/activos",
+      "destination": "/activos.html"
+    }
   ],
   "headers": [
     {

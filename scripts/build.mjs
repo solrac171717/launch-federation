@@ -5,8 +5,6 @@ import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { PLAN, priceCents, extraText } from '../src/billing-core.js';
 import { TEMPLATE_CSV } from '../src/csv-import.js';
-import { SREO_CSV } from '../content/sreo-template.mjs';
-import { renderAll, compareUrls } from './compare.mjs';
 
 const check = f => {
   const r = spawnSync(process.execPath, ['--check', f], { encoding: 'utf8' });
@@ -19,7 +17,7 @@ check('landing.js'); check('login.js');
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
-for (const p of ['index.html', 'activos.html', 'agencia.css', 'agencia-v2.css', 'agencia.js', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'compare.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
+for (const p of ['index.html', 'activos.html', 'agencia.css', 'agencia-v2.css', 'agencia.js', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
   await cp(p, `dist/${p}`, { recursive: true });
 }
 
@@ -72,15 +70,12 @@ for (const page of INDEXABLE) {
 }
 // Where visitors book the strategy call: BOOKING_URL (Cal.com, Calendly...) or, until it is set, an email.
 { const book = process.env.BOOKING_URL || 'mailto:support@ownedmap.com?subject=Llamada%20estrat%C3%A9gica%20AEO'; const html = await readFile('dist/index.html', 'utf8'); await writeFile('dist/index.html', html.replaceAll('%BOOKING_URL%', book)); }
-// The comparison pages (content/compare.mjs) become static pages, and the inventory template is made from the same columns the app imports.
-await mkdir('dist/compare', { recursive: true }); await mkdir('dist/solutions', { recursive: true }); await mkdir('dist/guides', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
-for (const g of renderAll(site)) await writeFile(`dist${g.file}`, g.html);
+await mkdir('dist/downloads', { recursive: true });
 await writeFile('dist/downloads/asset-inventory-template.csv', TEMPLATE_CSV);
-await writeFile('dist/downloads/schedule-of-real-estate-owned-template.csv', SREO_CSV);
 
 if (site) {
   const today = new Date().toISOString().slice(0, 10);
-  const urls = [...INDEXABLE.map(p => `/${p === 'index.html' ? '' : p === 'activos.html' ? 'activos' : p}`), ...compareUrls()].map(path => `<url><loc>${site}${path}</loc><lastmod>${today}</lastmod></url>`).join('');
+  const urls = [...INDEXABLE.map(p => `/${p === 'index.html' ? '' : p === 'activos.html' ? 'activos' : p}`)].map(path => `<url><loc>${site}${path}</loc><lastmod>${today}</lastmod></url>`).join('');
   await writeFile('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>\n`);
   await writeFile('dist/robots.txt', (await readFile('robots.txt', 'utf8')) + `Sitemap: ${site}/sitemap.xml\n`);
   await writeFile('dist/llms.txt', (await readFile('llms.txt', 'utf8')).replaceAll('%SITE_URL%', site));
@@ -97,8 +92,7 @@ export const CONFIG = ${JSON.stringify({ supabaseUrl: sbUrl, supabaseAnonKey: sb
   console.log('App configured for Supabase (' + new URL(sbUrl).host + ').');
 } else console.warn('SUPABASE_URL / SUPABASE_ANON_KEY not set: the app will save assets on the visitor device only.');
 
-const generated = renderAll(site).map(g => g.file.slice(1));
-for (const page of ['index.html', 'activos.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html', ...generated]) {
+for (const page of ['index.html', 'activos.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html', 'privacidad.html', 'terminos.html']) {
   const src = await readFile(`dist/${page}`, 'utf8');
   const missing = [...src.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:)([^"?#]+)/g)].map(m => m[1]).filter(p => !p.startsWith('/api/') && !existsSync(`dist/${p}`) && !existsSync(`dist/${p}.html`)); // /api/... is answered by a serverless function, not a file
   if (missing.length) { console.error(`Missing files referenced by ${page}:`, missing); process.exit(1); }
