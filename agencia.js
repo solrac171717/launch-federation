@@ -6,7 +6,6 @@ import { createGlobe } from './src/globe.js';
 import { attachGeo } from './src/geoui.js';
 import { ICON } from './src/ui.js';
 import { AI_LOGOS } from './assets/ai-logos.js';
-import { createNetGlobe } from './src/netglobe.js';
 
 document.documentElement.classList.add('js');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -247,14 +246,31 @@ if (!reduceMotion && 'IntersectionObserver' in window) {
   } else arts.forEach(a => a.classList.add('live'));
 }
 
-/* ------------------------------------------------------------------ «Ahora mismo»: globo de conexiones */
+/* ------------------------------------------------------------------ «Ahora mismo»: conversación con ChatGPT */
 {
-  const stage = $('ng-stage');
-  if (stage) {
-    const QUERIES = ['mejor asesoría fiscal', 'gestoría online para pymes', 'abogado de inmigración', 'clínica dental con implantes', 'agencia de marketing', 'contador para autónomos'];
-    const ENG = [['chatgpt', 'ChatGPT'], ['claude', 'Claude'], ['perplexity', 'Perplexity'], ['gemini', 'Gemini']];
-    const makeNote = (city, i) => { const [k, name] = ENG[i % ENG.length]; return h('div', { class: 'ng-note' }, h('div', { class: 'r1' }, mark(k), name, h('span', {}, '· ' + city.n)), h('div', { class: 'r2' }, `«${QUERIES[i % QUERIES.length]}» → `, h('em', {}, 'recomienda a otra empresa'))); };
-    const ng = createNetGlobe(stage, { canvas: $('ng-canvas'), notes: $('ng-notes'), makeNote, reduceMotion });
-    if ('IntersectionObserver' in window) new IntersectionObserver(es => { for (const e of es) e.isIntersecting ? ng.start() : ng.stop(); }, { threshold: .15 }).observe(stage); else ng.start();
+  const cg = $('cg');
+  if (cg) {
+    for (const svg of cg.querySelectorAll('svg[data-chatgpt]')) svg.append(s('path', { d: AI_LOGOS.chatgpt, fill: 'currentColor' }));
+    const miss = $('cg-miss'), user = cg.querySelector('.cg-u'), ans = cg.querySelector('.cg-a'), typing = cg.querySelector('.cg-typing');
+    const nodes = [...cg.querySelectorAll('[data-type]')], full = nodes.map(n => n.textContent);
+    let token = 0, visible = false;
+    const showAll = () => { nodes.forEach((n, i) => { n.textContent = full[i]; }); user.classList.add('on'); ans.classList.add('on'); typing.hidden = true; cg.classList.add('done'); miss.classList.add('on'); };
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    async function play() {
+      const me = ++token, alive = () => me === token && visible;
+      cg.classList.remove('done'); miss.classList.remove('on'); user.classList.remove('on'); ans.classList.remove('on'); typing.hidden = false; nodes.forEach(n => { n.textContent = ''; n.classList.remove('typing'); });
+      await wait(500); if (!alive()) return; user.classList.add('on');
+      await wait(900); if (!alive()) return; ans.classList.add('on');
+      await wait(1300); if (!alive()) return; typing.hidden = true;
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i]; n.classList.add('typing');
+        for (let k = 1; k <= full[i].length; k += 2) { if (!alive()) return; n.textContent = full[i].slice(0, k); await wait(14); }
+        n.textContent = full[i]; n.classList.remove('typing'); await wait(i === 0 ? 350 : 160);
+      }
+      if (!alive()) return; cg.classList.add('done'); await wait(500); if (!alive()) return; miss.classList.add('on');
+      await wait(7000); if (alive()) play();
+    }
+    if (reduceMotion || !('IntersectionObserver' in window)) showAll();
+    else new IntersectionObserver(es => { for (const e of es) { visible = e.isIntersecting; if (visible) play(); else token++; } }, { threshold: .3 }).observe(cg);
   }
 }

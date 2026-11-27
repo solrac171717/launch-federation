@@ -143,12 +143,31 @@
       <ul class="ng-ais" aria-label="Asistentes de IA donde trabajamos"><li data-logo="chatgpt">ChatGPT</li><li data-logo="claude">Claude</li><li data-logo="perplexity">Perplexity</li><li data-logo="gemini">Gemini</li><li data-logo="google">Google</li></ul>
       <a class="btn btn-light btn-lg" href="%BOOKING_URL%" data-where="ahora">Quiero que me recomienden a mí</a>
     </div>
-    <div class="ng-stage" id="ng-stage" role="img" aria-label="Ilustración: un globo con conexiones entre ciudades donde las IA recomiendan a otras empresas">
-      <canvas id="ng-canvas"></canvas>
-      <div class="ng-notes" id="ng-notes" aria-hidden="true"></div>
-      <p class="ng-cap" aria-hidden="true">Ilustración</p>
+    <div class="ng-stage" id="ng-stage" aria-label="Ejemplo de conversación con ChatGPT en la que se recomiendan empresas">
+      <div class="cg" id="cg">
+        <div class="cg-bar" aria-hidden="true"><span class="cg-dots"><i></i><i></i><i></i></span><span class="cg-title"><svg class="ai-mark" viewBox="0 0 24 24" data-chatgpt aria-hidden="true"></svg>ChatGPT</span><span></span></div>
+        <div class="cg-body" id="cg-body">
+          <div class="cg-u" data-step="1"><p>Dime la mejor inmobiliaria en Miami para comprar mi próxima casa</p></div>
+          <div class="cg-a" data-step="2">
+            <span class="cg-av" aria-hidden="true"><svg class="ai-mark" viewBox="0 0 24 24" data-chatgpt aria-hidden="true"></svg></span>
+            <div class="cg-msg">
+              <p class="cg-typing" aria-hidden="true"><i></i><i></i><i></i></p>
+              <p data-type>Para comprar casa en Miami, estas son las inmobiliarias que más recomiendan los compradores hispanos:</p>
+              <ol>
+                <li><b data-type>Costa Azul Realty</b> <span data-type>Especialistas en compradores hispanos, con atención en español y ayuda con financiación para no residentes.</span></li>
+                <li><b data-type>Brickell Hogar</b> <span data-type>Buena opción para condominios y zonas céntricas, con asesores bilingües.</span></li>
+                <li><b data-type>Sol de Miami Homes</b> <span data-type>Casas familiares en Doral y Kendall, con acompañamiento hasta el cierre.</span></li>
+              </ol>
+              <p data-type>Te recomiendo pedir presupuesto a las dos primeras.</p>
+            </div>
+          </div>
+        </div>
+        <div class="cg-in" aria-hidden="true"><span>Pregunta lo que quieras</span><i></i></div>
+      </div>
+      <p class="cg-miss" id="cg-miss"><span aria-hidden="true">?</span>¿Y si tu empresa no está en esa lista? El cliente ya ha elegido.</p>
+      <p class="ng-cap">Ejemplo ilustrativo con empresas inventadas</p>
     </div>
-  </div>
+</div>
 </section>
 
 <!-- PLANES -->
