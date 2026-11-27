@@ -70,7 +70,11 @@ const NAV = [
   ['zonas', 'Zonas', 'Visibilidad por zonas', 'M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM2 8h12M8 2c2.5 2 2.5 10 0 12M8 2c-2.5 2-2.5 10 0 12'],
   ['prompts', 'Preguntas', 'Preguntas seguidas en las IA', 'M2 3h12v8H6l-3 3v-3H2z'],
   ['trabajo', 'Trabajo', 'Trabajo de este mes', 'M2 13l4-5 3 3 5-7'],
+  ['competidores', 'Competidores', 'Quién aparece en tu lugar', 'M5.5 7a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM11 7.5a2 2 0 1 0 0-4M1.5 14c0-2.5 1.8-4 4-4s4 1.5 4 4M10.5 10c2 0 4 1 4 3.5'],
+  ['informes', 'Informes', 'Informe semanal', 'M4 2h6l3 3v9H4zM10 2v3h3M6 9h5M6 11.5h3'],
 ];
+const COMPETITORS = [['Competidor A', 24], ['Competidor B', 19], ['Tu empresa', 17], ['Competidor C', 11]]; // answers (of 40) that name each company
+const REPORTS = [['Semana 9 · 24 a 30 nov', '6 citas nuevas en IA', 'Valencia ya te cita en Gemini. Decisión: priorizar Bogotá.'], ['Semana 8 · 17 a 23 nov', '7 citas nuevas en IA', 'Nueva página comercial para Miami publicada.'], ['Semana 7 · 10 a 16 nov', '6 citas nuevas en IA', 'Menciones conseguidas en 2 directorios del sector.'], ['Semana 6 · 3 a 9 nov', '5 citas nuevas en IA', 'Datos estructurados corregidos en toda la web.']];
 const NEXT = [['Lunes', '4 artículos para las zonas prioritarias'], ['Miércoles', 'Revisión de datos estructurados de las páginas nuevas'], ['Viernes', 'Informe semanal y decisiones de la semana siguiente']];
 const state = { view: 'zonas', filter: null, sel: 'madrid' };
 const $ = id => document.getElementById(id);
@@ -140,7 +144,16 @@ function renderWork() {
   const next = h('ul', { class: 'ag-work next' }, ...NEXT.map(([day, t]) => h('li', {}, h('em', {}, day), h('div', {}, h('b', {}, t)))));
   clear($('ag-v-trabajo')).append(h('div', { class: 'ag-cols' }, h('div', {}, h('p', { class: 'ag-colh' }, 'Hecho este mes'), done), h('div', {}, h('p', { class: 'ag-colh' }, 'Lo que viene, sin que tengas que pedirlo'), next)));
 }
-renderPrompts(); renderWork(); renderGoal(); setView('zonas'); renderZones();
+function renderCompetitors() {
+  const max = Math.max(...COMPETITORS.map(c => c[1]));
+  clear($('ag-v-competidores')).append(h('div', { class: 'ag-pr-top' }, h('b', {}, '3.º de 4'), h('span', {}, 'en respuestas de IA que nombran a empresas como la tuya (de 40 respuestas medidas esta semana)')),
+    h('ul', { class: 'ag-rank' }, ...COMPETITORS.map(([name, n]) => h('li', { class: name === 'Tu empresa' ? 'me' : '' }, h('span', { class: 'rn' }, name), h('div', { class: 'rb', role: 'img', 'aria-label': `${name}: ${n} de 40 respuestas` }, h('i', { style: `width:${(n / max) * 100}%` })), h('b', {}, `${n} / 40`)))),
+    h('p', { class: 'ag-note' }, 'Objetivo del plan: pasar al primer puesto en las zonas prioritarias. Los competidores se miden señal por señal en el plan Dominio.'));
+}
+function renderReports() {
+  clear($('ag-v-informes')).append(h('ul', { class: 'ag-work ag-reports' }, ...REPORTS.map(([when, big, note], i) => h('li', {}, s('svg', { viewBox: '0 0 16 16', width: 18, height: 18, 'aria-hidden': 'true' }, s('path', { d: 'M4 2h6l3 3v9H4zM10 2v3h3', fill: 'none', stroke: '#2563EB', 'stroke-width': 1.5, 'stroke-linejoin': 'round' })), h('div', {}, h('b', {}, when), h('span', {}, `${big}. ${note}`)), i === 0 ? h('em', { class: 'new' }, 'Nuevo') : null))));
+}
+renderPrompts(); renderWork(); renderCompetitors(); renderReports(); renderGoal(); setView('zonas'); renderZones();
 
 /* ------------------------------------------------------------------ header, FAQ, pricing switch, sticky call button */
 const header = document.querySelector('.site-header');
