@@ -76,6 +76,6 @@ img.lg { object-fit: cover; }
 .ag-proof { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0 0; font-size: 14px; color: #3A4256; }
 .ag-proof b { color: #0A0F1F; font-weight: 650; }
 .ag-proof svg { flex: none; }
-.start-pill .globe-ic { flex: none; filter: drop-shadow(0 2px 4px rgba(37,99,235,.35)); }
+.start-pill .globe-ic { flex: none; }
 @keyframes gi-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .globe-ic { animation: none; } }
