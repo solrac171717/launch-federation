@@ -19,7 +19,7 @@ check('landing.js'); check('login.js');
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
-for (const p of ['index.html', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'compare.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
+for (const p of ['index.html', 'activos.html', 'agencia.css', 'agencia.js', 'app.html', 'login.html', 'login.css', 'login.js', 'privacy.html', 'terms.html', 'share.html', 'heir.html', 'welcome.html', 'legal.css', 'compare.css', 'landing.css', 'landing.js', 'app.css', 'robots.txt', 'src', 'assets', 'api', 'supabase']) {
   await cp(p, `dist/${p}`, { recursive: true });
 }
 
@@ -45,18 +45,33 @@ const jsonLd = (html, site) => {
   return `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replaceAll('</', '<\/')}</script>`;
 };
 
+// The home is the agency page (Spanish). Plans, FAQ and the organization are read from the page itself, so they cannot drift from what visitors see.
+const agencyLd = (html, site) => {
+  const faq = [...html.matchAll(/<button[^>]*class="faq-q"[^>]*><span>(.*?)<\/span>[\s\S]*?<div class="faq-in"><p>([\s\S]*?)<\/p>/g)].map(m => ({ '@type': 'Question', name: plain(m[1]), acceptedAnswer: { '@type': 'Answer', text: plain(m[2]) } }));
+  const plans = [...html.matchAll(/<article class="ag-plan[^"]*" data-month="(\d+)">[\s\S]*?<h3>(.*?)<\/h3>/g)].map(m => ({ '@type': 'Offer', name: plain(m[2]), price: Number(m[1]).toFixed(2), priceCurrency: 'EUR', priceSpecification: { '@type': 'UnitPriceSpecification', price: Number(m[1]).toFixed(2), priceCurrency: 'EUR', billingDuration: 'P1M' } }));
+  const graph = [
+    { '@type': 'ProfessionalService', '@id': `${site}/#org`, name: 'Owned Map', url: `${site}/`, logo: `${site}/assets/logo-o.png`, email: 'support@ownedmap.com', description: 'Agencia de SEO con IA (AEO y GEO) en español: visibilidad en ChatGPT, Perplexity, Gemini y Google.', serviceType: 'Answer Engine Optimization', makesOffer: plans },
+    { '@type': 'WebSite', '@id': `${site}/#website`, url: `${site}/`, name: 'Owned Map', inLanguage: 'es-ES', publisher: { '@id': `${site}/#org` } },
+  ];
+  if (faq.length) graph.push({ '@type': 'FAQPage', '@id': `${site}/#faq`, mainEntity: faq });
+  return `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replaceAll('</', '<\/')}</script>`;
+};
+
 // pages search engines may index; everything else is noindex and left out of the sitemap
-const INDEXABLE = ['index.html', 'privacy.html', 'terms.html'];
+const INDEXABLE = ['index.html', 'activos.html', 'privacy.html', 'terms.html'];
 for (const page of INDEXABLE) {
   let html = await readFile(`dist/${page}`, 'utf8');
   if (site) {
     html = html.replaceAll('%SITE_URL%', site);
-    if (page === 'index.html') html = html.replace('<!--jsonld-->', jsonLd(html, site));
+    if (page === 'index.html') html = html.replace('<!--jsonld-->', agencyLd(html, site));
+    if (page === 'activos.html') html = html.replace('<!--jsonld-->', jsonLd(html, site));
   } else {
     html = html.replace(/<!--site-url:start-->[\s\S]*?<!--site-url:end-->\n?/, '').replace('<!--jsonld-->\n', '');
   }
   await writeFile(`dist/${page}`, html);
 }
+// Where visitors book the strategy call: BOOKING_URL (Cal.com, Calendly...) or, until it is set, an email.
+{ const book = process.env.BOOKING_URL || 'mailto:support@ownedmap.com?subject=Llamada%20estrat%C3%A9gica%20AEO'; const html = await readFile('dist/index.html', 'utf8'); await writeFile('dist/index.html', html.replaceAll('%BOOKING_URL%', book)); }
 // The comparison pages (content/compare.mjs) become static pages, and the inventory template is made from the same columns the app imports.
 await mkdir('dist/compare', { recursive: true }); await mkdir('dist/solutions', { recursive: true }); await mkdir('dist/guides', { recursive: true }); await mkdir('dist/downloads', { recursive: true });
 for (const g of renderAll(site)) await writeFile(`dist${g.file}`, g.html);
@@ -65,7 +80,7 @@ await writeFile('dist/downloads/schedule-of-real-estate-owned-template.csv', SRE
 
 if (site) {
   const today = new Date().toISOString().slice(0, 10);
-  const urls = [...INDEXABLE.map(p => `/${p === 'index.html' ? '' : p}`), ...compareUrls()].map(path => `<url><loc>${site}${path}</loc><lastmod>${today}</lastmod></url>`).join('');
+  const urls = [...INDEXABLE.map(p => `/${p === 'index.html' ? '' : p === 'activos.html' ? 'activos' : p}`), ...compareUrls()].map(path => `<url><loc>${site}${path}</loc><lastmod>${today}</lastmod></url>`).join('');
   await writeFile('dist/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>\n`);
   await writeFile('dist/robots.txt', (await readFile('robots.txt', 'utf8')) + `Sitemap: ${site}/sitemap.xml\n`);
   await writeFile('dist/llms.txt', (await readFile('llms.txt', 'utf8')).replaceAll('%SITE_URL%', site));
@@ -83,7 +98,7 @@ export const CONFIG = ${JSON.stringify({ supabaseUrl: sbUrl, supabaseAnonKey: sb
 } else console.warn('SUPABASE_URL / SUPABASE_ANON_KEY not set: the app will save assets on the visitor device only.');
 
 const generated = renderAll(site).map(g => g.file.slice(1));
-for (const page of ['index.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html', ...generated]) {
+for (const page of ['index.html', 'activos.html', 'app.html', 'login.html', 'share.html', 'heir.html', 'welcome.html', 'privacy.html', 'terms.html', ...generated]) {
   const src = await readFile(`dist/${page}`, 'utf8');
   const missing = [...src.matchAll(/(?:src|href)="(?!https?:|data:|#|mailto:)([^"?#]+)/g)].map(m => m[1]).filter(p => !p.startsWith('/api/') && !existsSync(`dist/${p}`) && !existsSync(`dist/${p}.html`)); // /api/... is answered by a serverless function, not a file
   if (missing.length) { console.error(`Missing files referenced by ${page}:`, missing); process.exit(1); }

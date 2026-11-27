@@ -25,6 +25,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/activos", "destination": "/activos.html" },
     { "source": "/compare/:slug", "destination": "/compare/:slug.html" },
     { "source": "/solutions/:slug", "destination": "/solutions/:slug.html" },
     { "source": "/guides/:slug", "destination": "/guides/:slug.html" }
