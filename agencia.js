@@ -239,7 +239,7 @@ if (!reduceMotion && 'IntersectionObserver' in window) {
 
 /* ------------------------------------------------------------------ landing visuals: animate only while on screen */
 {
-  const arts = [...document.querySelectorAll('.how-art, .ag-g30')];
+  const arts = [...document.querySelectorAll('.how-art, .tp-card')];
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(es => { for (const e of es) e.target.classList.toggle('live', e.isIntersecting); }, { threshold: .25 });
     arts.forEach(a => io.observe(a));
