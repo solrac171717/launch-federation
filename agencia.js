@@ -219,17 +219,33 @@ for (const item of items) {
   });
 }
 
-const buttons = [...document.querySelectorAll('.ag-per-b')];
+const buttons = [...document.querySelectorAll('.ag-per-b')], perBox = document.querySelector('.ag-per');
+// los números se cuentan hasta el nuevo valor con una curva suave, y el texto de facturación se desliza al cambiar
+const tween = (el, to, base) => {
+  const from = el._v ?? base; el._v = to; cancelAnimationFrame(el._raf);
+  if (reduceMotion || from === to) { el.textContent = eur(to); return; }
+  const t0 = performance.now(), ms = 800;
+  const step = now => { const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 4); el.textContent = eur(from + (to - from) * e); if (k < 1) el._raf = requestAnimationFrame(step); };
+  el._raf = requestAnimationFrame(step);
+};
+const swapText = (el, text) => {
+  if (el.textContent === text) return; if (reduceMotion) { el.textContent = text; return; }
+  clearTimeout(el._t); el.classList.add('out'); el._t = setTimeout(() => { el.textContent = text; el.classList.remove('out'); }, 180);
+};
+const placePill = () => { const on = buttons.find(b => b.classList.contains('on')); if (on && perBox) { perBox.style.setProperty('--x', on.offsetLeft + 'px'); perBox.style.setProperty('--w', on.offsetWidth + 'px'); } };
 const paint = per => {
   for (const b of buttons) { const on = b.dataset.per === per; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
+  placePill();
   for (const plan of document.querySelectorAll('.ag-plan')) {
     const month = Number(plan.dataset.month), price = plan.querySelector('[data-price]'), bill = plan.querySelector('[data-bill]');
     if (per === 'year') {
       const perMonth = month * (1 - OFF);
-      price.textContent = eur(perMonth); bill.textContent = `${eur(perMonth * 12)} al año, pagados por adelantado (antes ${eur(month * 12)})`;
-    } else { price.textContent = eur(month); bill.textContent = 'Facturación mensual'; }
+      tween(price, perMonth, month); swapText(bill, `${eur(perMonth * 12)} al año, pagados por adelantado (antes ${eur(month * 12)})`);
+    } else { tween(price, month, month); swapText(bill, 'Facturación mensual'); }
   }
+  perBox?.classList.toggle('yr', per === 'year');
 };
+placePill(); document.fonts?.ready.then(placePill); addEventListener('resize', placePill);
 for (const b of buttons) b.addEventListener('click', () => paint(b.dataset.per));
 
 if (!reduceMotion && 'IntersectionObserver' in window) {

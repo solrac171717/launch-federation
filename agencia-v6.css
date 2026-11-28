@@ -157,3 +157,11 @@ html:not(.js) .cg-u, html:not(.js) .cg-a { opacity: 1; transform: none; } html:n
 .ag h2.guarantee .auto { color: #6B7488; font-weight: 600; }
 .ag h1 { font-size: clamp(2rem, 3.3vw + .7rem, 3.7rem); }
 .ag h1 { font-size: clamp(2.3rem, 4.4vw + .7rem, 4.9rem); line-height: 1.04; }
+
+/* interruptor mensual/anual con píldora deslizante y números que cuentan */
+.ag-per { position: relative; }
+.ag-per::before { content: ''; position: absolute; top: 4px; bottom: 4px; left: 0; width: var(--w, 0); transform: translateX(var(--x, 0)); border-radius: 999px; background: #fff; box-shadow: 0 2px 6px rgba(20,40,90,.2); transition: transform .5s cubic-bezier(.22,1,.36,1), width .5s cubic-bezier(.22,1,.36,1); }
+.ag-per .ag-per-b { position: relative; z-index: 1; transition: color .3s; } .ag-per .ag-per-b.on { background: none; box-shadow: none; }
+.ag-price b { font-variant-numeric: tabular-nums; }
+.ag-bill { transition: opacity .18s ease, transform .18s ease; } .ag-bill.out { opacity: 0; transform: translateY(5px); }
+@media (prefers-reduced-motion: reduce) { .ag-per::before, .ag-bill { transition: none; } }
