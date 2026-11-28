@@ -172,3 +172,8 @@ html:not(.js) .cg-u, html:not(.js) .cg-a { opacity: 1; transform: none; } html:n
 .ag h1 .rot .rot-i { left: .3em; top: 0; bottom: 0; height: auto; align-items: center; gap: .22em; color: #0B1736; }
 .ag h1 .rot .rot-i .ai-mark { width: .7em; height: .7em; }
 .ag h1 .rot .rot-i { font-size: .9em; }
+
+/* herramientas sin recuadro y con logos más grandes */
+.ag h1 .rot { padding: 0; border: 0; background: none; box-shadow: none; border-radius: 0; height: 1.12em; margin-left: .14em; vertical-align: -.2em; }
+.ag h1 .rot .rot-i { left: 0; font-size: 1em; gap: .2em; }
+.ag h1 .rot .rot-i .ai-mark { width: .98em; height: .98em; }
