@@ -228,20 +228,16 @@ const tween = (el, to, base) => {
   const step = now => { const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 4); el.textContent = eur(from + (to - from) * e); if (k < 1) el._raf = requestAnimationFrame(step); };
   el._raf = requestAnimationFrame(step);
 };
-const swapText = (el, text) => {
-  if (el.textContent === text) return; if (reduceMotion) { el.textContent = text; return; }
-  clearTimeout(el._t); el.classList.add('out'); el._t = setTimeout(() => { el.textContent = text; el.classList.remove('out'); }, 180);
-};
 const placePill = () => { const on = buttons.find(b => b.classList.contains('on')); if (on && perBox) { perBox.style.setProperty('--x', on.offsetLeft + 'px'); perBox.style.setProperty('--w', on.offsetWidth + 'px'); } };
 const paint = per => {
   for (const b of buttons) { const on = b.dataset.per === per; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
   placePill();
   for (const plan of document.querySelectorAll('.ag-plan')) {
-    const month = Number(plan.dataset.month), price = plan.querySelector('[data-price]'), bill = plan.querySelector('[data-bill]');
+    const month = Number(plan.dataset.month), price = plan.querySelector('[data-price]');
     if (per === 'year') {
       const perMonth = month * (1 - OFF);
-      tween(price, perMonth, month); swapText(bill, `${eur(perMonth * 12)} al año, pagados por adelantado (antes ${eur(month * 12)})`);
-    } else { tween(price, month, month); swapText(bill, 'Facturación mensual'); }
+      tween(price, perMonth, month);
+    } else { tween(price, month, month); }
   }
   perBox?.classList.toggle('yr', per === 'year');
 };
