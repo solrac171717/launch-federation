@@ -115,3 +115,10 @@ html:not(.js) .cg-u, html:not(.js) .cg-a { opacity: 1; transform: none; } html:n
 .panel-lead b { color: var(--navy); font-weight: 650; }
 .btn.btn-light { background: #fff; color: var(--ink); box-shadow: 0 22px 44px -20px rgba(0,0,0,.65); transition: transform .2s, box-shadow .2s; } .btn.btn-light:hover { transform: translateY(-2px); box-shadow: 0 28px 50px -20px rgba(0,0,0,.75); }
 .cg-msg p, .cg-u p { color: #ECECF1; }
+
+/* cierre centrado */
+.fin { text-align: center; background: radial-gradient(55% 70% at 50% 100%, rgba(37,99,235,.55), transparent 65%), radial-gradient(40% 50% at 50% 0%, rgba(37,99,235,.22), transparent 60%), var(--night); }
+.fin::before { -webkit-mask-image: radial-gradient(70% 90% at 50% 60%, #000, transparent 80%); mask-image: radial-gradient(70% 90% at 50% 60%, #000, transparent 80%); }
+.fin-grid { grid-template-columns: 1fr; justify-items: center; gap: clamp(28px, 4vw, 44px); }
+.fin h2 { max-width: 17ch; margin-inline: auto; font-size: clamp(2.5rem, 5.2vw + .8rem, 5.6rem); font-weight: 650; line-height: .98; letter-spacing: -.055em; background: linear-gradient(180deg, #fff 35%, #9FBEF5); -webkit-background-clip: text; background-clip: text; color: transparent; text-wrap: balance; }
+.fin-act { justify-items: center; gap: 16px; } .fin-act p { font-size: 14.5px; }
