@@ -41,16 +41,16 @@ for (const el of document.querySelectorAll('[data-logo]')) el.prepend(mark(el.da
 ICON.cited = 'M5 12l5 5 9-10';
 ICON.grow = 'M12 19V5M6 11l6-6 6 6';
 const ZONES = [
-  { id: 'madrid', name: 'Madrid', country: 'ES', lat: 40.42, lon: -3.7, category: 'cited', imp: 48200, clk: 1310, cit: 14 },
-  { id: 'barcelona', name: 'Barcelona', country: 'ES', lat: 41.39, lon: 2.17, category: 'cited', imp: 31900, clk: 920, cit: 9 },
-  { id: 'valencia', name: 'Valencia', country: 'ES', lat: 39.47, lon: -0.38, category: 'grow', imp: 9800, clk: 240, cit: 2 },
-  { id: 'sevilla', name: 'Sevilla', country: 'ES', lat: 37.39, lon: -5.98, category: 'grow', imp: 6100, clk: 150, cit: 1 },
-  { id: 'cdmx', name: 'Ciudad de México', country: 'MX', lat: 19.43, lon: -99.13, category: 'cited', imp: 22400, clk: 610, cit: 6 },
-  { id: 'guadalajara', name: 'Guadalajara', country: 'MX', lat: 20.67, lon: -103.35, category: 'grow', imp: 8700, clk: 210, cit: 2 },
-  { id: 'monterrey', name: 'Monterrey', country: 'MX', lat: 25.69, lon: -100.32, category: 'cited', imp: 14300, clk: 380, cit: 4 },
-  { id: 'miami', name: 'Miami', country: 'US', lat: 25.76, lon: -80.19, category: 'cited', imp: 11800, clk: 330, cit: 5 },
-  { id: 'losangeles', name: 'Los Ángeles', country: 'US', lat: 34.05, lon: -118.24, category: 'grow', imp: 7300, clk: 190, cit: 2 },
-  { id: 'houston', name: 'Houston', country: 'US', lat: 29.76, lon: -95.37, category: 'grow', imp: 5200, clk: 120, cit: 1 },
+  { id: 'madrid', name: 'Madrid', country: 'ES', lat: 40.42, lon: -3.7, category: 'cited', imp: 48200, clk: 1310, cit: 259 },
+  { id: 'barcelona', name: 'Barcelona', country: 'ES', lat: 41.39, lon: 2.17, category: 'cited', imp: 31900, clk: 920, cit: 165 },
+  { id: 'valencia', name: 'Valencia', country: 'ES', lat: 39.47, lon: -0.38, category: 'grow', imp: 9800, clk: 240, cit: 37 },
+  { id: 'sevilla', name: 'Sevilla', country: 'ES', lat: 37.39, lon: -5.98, category: 'grow', imp: 6100, clk: 150, cit: 18 },
+  { id: 'cdmx', name: 'Ciudad de México', country: 'MX', lat: 19.43, lon: -99.13, category: 'cited', imp: 22400, clk: 610, cit: 110 },
+  { id: 'guadalajara', name: 'Guadalajara', country: 'MX', lat: 20.67, lon: -103.35, category: 'grow', imp: 8700, clk: 210, cit: 37 },
+  { id: 'monterrey', name: 'Monterrey', country: 'MX', lat: 25.69, lon: -100.32, category: 'cited', imp: 14300, clk: 380, cit: 73 },
+  { id: 'miami', name: 'Miami', country: 'US', lat: 25.76, lon: -80.19, category: 'cited', imp: 11800, clk: 330, cit: 92 },
+  { id: 'losangeles', name: 'Los Ángeles', country: 'US', lat: 34.05, lon: -118.24, category: 'grow', imp: 7300, clk: 190, cit: 37 },
+  { id: 'houston', name: 'Houston', country: 'US', lat: 29.76, lon: -95.37, category: 'grow', imp: 5200, clk: 120, cit: 18 },
 ].map(z => ({ ...z, value: z.imp, place: z.name }));
 const COUNTRY_ES = { ES: 'España', MX: 'México', US: 'Estados Unidos' };
 const WEEKLY = [1, 1, 2, 2, 3, 3, 4, 5, 6, 6, 7, 6]; // citations per week in the sample (sums to the zone total)
