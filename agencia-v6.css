@@ -165,3 +165,10 @@ html:not(.js) .cg-u, html:not(.js) .cg-a { opacity: 1; transform: none; } html:n
 .ag-price b { font-variant-numeric: tabular-nums; }
 .ag-bill { transition: opacity .18s ease, transform .18s ease; } .ag-bill.out { opacity: 0; transform: translateY(5px); }
 @media (prefers-reduced-motion: reduce) { .ag-per::before, .ag-bill { transition: none; } }
+
+/* titular tipo SaaS y selector de herramienta en una pieza cuadrada */
+.ag h1 { font-family: 'Geist', 'Inter', system-ui, sans-serif; font-weight: 600; letter-spacing: -.04em; line-height: 1.04; font-feature-settings: 'ss01', 'cv11'; }
+.ag h1 .rot { box-sizing: border-box; height: 1.1em; padding: 0 .3em; margin: 0 0 0 .1em; vertical-align: -.17em; border: 1.5px solid #CFE0FB; border-radius: .3em; background: linear-gradient(180deg, #fff, #EEF4FF); box-shadow: 0 .18em .5em -.22em rgba(37,99,235,.55), inset 0 1px 0 #fff; }
+.ag h1 .rot .rot-i { left: .3em; top: 0; bottom: 0; height: auto; align-items: center; gap: .22em; color: #0B1736; }
+.ag h1 .rot .rot-i .ai-mark { width: .7em; height: .7em; }
+.ag h1 .rot .rot-i { font-size: .9em; }

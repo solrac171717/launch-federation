@@ -26,7 +26,7 @@ for (const el of document.querySelectorAll('[data-logo]')) el.prepend(mark(el.da
   const rot = document.querySelector('.rot');
   const items = [...rot.querySelectorAll('.rot-i')];
   let i = 0;
-  const fit = () => { rot.style.width = items[i].getBoundingClientRect().width + 'px'; };
+  const fit = () => { const cs = getComputedStyle(rot), extra = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth); rot.style.width = (items[i].getBoundingClientRect().width + extra) + 'px'; };
   fit(); document.fonts?.ready.then(fit); addEventListener('resize', fit);
   if (!reduceMotion) {
     setInterval(() => {
