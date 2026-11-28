@@ -3,7 +3,6 @@
 .kick { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 22px; font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .16em; text-transform: uppercase; color: #5A6C93; }
 .kick span { padding: 5px 8px; border: 1px solid currentColor; border-radius: 7px; color: #2563EB; letter-spacing: .08em; }
 .kick.on-dark { color: #9DB6E4; } .kick.on-dark span { color: #7DB4FF; }
-.btn.btn-light { background: #fff; color: var(--ink); box-shadow: 0 22px 44px -20px rgba(0,0,0,.65); transition: transform .2s, box-shadow .2s; } .btn.btn-light:hover { transform: translateY(-2px); box-shadow: 0 28px 50px -20px rgba(0,0,0,.75); }
 .grid-bg { background-image: linear-gradient(rgba(125,160,230,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(125,160,230,.1) 1px, transparent 1px); background-size: 64px 64px; }
 
 /* 01 transparencia */
@@ -43,17 +42,6 @@
 .gr-c h3 { margin: 0 0 10px; font-size: 1.45rem; letter-spacing: -.03em; color: var(--ink); } .gr-c p:last-child { margin: 0; font-size: 15.5px; line-height: 1.6; color: #4A5878; }
 
 /* 04 para quién: bento asimétrico */
-.wq { padding: clamp(80px, 10vw, 150px) 0; background: #F4F8FF; }
-.wq-head { max-width: 760px; margin-bottom: clamp(32px, 5vw, 56px); }
-.wq-head h2 { margin: 0 0 18px; font-size: clamp(2.2rem, 3.2vw + 1rem, 4rem); line-height: 1.03; letter-spacing: -.045em; color: var(--ink); }
-.wq-lead { margin: 0; max-width: 46ch; font-size: 1.1rem; line-height: 1.6; color: #4A5878; }
-.bento { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
-.bt { position: relative; display: flex; flex-direction: column; min-height: 310px; overflow: hidden; border-radius: 30px; }
-.bt .how-art { flex: 1; min-height: 232px; height: auto; padding: 0; border: 0; border-radius: 0; background: transparent; display: flex; align-items: center; justify-content: center; }
-.bt h3 { margin: 0; padding: 0 28px 26px; font-size: 1.5rem; letter-spacing: -.035em; }
-.bt-a { grid-column: span 4; } .bt-b { grid-column: span 2; } .bt-c { grid-column: span 2; } .bt-d { grid-column: span 4; }
-.bt.light { background: linear-gradient(160deg, #EEF4FF, #D6E5FF); border: 1px solid #CADCF8; } .bt.light h3 { color: var(--ink); }
-.bt.dark { background: radial-gradient(90% 80% at 80% 0%, rgba(59,130,246,.45), transparent 60%), var(--night); border: 1px solid #1B2D63; } .bt.dark h3 { color: #fff; }
 
 /* 06 preguntas: lista limpia con líneas */
 .faq { background: #fff; }
@@ -86,9 +74,9 @@
   .tp-grid, .gr-head, .fin-grid { grid-template-columns: 1fr; }
   .ft-top { grid-template-columns: 1fr 1fr; } .ft-brand { grid-column: 1 / -1; }
   .gr-list { grid-template-columns: 1fr; border-top: 0; } .gr-c, .gr-c:first-child, .gr-c:last-child { padding: 24px 0; border-left: 0; border-top: 2px solid var(--ink); }
-  .bt-a, .bt-d { grid-column: 1 / -1; } .bt-b, .bt-c { grid-column: span 3; }
+ 
 }
-@media (max-width: 700px) { .bt-b, .bt-c { grid-column: 1 / -1; } .tp-copy h2 { max-width: none; } }
+@media (max-width: 700px) { .tp-copy h2 { max-width: none; } }
 @media (prefers-reduced-motion: reduce) { .tp-card.live * { animation: none !important; } }
 @media (max-width: 700px) { .ft { padding-bottom: 84px; } .fin-grid { grid-template-columns: 1fr; } }
 
@@ -118,12 +106,12 @@
 .cg-typing { display: inline-flex; gap: 5px; padding: 6px 0; margin: 0 !important; } .cg-typing[hidden] { display: none; } .cg-typing i { width: 8px; height: 8px; border-radius: 50%; background: #9AA3B8; animation: cg-dot 1.2s ease-in-out infinite; } .cg-typing i:nth-child(2) { animation-delay: .15s; } .cg-typing i:nth-child(3) { animation-delay: .3s; }
 @keyframes cg-dot { 0%, 100% { opacity: .3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
 .cg-msg .typing::after { content: ''; display: inline-block; width: 8px; height: 15px; margin-left: 2px; vertical-align: -2px; border-radius: 2px; background: #ECECF1; animation: cg-caret 1s steps(2) infinite; } @keyframes cg-caret { 50% { opacity: 0; } }
-.cg-in { display: flex; align-items: center; justify-content: space-between; margin: 8px 16px 16px; padding: 12px 14px 12px 18px; border-radius: 999px; background: #2E323C; color: #8B94A8; font-size: 14px; } .cg-in i { width: 28px; height: 28px; border-radius: 50%; background: #ECECF1; }
-.cg-miss { display: flex; align-items: center; gap: 12px; width: fit-content; max-width: calc(100% - 16px); margin: -22px 0 0 auto; position: relative; z-index: 2; padding: 12px 18px 12px 12px; border-radius: 16px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 650; line-height: 1.35; box-shadow: 0 26px 50px -18px rgba(0,0,0,.7); opacity: 0; transform: translateY(14px) scale(.98); transition: opacity .5s ease, transform .5s ease; }
-.cg-miss.on { opacity: 1; transform: none; } .cg-miss span { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: 50%; background: #2563EB; color: #fff; font-size: 16px; font-weight: 800; }
-.ng-cap { margin: 14px 4px 0; text-align: right; font: 600 10.5px ui-monospace, Menlo, Consolas, monospace; letter-spacing: .14em; text-transform: uppercase; color: #5C75A8; }
-html:not(.js) .cg-u, html:not(.js) .cg-a, html:not(.js) .cg-miss { opacity: 1; transform: none; } html:not(.js) .cg-typing { display: none; }
-@media (max-width: 560px) { .cg-body { padding: 18px 14px 8px; min-height: 440px; } .cg-miss { margin-top: -16px; } }
+html:not(.js) .cg-u, html:not(.js) .cg-a { opacity: 1; transform: none; } html:not(.js) .cg-typing { display: none; }
+@media (max-width: 560px) { .cg-body { padding: 18px 14px 8px; min-height: 440px; } }
 @media (prefers-reduced-motion: reduce) { .cg-typing i, .cg-msg .typing::after { animation: none; } }
 .cg { text-align: left; } .cg-bar { width: 100%; box-sizing: border-box; }
 .cg-msg p, .cg-u p { text-align: left; }
+.panel-lead { display: block; font-size: clamp(1rem, .5vw + .95rem, 1.2rem); color: var(--text-2); }
+.panel-lead b { color: var(--navy); font-weight: 650; }
+.btn.btn-light { background: #fff; color: var(--ink); box-shadow: 0 22px 44px -20px rgba(0,0,0,.65); transition: transform .2s, box-shadow .2s; } .btn.btn-light:hover { transform: translateY(-2px); box-shadow: 0 28px 50px -20px rgba(0,0,0,.75); }
+.cg-msg p, .cg-u p { color: #ECECF1; }

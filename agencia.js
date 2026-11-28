@@ -251,14 +251,14 @@ if (!reduceMotion && 'IntersectionObserver' in window) {
   const cg = $('cg');
   if (cg) {
     for (const svg of cg.querySelectorAll('svg[data-chatgpt]')) svg.append(s('path', { d: AI_LOGOS.chatgpt, fill: 'currentColor' }));
-    const miss = $('cg-miss'), user = cg.querySelector('.cg-u'), ans = cg.querySelector('.cg-a'), typing = cg.querySelector('.cg-typing');
+    const user = cg.querySelector('.cg-u'), ans = cg.querySelector('.cg-a'), typing = cg.querySelector('.cg-typing');
     const nodes = [...cg.querySelectorAll('[data-type]')], full = nodes.map(n => n.textContent);
     let token = 0, visible = false;
-    const showAll = () => { nodes.forEach((n, i) => { n.textContent = full[i]; }); user.classList.add('on'); ans.classList.add('on'); typing.hidden = true; cg.classList.add('done'); miss.classList.add('on'); };
+    const showAll = () => { nodes.forEach((n, i) => { n.textContent = full[i]; }); user.classList.add('on'); ans.classList.add('on'); typing.hidden = true; cg.classList.add('done'); };
     const wait = ms => new Promise(r => setTimeout(r, ms));
     async function play() {
       const me = ++token, alive = () => me === token && visible;
-      cg.classList.remove('done'); miss.classList.remove('on'); user.classList.remove('on'); ans.classList.remove('on'); typing.hidden = false; nodes.forEach(n => { n.textContent = ''; n.classList.remove('typing'); });
+      cg.classList.remove('done'); user.classList.remove('on'); ans.classList.remove('on'); typing.hidden = false; nodes.forEach(n => { n.textContent = ''; n.classList.remove('typing'); });
       await wait(500); if (!alive()) return; user.classList.add('on');
       await wait(900); if (!alive()) return; ans.classList.add('on');
       await wait(1300); if (!alive()) return; typing.hidden = true;
@@ -267,8 +267,8 @@ if (!reduceMotion && 'IntersectionObserver' in window) {
         for (let k = 1; k <= full[i].length; k += 2) { if (!alive()) return; n.textContent = full[i].slice(0, k); await wait(14); }
         n.textContent = full[i]; n.classList.remove('typing'); await wait(i === 0 ? 350 : 160);
       }
-      if (!alive()) return; cg.classList.add('done'); await wait(500); if (!alive()) return; miss.classList.add('on');
-      await wait(7000); if (alive()) play();
+      if (!alive()) return; cg.classList.add('done');
+      await wait(8000); if (alive()) play();
     }
     if (reduceMotion || !('IntersectionObserver' in window)) showAll();
     else new IntersectionObserver(es => { for (const e of es) { visible = e.isIntersecting; if (visible) play(); else token++; } }, { threshold: .3 }).observe(cg);
