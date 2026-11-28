@@ -149,3 +149,9 @@ html:not(.js) .cg-u, html:not(.js) .cg-a { opacity: 1; transform: none; } html:n
 .ft-col h3 { color: #6B7DA3; } .ft-col a { color: #33415F; } .ft-col a:hover { color: #2563EB; }
 .ft-word { background: linear-gradient(180deg, rgba(37,99,235,.28), rgba(37,99,235,0) 85%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ft-bot { border-top-color: #DCE6F8; color: #6B7DA3; }
+
+/* titular corto y garantía en gris sin recuadro */
+.ag h1 { font-size: clamp(2.1rem, 3.9vw + .7rem, 4.4rem); }
+.ag h1 .h1l:first-child { font-size: 1em; }
+.ag h2.guarantee { background: none; border: 0; box-shadow: none; padding: 0; margin-top: 18px; max-width: 760px; color: #6B7488; }
+.ag h2.guarantee .auto { color: #6B7488; font-weight: 600; }
