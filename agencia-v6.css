@@ -122,3 +122,4 @@ html:not(.js) .cg-u, html:not(.js) .cg-a { opacity: 1; transform: none; } html:n
 .fin-grid { grid-template-columns: 1fr; justify-items: center; gap: clamp(28px, 4vw, 44px); }
 .fin h2 { max-width: 17ch; margin-inline: auto; font-size: clamp(2.5rem, 5.2vw + .8rem, 5.6rem); font-weight: 650; line-height: .98; letter-spacing: -.055em; background: linear-gradient(180deg, #fff 35%, #9FBEF5); -webkit-background-clip: text; background-clip: text; color: transparent; text-wrap: balance; }
 .fin-act { justify-items: center; gap: 16px; } .fin-act p { font-size: 14.5px; }
+.ng-lead { max-width: 56ch; }
