@@ -156,3 +156,4 @@ html:not(.js) .cg-u, html:not(.js) .cg-a { opacity: 1; transform: none; } html:n
 .ag h2.guarantee { background: none; border: 0; box-shadow: none; padding: 0; margin-top: 18px; max-width: 760px; color: #6B7488; }
 .ag h2.guarantee .auto { color: #6B7488; font-weight: 600; }
 .ag h1 { font-size: clamp(2rem, 3.3vw + .7rem, 3.7rem); }
+.ag h1 { font-size: clamp(2.3rem, 4.4vw + .7rem, 4.9rem); line-height: 1.04; }
